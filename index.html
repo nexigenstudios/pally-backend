@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c2a">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Santhom Stores – Admin</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -175,6 +177,44 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
 @media(max-width:380px){
   #quick-room-delivery-label{max-width:84px;overflow:hidden;text-overflow:ellipsis;}
 }
+
+/* ===== BILLING + MOBILE POLISH (v2) ===== */
+#bill-mobile-bar{display:none;}
+.bill-save-btn:disabled,.bill-print-btn:disabled{cursor:wait;}
+@media(max-width:768px){
+  .stat-card{padding:14px;}
+  #page-billing{padding-bottom:96px;}
+  /* sticky checkout bar: total + Save + Save & Print always in thumb reach */
+  body.on-billing #bill-mobile-bar.has-items{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:44;align-items:center;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #e5e7eb;box-shadow:0 -6px 20px rgba(0,0,0,.1);}
+  #bill-mobile-bar .bmb-info{flex:1;min-width:0;}
+  #bill-mobile-bar .bmb-count{font-size:11px;font-weight:600;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #bill-mobile-bar .bmb-total{font-size:19px;font-weight:800;color:#111827;line-height:1.15;}
+  #bill-mobile-bar button{min-height:46px;padding:0 14px;border:none;border-radius:12px;font-size:13px;font-weight:700;color:#fff;white-space:nowrap;}
+  #bill-mobile-bar .bill-save-btn{background:#2d8a45;}
+  #bill-mobile-bar .bill-print-btn{background:#1a5c2a;}
+  body.on-billing:has(#bill-mobile-bar.has-items) #toast{bottom:calc(86px + env(safe-area-inset-bottom));}
+  .bill-actions .bill-save-btn,.bill-actions .bill-print-btn{display:none !important;}
+  /* tabs + clear button */
+  #page-billing > div:first-child{gap:8px;}
+  #bill-tab-pos,#bill-tab-invoice{flex:1;min-height:44px;}
+  /* thumb-sized controls in search + cart */
+  #bill-search-results,#bill-search-results-inv{max-height:280px !important;}
+  #bill-search-results button,#bill-search-results-inv button{min-height:40px;padding:8px 14px !important;font-size:13px !important;}
+  #bill-cart-items{max-height:none !important;}
+  #bill-cart-items button{width:38px !important;height:38px !important;font-size:18px !important;border-radius:9px !important;}
+  #bill-cart-items span{min-width:26px !important;font-size:14px !important;}
+  #bill-cart-items > div{padding:9px 10px !important;gap:10px !important;}
+  /* forms */
+  #bill-invoice-panel [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
+  #bill-discount-type{width:72px !important;}
+  /* tables-as-cards: give the id cell room for the walk-in tag */
+  table.data-table td .badge{white-space:nowrap;}
+}
+@media(max-width:480px){
+  #pages-wrapper{padding:10px !important;}
+  .date-chip{flex:1 1 auto;text-align:center;}
+  #bill-mobile-bar button{padding:0 11px;font-size:12px;}
+}
 </style>
 </head>
 <body class="bg-gray-100 overflow-hidden">
@@ -220,8 +260,6 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
       <div class="nav-item" onclick="navAdmin('categories')" id="nav-categories" data-page="categories"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">category</span><span class="nav-label">Categories</span></div>
       <div class="nav-item" onclick="navAdmin('purchases')" id="nav-purchases" data-page="purchases"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">shopping_cart</span><span class="nav-label">Purchases</span></div>
       <div class="nav-item" onclick="navAdmin('billing')" id="nav-billing" data-page="billing"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">point_of_sale</span><span class="nav-label">Billing</span></div>
-      <div class="nav-item" onclick="navAdmin('workers')" id="nav-workers" data-page="workers"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">badge</span><span class="nav-label">Staff</span></div>
-      <div class="nav-item" onclick="navAdmin('pickuppoints')" id="nav-pickuppoints" data-page="pickuppoints"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">storefront</span><span class="nav-label">Pickup Points</span></div>
       <div class="nav-item" onclick="navAdmin('customers')" id="nav-customers" data-page="customers"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">group</span><span class="nav-label">Customers</span></div>
       <div class="nav-item" onclick="navAdmin('analytics')" id="nav-analytics" data-page="analytics"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">bar_chart</span><span class="nav-label">Analytics</span></div>
       <div class="nav-item" onclick="navAdmin('promos')" id="nav-promos" data-page="promos"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">local_offer</span><span class="nav-label">Promo Codes</span></div>
@@ -360,27 +398,6 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
 </div>
 
 <!-- ===== WORKERS ===== -->
-<div class="page-content" id="page-workers">
-  <div id="workers-unassigned-banner" style="display:none;background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:12px 16px;margin-bottom:14px;align-items:center;gap:12px;flex-wrap:wrap;">
-    <span class="material-symbols-outlined ms" style="font-size:22px;color:#d97706;flex-shrink:0;">warning</span>
-    <div style="flex:1;min-width:200px;">
-      <div style="font-size:13px;font-weight:800;color:#92400e;" id="workers-unassigned-count">0 staff have no branch assigned</div>
-      <div style="font-size:11.5px;color:#b45309;margin-top:1px;">Reception workers without a branch won't appear in the Reception Assignment dropdown in Settings, and won't be visible to any branch admin.</div>
-    </div>
-    <button onclick="openBulkAssignWorkers()" class="btn" style="padding:8px 14px;background:#d97706;color:white;border:none;border-radius:8px;font-size:12.5px;font-weight:700;flex-shrink:0;">Bulk Assign Branch</button>
-  </div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-    <div style="position:relative;"><span class="material-symbols-outlined ms" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#9ca3af;">search</span><input id="worker-search" type="text" placeholder="Search workers..." oninput="filterWorkers()" class="input-f" style="padding-left:34px;width:240px;"></div>
-    <button onclick="openAddWorker()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 16px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:18px;">person_add</span>Add Worker</button>
-  </div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="worker-role-chips"></div>
-  <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
-    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Worker</th><th>Branch</th><th>Role</th><th>Phone</th><th>Salary</th><th>Join Date</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody id="workers-tbody"></tbody></table></div>
-    <div id="workers-empty" style="text-align:center;padding:40px;color:#9ca3af;display:none;"><span class="material-symbols-outlined ms" style="font-size:36px;display:block;margin-bottom:6px;">badge</span><div style="font-weight:700;">No workers added</div></div>
-  </div>
-</div>
-
-<!-- ===== HOSTELS ===== -->
 <div class="page-content" id="page-hostels">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
     <div>
@@ -398,23 +415,6 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
 </div>
 
 <!-- ===== PICKUP POINTS ===== -->
-<div class="page-content" id="page-pickuppoints">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-    <div>
-      <h2 style="font-size:15px;font-weight:700;">Pickup Points</h2>
-      <p style="font-size:12px;color:#6b7280;margin-top:2px;">Each point can have its own Reception login. Customers choose one when their order is pickup-only.</p>
-    </div>
-    <button onclick="openAddPickupPoint()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 16px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:18px;">add</span>Add Pickup Point</button>
-  </div>
-  <div id="pickuppoints-list" style="display:flex;flex-direction:column;gap:10px;"></div>
-  <div id="pickuppoints-empty" style="text-align:center;padding:48px;color:#9ca3af;display:none;background:white;border-radius:14px;border:1px solid #e5e7eb;">
-    <span class="material-symbols-outlined ms" style="font-size:40px;display:block;margin-bottom:8px;">storefront</span>
-    <div style="font-weight:700;font-size:14px;">No pickup points added yet</div>
-    <div style="font-size:12px;margin-top:4px;">Without any, the single Pickup Location text from Settings is used for all pickup orders</div>
-  </div>
-</div>
-
-<!-- ===== CUSTOMERS ===== -->
 <div class="page-content" id="page-customers">
   <div style="position:relative;max-width:300px;margin-bottom:14px;"><span class="material-symbols-outlined ms" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#9ca3af;">search</span><input id="customer-search" type="text" placeholder="Search customers..." oninput="filterCustomers()" class="input-f" style="padding-left:34px;"></div>
   <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
@@ -437,7 +437,7 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
 
 <!-- ===== ANALYTICS ===== -->
 <div class="page-content" id="page-analytics">
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:14px;">
     <div class="stat-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">Revenue vs Cost vs Profit</h3><div id="an-rev-profit"></div></div>
     <div class="stat-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">Top Categories (units sold)</h3><div id="an-categories"></div></div>
     <div class="stat-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">Top Products</h3><div id="an-products"></div></div>
@@ -516,7 +516,7 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
 
 <!-- ===== SETTINGS ===== -->
 <div class="page-content" id="page-settings">
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:14px;">
     <div class="stat-card" id="settings-upi-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:4px;">UPI QR Code</h3><p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Shown to customers at checkout</p><div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:100px;height:100px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"><img id="s-upi-preview" src="" style="width:100%;height:100%;object-fit:contain;display:none;" alt="UPI QR"><span id="s-upi-ph" style="font-size:11px;color:#9ca3af;text-align:center;padding:6px;">No QR</span></div><div style="flex:1;"><label class="lbl">Image URL</label><input id="s-upi-url" type="url" placeholder="https://..." class="input-f" style="margin-bottom:8px;"><div style="display:flex;gap:6px;"><button onclick="saveUpiQr()" class="btn" style="padding:7px 14px;background:#2d8a45;color:white;border:none;border-radius:7px;font-size:12px;font-weight:700;">Save</button><button onclick="removeUpiQr()" class="btn" style="padding:7px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:12px;font-weight:700;">Remove</button></div></div></div></div>
     <div class="stat-card" id="settings-store-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">Store Settings</h3><div style="display:flex;flex-direction:column;gap:10px;"><div><label class="lbl">Store Name</label><input id="s-store-name" type="text" class="input-f" placeholder="Santhom Stores"></div><div><label class="lbl">Store Hours</label><input id="s-delivery-time" type="text" class="input-f" placeholder="e.g. Mon–Sat 8am–8pm"></div><div><label class="lbl">Contact Phone</label><input id="s-phone" type="tel" class="input-f" placeholder="+91 98765 43210"></div><button onclick="saveStoreSettings()" class="btn" style="padding:10px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Save Settings</button></div></div>
     <div class="stat-card" style="border-left:3px solid #16a34a;">
@@ -573,8 +573,8 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
     <button class="tab-btn" id="bill-tab-invoice" onclick="switchBillMode('invoice')">📄 Invoice Generator</button>
     <div class="bill-actions" style="margin-left:auto;display:flex;gap:8px;">
       <button onclick="clearBillCart()" class="btn" style="padding:7px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:12px;font-weight:700;">🗑 Clear</button>
-      <button onclick="saveBill()" id="bill-save-btn" class="btn" style="padding:7px 18px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">💾 Save</button>
-      <button onclick="printBill()" id="bill-print-btn" class="btn" style="padding:7px 18px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">🖨 Save &amp; Print</button>
+      <button onclick="saveBill()" id="bill-save-btn" class="btn bill-save-btn" style="padding:7px 18px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">💾 Save</button>
+      <button onclick="printBill()" id="bill-print-btn" class="btn bill-print-btn" style="padding:7px 18px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">🖨 Save &amp; Print</button>
     </div>
   </div>
 
@@ -692,6 +692,12 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
 </div>
 
     </div><!-- /pages-wrapper -->
+    <!-- Mobile checkout bar (billing page only) -->
+    <div id="bill-mobile-bar">
+      <div class="bmb-info"><div class="bmb-count" id="bill-mobile-count">0 items</div><div class="bmb-total" id="bill-mobile-total">₹0.00</div></div>
+      <button class="btn bill-save-btn" onclick="saveBill()">💾 Save</button>
+      <button class="btn bill-print-btn" onclick="printBill()">🖨 Save &amp; Print</button>
+    </div>
   </main>
 </div><!-- /app -->
 
@@ -1179,12 +1185,12 @@ function subscribeOrders(){
   ordersUnsub=onSnapshot(q,snap=>{
     const prev=allOrders.map(o=>o.firestoreId);
     allOrders=snap.docs.map(d=>{
-      const data=d.data();
+      const data=d.data({serverTimestamps:'estimate'});
       const dateObj=data.createdAt?.toDate?.()||new Date(0);
       return{firestoreId:d.id,...data,dateObj,time:dateObj.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),date:dateObj.toLocaleDateString('en-IN')};
     });
     if(!first&&prev.length){
-      const newOnes=allOrders.filter(o=>!prev.includes(o.firestoreId));
+      const newOnes=allOrders.filter(o=>!prev.includes(o.firestoreId)&&o.source!=='billing');
       if(newOnes.length){const f=document.getElementById('new-order-flash');f.style.display='flex';setTimeout(()=>f.style.display='none',10000);}
     }
     first=false;
@@ -1666,9 +1672,9 @@ function renderOrdersTable(){
     const initials=(o.name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().substring(0,2);
     const isPickup=true; // store is always pickup
     return`<tr>
-      <td style="font-family:monospace;font-weight:700;color:#2d8a45;font-size:11px;">${o.orderId||o.firestoreId?.substring(0,8)||''}<div style="font-size:10px;color:#9ca3af;font-family:inherit;">${o.date} ${o.time}</div></td>
+      <td style="font-family:monospace;font-weight:700;color:#2d8a45;font-size:11px;">${o.orderId||o.firestoreId?.substring(0,8)||''}<div style="font-size:10px;color:#9ca3af;font-family:inherit;">${o.date} ${o.time}</div>${o.source==='billing'?'<div><span class="badge" style="background:#eef2ff;color:#4338ca;font-size:9px;margin-top:3px;">🧾 '+(o.billType==='invoice'?'INVOICE':'WALK-IN')+'</span></div>':''}</td>
       <td><div style="display:flex;align-items:center;gap:7px;"><div style="width:28px;height:28px;border-radius:50%;background:#e2f0e6;color:#1a5c2a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0;">${initials}</div><div><div style="font-weight:600;font-size:12px;">${o.name||''}</div><div style="font-size:10px;color:#9ca3af;">${o.phone||''}</div></div></div></td>
-      <td><span class="badge" style="background:#f0fdf4;color:#16a34a;">🏪 Store Pickup</span></td>
+      <td>${o.source==='billing'?'<span class="badge" style="background:#eef2ff;color:#4338ca;">🧾 Walk-in Bill</span>':'<span class="badge" style="background:#f0fdf4;color:#16a34a;">🏪 Store Pickup</span>'}</td>
       <td style="font-size:11px;"><span style="color:#16a34a;font-weight:700;">${o.pickupLocation||'Store Counter'}</span></td>
       <td style="font-size:12px;font-weight:600;">${(o.items||[]).length} item(s)<br><button onclick="openOrderDetail('${o.firestoreId}')" style="font-size:10px;color:#1a5c2a;background:none;border:none;cursor:pointer;font-weight:700;padding:0;">Details</button></td>
       <td style="font-size:12px;font-weight:600;">${o.payment||''}</td>
@@ -1681,8 +1687,33 @@ function renderOrdersTable(){
 }
 
 async function updateOrderStatus(fid,status){
-  try{const{db,doc,updateDoc}=window._fb;await updateDoc(doc(db,'orders',fid),{status});showToast('Status → '+status);}
-  catch(e){showToast('Error updating status');}
+  const o=allOrders.find(x=>x.firestoreId===fid);
+  const{db,doc,updateDoc,runTransaction}=window._fb;
+  try{
+    const wasCancelled=o?.status==='Cancelled',nowCancelled=status==='Cancelled';
+    // Walk-in bills deduct stock at billing time, so cancelling returns it (and re-opening takes it again).
+    if(o&&o.source==='billing'&&wasCancelled!==nowCancelled){
+      const stockItems=(o.items||[]).filter(i=>i.isProduct&&i.id);
+      await runTransaction(db,async(txn)=>{
+        const refs=stockItems.map(i=>doc(db,'products',i.id));
+        const snaps=await Promise.all(refs.map(r=>txn.get(r)));
+        if(!nowCancelled)snaps.forEach((snap,k)=>{
+          const it=stockItems[k],avail=snap.exists()?(snap.data().stock??0):0;
+          if(avail<it.qty)throw new Error('Cannot re-open: only '+avail+' of "'+it.name+'" left in stock.');
+        });
+        snaps.forEach((snap,k)=>{
+          if(!snap.exists())return;
+          const delta=(nowCancelled?1:-1)*stockItems[k].qty;
+          txn.update(refs[k],{stock:(snap.data().stock??0)+delta,updatedAt:new Date().toISOString()});
+        });
+        txn.update(doc(db,'orders',fid),{status});
+      });
+      showToast('Status → '+status+(nowCancelled?' · stock returned':' · stock deducted'));
+    }else{
+      await updateDoc(doc(db,'orders',fid),{status});
+      showToast('Status → '+status);
+    }
+  }catch(e){showToast(e.message&&/stock/.test(e.message)?e.message:'Error updating status');}
 }
 
 async function assignDeliveryBoy(fid,workerId){
@@ -1713,11 +1744,11 @@ function openOrderDetail(fid){
   const totalProfit=(o.items||[]).reduce((s,i)=>s+itemProfit(i),0);
   document.getElementById('od-content').innerHTML=`
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span class="badge" style="background:#f0fdf4;color:#16a34a;font-size:11px;">🏪 STORE PICKUP</span>
+      ${o.source==='billing'?'<span class="badge" style="background:#eef2ff;color:#4338ca;font-size:11px;">🧾 WALK-IN BILL</span>':'<span class="badge" style="background:#f0fdf4;color:#16a34a;font-size:11px;">🏪 STORE PICKUP</span>'}
       
     </div>
     ${isPickup?(()=>{
-        const receptionist=allWorkers.find(w=>w.role==='Reception'&&w.pickupPointId===o.pickupPointId);
+        const receptionist=o.pickupPointId?allWorkers.find(w=>w.role==='Reception'&&w.pickupPointId===o.pickupPointId):null;
         return `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;margin-bottom:12px;">
           <span style="color:#16a34a;font-size:10px;font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">Pickup Location</span>
           <strong style="color:#15803d;font-size:13px;">${o.pickupLocation||'Not set at time of order'}</strong>
@@ -3020,7 +3051,7 @@ function initBillingPage(){
   // Pre-fill invoice number with date-based default
   const today=new Date();
   const pad=n=>String(n).padStart(2,'0');
-  document.getElementById('inv-number').value='INV-'+today.getFullYear()+pad(today.getMonth()+1)+pad(today.getDate())+'-001';
+  document.getElementById('inv-number').value=nextInvoiceNo();
   document.getElementById('inv-date').value=today.toISOString().split('T')[0];
   // Load store name/phone from settings
   try{
@@ -3117,12 +3148,21 @@ function getBillTotals(){
   return{subtotal,discount,gstPct,gst,total,afterDiscount};
 }
 
+function updateBillBar(){
+  const bar=document.getElementById('bill-mobile-bar');if(!bar)return;
+  bar.classList.toggle('has-items',billCart.length>0);
+  const n=billCart.reduce((s,i)=>s+i.qty,0);
+  const c=document.getElementById('bill-mobile-count');if(c)c.textContent=n+' item'+(n===1?'':'s')+' · '+(billMode==='invoice'?'Invoice':'POS');
+  const t=document.getElementById('bill-mobile-total');if(t)t.textContent='₹'+getBillTotals().total.toFixed(2);
+}
+
 function renderBillCart(){
   const cartEl=document.getElementById('bill-cart-items');
   const emptyEl=document.getElementById('bill-cart-empty');
   const totalsEl=document.getElementById('bill-totals');
   const countEl=document.getElementById('bill-item-count');
   if(!cartEl)return;
+  updateBillBar();
   if(!billCart.length){
     cartEl.innerHTML='';emptyEl.style.display='';totalsEl.style.display='none';
     countEl.textContent='0 items';return;
@@ -3152,10 +3192,41 @@ function renderBillCart(){
 }
 
 let billBusy=false;
+const _usedBillNos=new Set();
 
 function setBillBusy(on){
   billBusy=on;
-  ['bill-save-btn','bill-print-btn'].forEach(id=>{const el=document.getElementById(id);if(el){el.disabled=on;el.style.opacity=on?'.6':'1';}});
+  document.querySelectorAll('.bill-save-btn,.bill-print-btn').forEach(el=>{el.disabled=on;el.style.opacity=on?'.6':'1';});
+}
+
+// Next free invoice number for today (INV-YYYYMMDD-001, -002, ...)
+function nextInvoiceNo(){
+  const d=new Date(),pad=n=>String(n).padStart(2,'0');
+  const prefix='INV-'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-';
+  let max=0;
+  const scan=id=>{if(typeof id==='string'&&id.startsWith(prefix)){const n=parseInt(id.slice(prefix.length),10);if(n>max)max=n;}};
+  (allOrders||[]).forEach(o=>scan(o.orderId));
+  _usedBillNos.forEach(scan);
+  return prefix+String(max+1).padStart(3,'0');
+}
+
+function newPosBillId(){
+  const d=new Date(),pad=n=>String(n).padStart(2,'0');
+  return 'POS-'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds());
+}
+
+// Decides the bill / order number up front so the printed copy and the saved order always match.
+function prepareBillId(){
+  if(!billCart.length){showToast('Add items to bill first');return null;}
+  let id;
+  if(billMode==='invoice')id=(document.getElementById('inv-number')?.value||'').trim()||nextInvoiceNo();
+  else id=newPosBillId();
+  const dup=(allOrders||[]).some(o=>o.orderId===id)||_usedBillNos.has(id);
+  if(dup){
+    if(billMode==='invoice'){showToast('Invoice no. '+id+' is already used — please change it');return null;}
+    id=id+'-'+(Math.floor(Math.random()*90)+10);
+  }
+  return id;
 }
 
 // Clears the selected items + bill fields and refreshes the product list
@@ -3167,87 +3238,111 @@ function resetBill(){
   initBillingPage(); // fresh invoice no./date, re-renders product list (live stock) and empty bill
 }
 
-// Validates live stock, deducts it atomically, then records the sale.
-// Returns the saved bill snapshot, or null if it failed (nothing is deducted on failure).
-async function commitBill(){
+// Saves the bill as a real document in the `orders` collection (so Dashboard revenue, profit,
+// Orders list, Analytics and status workflow all pick it up) AND deducts stock — in ONE atomic
+// transaction. If anything fails, nothing is deducted and nothing is recorded.
+async function commitBill(orderId){
   if(!billCart.length){showToast('Add items to bill first');return null;}
+  const inv=billMode==='invoice';
+  const g=id=>(document.getElementById(id)?.value||'').trim();
+  const t=getBillTotals();
+  const payMode=g('bill-pay-mode')||'Cash';
+  const payStatus=inv?(g('inv-pay-status')||'Paid'):'Paid';
+  const paid=payStatus==='Paid'&&payMode!=='Credit';
   const stockItems=billCart.filter(i=>i.isProduct);
-  const totals=getBillTotals();
-  const snapshot={
-    mode:billMode,
-    items:billCart.map(i=>({id:i.isProduct?i.id:'',name:i.name,price:i.price,qty:i.qty,isProduct:!!i.isProduct})),
-    subtotal:totals.subtotal,discount:totals.discount,gstPct:totals.gstPct,gst:totals.gst,total:totals.total,
-    payMode:document.getElementById('bill-pay-mode')?.value||'Cash',
-    notes:document.getElementById('bill-notes')?.value||''
+  const items=billCart.map(i=>{
+    const p=i.isProduct?allProducts.find(x=>x.id===i.id):null;
+    return{id:i.isProduct?i.id:'',name:i.name,price:Number(i.price)||0,qty:Number(i.qty)||0,category:p?.category||'Other',imageUrl:p?.imageUrl||'',isProduct:!!i.isProduct};
+  });
+  const firstP=stockItems.length?allProducts.find(x=>x.id===stockItems[0].id):null;
+  const hostelId=scopedHostel?scopedHostel.hostelId:(firstP?.hostelId||'');
+  const hostelName=scopedHostel?scopedHostel.hostelName:(firstP?.hostelName||'');
+  const{db,doc,runTransaction,collection,serverTimestamp,auth}=window._fb;
+  const orderRef=doc(collection(db,'orders'));
+  const order={
+    orderId,source:'billing',billType:inv?'invoice':'pos',
+    name:(inv?g('inv-cust-name'):'')||'Walk-in Customer',
+    phone:inv?g('inv-cust-phone'):'',
+    email:inv?g('inv-cust-email'):'',
+    address:inv?g('inv-address'):'',
+    items,
+    subtotal:t.subtotal,discountAmount:t.discount,promoUsed:t.discount>0?'Bill discount':'',
+    gstPct:t.gstPct,gstAmount:t.gst,total:t.total,
+    payment:payMode,paymentStatus:paid?'Paid':(payMode==='Credit'&&payStatus==='Paid'?'Unpaid':payStatus),
+    status:paid?'Delivered':'Pending',
+    deliveryMode:'pickup',pickupLocation:'Store Counter (Walk-in)',pickupPointId:'',
+    notes:g('bill-notes'),
+    invoiceNo:inv?orderId:'',invoiceDate:inv?g('inv-date'):'',dueDate:inv?g('inv-due'):'',
+    hostelId,hostelName,
+    createdAt:serverTimestamp(),createdBy:auth?.currentUser?.email||''
   };
-  if(billMode==='invoice'){
-    Object.assign(snapshot,{
-      invoiceNo:document.getElementById('inv-number')?.value||'',
-      customerName:document.getElementById('inv-cust-name')?.value||'',
-      customerPhone:document.getElementById('inv-cust-phone')?.value||'',
-      payStatus:document.getElementById('inv-pay-status')?.value||'Paid'
-    });
-  }
-  const{db,doc,runTransaction,collection,addDoc,serverTimestamp,auth}=window._fb;
   try{
-    if(stockItems.length){
-      await runTransaction(db,async(txn)=>{
-        // reads first, then writes
-        const refs=stockItems.map(i=>doc(db,'products',i.id));
-        const snaps=await Promise.all(refs.map(r=>txn.get(r)));
-        snaps.forEach((snap,k)=>{
-          const it=stockItems[k];
-          if(!snap.exists())throw new Error('"'+it.name+'" no longer exists.');
-          const avail=snap.data().stock??0;
-          if(avail<it.qty)throw new Error(avail<=0?'"'+it.name+'" is out of stock.':'"'+it.name+'" — only '+avail+' left, bill has '+it.qty+'.');
-        });
-        snaps.forEach((snap,k)=>txn.update(refs[k],{stock:(snap.data().stock??0)-stockItems[k].qty,updatedAt:new Date().toISOString()}));
+    await runTransaction(db,async(txn)=>{
+      // all reads first, then writes
+      const refs=stockItems.map(i=>doc(db,'products',i.id));
+      const snaps=await Promise.all(refs.map(r=>txn.get(r)));
+      snaps.forEach((snap,k)=>{
+        const it=stockItems[k];
+        if(!snap.exists())throw new Error('"'+it.name+'" no longer exists.');
+        const avail=snap.data().stock??0;
+        if(avail<it.qty)throw new Error(avail<=0?'"'+it.name+'" is out of stock.':'"'+it.name+'" — only '+avail+' left, bill has '+it.qty+'.');
       });
-    }
+      snaps.forEach((snap,k)=>txn.update(refs[k],{stock:(snap.data().stock??0)-stockItems[k].qty,updatedAt:new Date().toISOString()}));
+      txn.set(orderRef,order);
+    });
   }catch(e){
-    showToast(e.message||'Could not update stock. Bill not saved.');
+    console.error('Bill save failed:',e);
+    showToast(e.code==='permission-denied'
+      ?'Not saved: Firestore rules must allow admins to create documents in "orders".'
+      :(e.message||'Could not save the bill. Nothing was changed.'));
     return null;
   }
-  // Stock is already correct at this point. The sale record is best-effort.
-  try{
-    await addDoc(collection(db,'walkinSales'),{...snapshot,createdAt:serverTimestamp(),createdBy:auth?.currentUser?.email||''});
-  }catch(e){
-    console.error('walkinSales record failed:',e);
-    showToast('Stock updated, but the sale record could not be saved: '+(e.code||e.message));
-  }
-  return snapshot;
+  return{id:orderRef.id,order};
 }
 
 async function saveBill(){
   if(billBusy)return;
+  const id=prepareBillId();if(!id)return;
   setBillBusy(true);
   try{
-    const saved=await commitBill();
-    if(!saved)return;
+    const res=await commitBill(id);
+    if(!res)return;
+    _usedBillNos.add(id);
     resetBill();
-    showToast('Bill saved · stock updated');
+    showToast('Bill '+id+' saved · stock, orders & revenue updated');
   }finally{ setBillBusy(false); }
+}
+
+// Fallback when the browser blocks the print pop-up (common on phones): in-app bill preview with Print / WhatsApp
+function openSavedBillPreview(res){
+  const now=new Date();
+  const o={...res.order,firestoreId:res.id,createdAt:null,dateObj:now,date:now.toLocaleDateString('en-IN'),time:now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})};
+  _obm.order=o;
+  document.getElementById('obm-sub').textContent=(o.orderId||'Bill')+' · '+(o.name||'');
+  renderOrderBill();
+  document.getElementById('order-bill-modal').classList.add('open');
 }
 
 async function printBill(){
   if(billBusy)return;
-  if(!billCart.length){showToast('Add items to bill first');return;}
+  const id=prepareBillId();if(!id)return;
   setBillBusy(true);
   // Open the receipt window now (inside the click) so pop-up blockers allow it
   const win=window.open('','_blank','width=800,height=900');
   try{
-    // Receipt must be built from the bill BEFORE it is reset, so render first into the window
-    const html=buildBillHtml();
-    const saved=await commitBill();
-    if(!saved){ if(win)win.close(); return; }
+    // Receipt must be built from the bill BEFORE it is reset
+    const html=buildBillHtml(id);
+    const res=await commitBill(id);
+    if(!res){ if(win)win.close(); return; }
+    _usedBillNos.add(id);
     if(win){ win.document.write(html); win.document.close(); }
-    else showToast('Bill saved, but the receipt pop-up was blocked. Allow pop-ups to print.');
+    else openSavedBillPreview(res);
     resetBill();
-    showToast('Bill saved · stock updated');
+    showToast('Bill '+id+' saved · stock, orders & revenue updated');
   }finally{ setBillBusy(false); }
 }
 
-function buildBillHtml(){
+function buildBillHtml(billNo){
   const{subtotal,discount,gstPct,gst,total}=getBillTotals();
   const payMode=document.getElementById('bill-pay-mode')?.value||'Cash';
   const notes=document.getElementById('bill-notes')?.value||'';
@@ -3307,6 +3402,7 @@ function buildBillHtml(){
         ${storePhone?`<div style="font-size:12px;color:#6b7280;">${storePhone}</div>`:''}
         ${storeHours?`<div style="font-size:12px;color:#6b7280;">${storeHours}</div>`:''}
         <div style="font-size:11px;color:#9ca3af;margin-top:6px;">${dateStr} · ${timeStr}</div>
+        ${billNo?`<div style="font-size:12px;font-weight:700;color:#374151;margin-top:2px;">Bill No: ${billNo}</div>`:''}
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:12px;">
         <span style="color:#6b7280;">Payment: <b>${payMode}</b></span>
@@ -3505,6 +3601,7 @@ async function persistCategories(){
 
 function navAdmin(page){
   currentPage=page;
+  document.body.classList.toggle('on-billing',page==='billing');
   document.querySelectorAll('.page-content').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
@@ -3570,7 +3667,8 @@ function getOrderBillData(o){
   const subtotal=items.reduce((s,i)=>s+i.qty*i.price,0);
   const discount=Number(o.discountAmount)||0;
   const total=Number(o.total)||0;
-  const other=Math.round((total-(subtotal-discount))*100)/100; // delivery / handling / rounding, if any
+  const gst=Number(o.gstAmount)||0,gstPct=Number(o.gstPct)||0;
+  const other=Math.round((total-(subtotal-discount)-gst)*100)/100; // delivery / handling / rounding, if any
   return{
     store:{name:g('s-store-name')||'Santhom Stores',phone:g('s-phone'),hours:g('s-delivery-time')},
     billNo:'BILL-'+(o.orderId||String(o.firestoreId||'').substring(0,8)),
@@ -3578,7 +3676,7 @@ function getOrderBillData(o){
     name:o.name||'Customer',phone:o.phone||'',
     pickup:o.pickupLocation||'Store Counter',
     payment:o.payment||'',status:o.status||'',promo:o.promoUsed||'',notes:o.notes||'',
-    items,subtotal,discount,other,total
+    items,subtotal,discount,gst,gstPct,other,total
   };
 }
 
@@ -3633,6 +3731,7 @@ ${cancelled?'<div class="cancel">CANCELLED</div>':''}
 <div class="tot">
   <div><span>Subtotal</span><span>${billMoney(d.subtotal)}</span></div>
   ${d.discount>0?`<div class="g"><span>Discount${d.promo?' ('+billEsc(d.promo)+')':''}</span><span>-${billMoney(d.discount)}</span></div>`:''}
+  ${d.gst>0?`<div><span>GST${d.gstPct?' ('+d.gstPct+'%)':''}</span><span>${billMoney(d.gst)}</span></div>`:''}
   ${Math.abs(d.other)>=0.01?`<div><span>${d.other>0?'Other charges':'Adjustment'}</span><span>${d.other<0?'-':''}${billMoney(Math.abs(d.other))}</span></div>`:''}
   <div class="t"><span>TOTAL</span><span>${billMoney(d.total)}</span></div>
 </div>
@@ -3681,6 +3780,7 @@ function whatsappOrderBill(){
     '------------------------',
     `Subtotal: ₹${d.subtotal.toFixed(2)}`,
     ...(d.discount>0?[`Discount: -₹${d.discount.toFixed(2)}`]:[]),
+    ...(d.gst>0?[`GST${d.gstPct?' ('+d.gstPct+'%)':''}: ₹${d.gst.toFixed(2)}`]:[]),
     ...(Math.abs(d.other)>=0.01?[`${d.other>0?'Other charges':'Adjustment'}: ${d.other<0?'-':''}₹${Math.abs(d.other).toFixed(2)}`]:[]),
     `*Total: ₹${d.total.toFixed(2)}*`,
     ...(d.payment?[`Payment: ${d.payment}`]:[]),
