@@ -222,8 +222,8 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
 /* ===== UNIVERSAL FIT (v3) — iOS Safari / Chrome Android / all browsers ===== */
 :root{--app-h:100vh;}
 @supports (height:100dvh){:root{--app-h:100dvh;}}
-html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
-body{min-height:100%;margin:0;overflow-x:hidden;overscroll-behavior-y:none;}
+html,body{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body{margin:0;}
 /* real visible height (JS sets --vh-px; fallback for browsers without dvh, e.g. iOS < 15.4) */
 #app{height:var(--app-h);height:var(--vh-px,var(--app-h));width:100%;max-width:100vw;}
 #sidebar{height:var(--app-h);height:var(--vh-px,var(--app-h));}
@@ -275,6 +275,10 @@ img,video,canvas,svg{max-width:100%;}
 #chat-back-btn{display:none;}
 
 /* ===== FULL MOBILE PASS (v4) ===== */
+#chat-shell{grid-template-columns:minmax(0,320px) minmax(0,1fr) !important;}
+#chat-shell > div{min-width:0;}
+@media(max-width:768px){#chat-shell{grid-template-columns:minmax(0,1fr) !important;}}
+.material-symbols-outlined,.ms{overflow-wrap:normal !important;word-break:normal !important;white-space:nowrap;}
 input[type=date],input[type=time],input[type=datetime-local],input[type=month],select{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;}
 select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px !important;}
 input[type=date]{min-height:40px;}
@@ -324,7 +328,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 }
 </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 overflow-hidden">
 <div id="toast"></div>
 <div id="new-order-flash">
   <span style="color:#2d8a45;font-size:18px">&#9679;</span> New order received!
@@ -625,6 +629,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 <!-- ===== SETTINGS ===== -->
 <div class="page-content" id="page-settings">
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:14px;">
+    <div class="stat-card" id="settings-homebg-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:4px;">Homepage Background</h3><p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Image behind the top banner of the customer homepage</p><div id="s-hbg-preview" style="height:110px;border-radius:10px;border:1px solid #e5e7eb;background:#f9fafb;margin-bottom:12px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#9ca3af;text-align:center;padding:6px;">No background set</div><label class="lbl">Image URL</label><input id="s-hbg-url" type="url" placeholder="https://..." class="input-f" style="margin-bottom:10px;" oninput="previewHomeBg()"><label class="lbl">White overlay (keeps text readable): <span id="s-hbg-ov-val">45</span>%</label><input id="s-hbg-ov" type="range" min="0" max="90" value="45" style="width:100%;accent-color:#2d8a45;margin-bottom:12px;" oninput="previewHomeBg()"><div style="display:flex;gap:6px;"><button onclick="saveHomeBg()" class="btn" style="padding:7px 14px;background:#2d8a45;color:white;border:none;border-radius:7px;font-size:12px;font-weight:700;">Save</button><button onclick="removeHomeBg()" class="btn" style="padding:7px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:12px;font-weight:700;">Remove</button></div></div>
     <div class="stat-card" id="settings-upi-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:4px;">UPI QR Code</h3><p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Shown to customers at checkout</p><div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:100px;height:100px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"><img id="s-upi-preview" src="" style="width:100%;height:100%;object-fit:contain;display:none;" alt="UPI QR"><span id="s-upi-ph" style="font-size:11px;color:#9ca3af;text-align:center;padding:6px;">No QR</span></div><div style="flex:1;"><label class="lbl">Image URL</label><input id="s-upi-url" type="url" placeholder="https://..." class="input-f" style="margin-bottom:8px;"><div style="display:flex;gap:6px;"><button onclick="saveUpiQr()" class="btn" style="padding:7px 14px;background:#2d8a45;color:white;border:none;border-radius:7px;font-size:12px;font-weight:700;">Save</button><button onclick="removeUpiQr()" class="btn" style="padding:7px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:12px;font-weight:700;">Remove</button></div></div></div></div>
     <div class="stat-card" id="settings-store-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">Store Settings</h3><div style="display:flex;flex-direction:column;gap:10px;"><div><label class="lbl">Store Name</label><input id="s-store-name" type="text" class="input-f" placeholder="Santhom Stores"></div><div><label class="lbl">Store Hours</label><input id="s-delivery-time" type="text" class="input-f" placeholder="e.g. Mon–Sat 8am–8pm"></div><div><label class="lbl">Contact Phone</label><input id="s-phone" type="tel" class="input-f" placeholder="+91 98765 43210"></div><button onclick="saveStoreSettings()" class="btn" style="padding:10px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Save Settings</button></div></div>
     <div class="stat-card" style="border-left:3px solid #16a34a;">
@@ -1366,6 +1371,7 @@ async function loadSettings(){
     const{db,doc,getDoc}=window._fb;
     const pSnap=await getDoc(doc(db,'settings','payment'));
     if(pSnap.exists()){upiQrUrl=pSnap.data().upiQrUrl||'';updateUpiQrUI();const i=document.getElementById('s-upi-url');if(i)i.value=upiQrUrl;}
+    try{const hSnap=await getDoc(doc(db,'settings','homepage'));if(hSnap.exists()){const h=hSnap.data()||{};const u=document.getElementById('s-hbg-url');const o=document.getElementById('s-hbg-ov');if(u)u.value=h.bgUrl||'';if(o&&h.overlay!==undefined)o.value=h.overlay;previewHomeBg();}}catch(e){}
     const sSnap=await getDoc(doc(db,'settings','store'));
     if(sSnap.exists()){
       const d=sSnap.data();
@@ -2589,6 +2595,34 @@ async function saveUpiQr(){
   catch(e){showToast('Error saving');}
 }
 
+// ─── HOMEPAGE BACKGROUND ───
+function homeBgValidUrl(u){return /^https?:\/\//i.test(u)||/^data:image\//i.test(u);}
+function homeBgCss(url,ov){
+  const o=Math.min(Math.max(Number(ov),0),90);const a=(isNaN(o)?45:o)/100;
+  const safe=url.replace(/["'()\\\s]/g,c=>encodeURIComponent(c));
+  return `linear-gradient(rgba(255,255,255,${a}),rgba(255,255,255,${a})), url("${safe}") center/cover no-repeat, linear-gradient(135deg,#fff5ed 0%,#fff9f5 50%,#f9f9ff 100%)`;
+}
+function previewHomeBg(){
+  const box=document.getElementById('s-hbg-preview');if(!box)return;
+  const url=(document.getElementById('s-hbg-url').value||'').trim();
+  const ov=document.getElementById('s-hbg-ov').value;
+  document.getElementById('s-hbg-ov-val').textContent=ov;
+  if(url&&homeBgValidUrl(url)){box.style.background=homeBgCss(url,ov);box.textContent='';}
+  else{box.style.background='#f9fafb';box.textContent=url?'Enter a valid https:// image link':'No background set';}
+}
+async function saveHomeBg(){
+  const url=(document.getElementById('s-hbg-url').value||'').trim();
+  if(!url){showToast('Please enter an image URL');return;}
+  if(!homeBgValidUrl(url)){showToast('URL must start with https://');return;}
+  const overlay=Number(document.getElementById('s-hbg-ov').value);
+  try{const{db,doc,setDoc}=window._fb;await setDoc(doc(db,'settings','homepage'),{bgUrl:url,overlay},{merge:true});previewHomeBg();showToast('Homepage background saved!');}
+  catch(e){showToast('Error saving');}
+}
+async function removeHomeBg(){
+  try{const{db,doc,setDoc}=window._fb;await setDoc(doc(db,'settings','homepage'),{bgUrl:''},{merge:true});document.getElementById('s-hbg-url').value='';previewHomeBg();showToast('Background removed');}
+  catch(e){showToast('Error');}
+}
+
 async function removeUpiQr(){
   try{const{db,doc,setDoc}=window._fb;await setDoc(doc(db,'settings','payment'),{upiQrUrl:''},{merge:true});upiQrUrl='';document.getElementById('s-upi-url').value='';updateUpiQrUI();showToast('QR removed');}
   catch(e){showToast('Error');}
@@ -3738,7 +3772,7 @@ function navAdmin(page){
     // Branch admin only manages Room Delivery for their own branch — the
     // other Settings cards (UPI, Store identity, Firestore index) are
     // deliberately global/super-admin-only.
-    ['settings-upi-card','settings-store-card','settings-index-card'].forEach(id=>{
+    ['settings-homebg-card','settings-upi-card','settings-store-card','settings-index-card'].forEach(id=>{
       const el=document.getElementById(id); if(el)el.style.display=scopedHostel?'none':'';
     });
   }
