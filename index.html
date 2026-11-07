@@ -2,9 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#1a5c2a">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
 <title>Santhom Stores – Admin</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -83,7 +86,7 @@
 .modal-box { background:white; border-radius:18px; width:100%; max-height:90vh; overflow-y:auto; }
 #toast { position:fixed; bottom:20px; right:20px; background:#111827; color:white; padding:11px 18px; border-radius:10px; font-size:13px; font-weight:600; z-index:999; opacity:0; transition:all .3s; transform:translateY(6px); border-left:3px solid #2d8a45; }
 #toast.show { opacity:1; transform:translateY(0); }
-#new-order-flash { position:fixed; top:16px; left:50%; transform:translateX(-50%); background:#111827; color:white; padding:10px 18px; border-radius:999px; font-size:13px; font-weight:700; z-index:1000; display:none; align-items:center; gap:8px; box-shadow:0 8px 24px rgba(0,0,0,0.2); }
+#new-order-flash { position:fixed; top:calc(16px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); background:#111827; color:white; padding:10px 18px; border-radius:999px; font-size:13px; font-weight:700; z-index:1000; display:none; align-items:center; gap:8px; box-shadow:0 8px 24px rgba(0,0,0,0.2); }
 .input-f { width:100%; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:10px 12px; font-size:13px; outline:none; transition:border-color .2s; font-family:inherit; }
 .input-f:focus { border-color:#2d8a45; background:white; }
 textarea.input-f { resize:vertical; min-height:80px; }
@@ -215,9 +218,113 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
   .date-chip{flex:1 1 auto;text-align:center;}
   #bill-mobile-bar button{padding:0 11px;font-size:12px;}
 }
+
+/* ===== UNIVERSAL FIT (v3) — iOS Safari / Chrome Android / all browsers ===== */
+:root{--app-h:100vh;}
+@supports (height:100dvh){:root{--app-h:100dvh;}}
+html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body{min-height:100%;margin:0;overflow-x:hidden;overscroll-behavior-y:none;}
+/* real visible height (JS sets --vh-px; fallback for browsers without dvh, e.g. iOS < 15.4) */
+#app{height:var(--app-h);height:var(--vh-px,var(--app-h));width:100%;max-width:100vw;}
+#sidebar{height:var(--app-h);height:var(--vh-px,var(--app-h));}
+/* flex child must be allowed to shrink or wide tables/cards stretch the whole page */
+#main{min-width:0;overflow-x:hidden;}
+#pages-wrapper{min-width:0;max-width:100%;}
+.page-content{min-width:0;max-width:100%;}
+img,video,canvas,svg{max-width:100%;}
+.stat-card,.modal-box,.input-f{min-width:0;}
+.modal-box{max-height:90vh;max-height:calc(var(--vh-px,100vh) * .9);}
+/* login: scrolls when keyboard is open instead of cutting off */
+#login-screen{overflow-y:auto;-webkit-overflow-scrolling:touch;height:var(--app-h);height:var(--vh-px,var(--app-h));align-items:flex-start;padding:max(16px,env(safe-area-inset-top)) 0 max(16px,env(safe-area-inset-bottom));}
+#login-screen > div{margin:auto 16px !important;}
+/* support chat: full-height panel, uses real viewport */
+#chat-shell{height:calc(var(--app-h) - 120px);height:calc(var(--vh-px,var(--app-h)) - 120px);min-height:360px;}
+#chat-shell #chat-list,#chat-shell #chat-view-messages{-webkit-overflow-scrolling:touch;}
+/* top bar never overflows */
+#main > div:first-child{min-width:0;flex-wrap:nowrap;}
+#main > div:first-child > button{flex-shrink:0;}
+/* tablets / landscape phones: tighter layout instead of desktop sizing */
+@media(min-width:769px) and (max-width:1100px){
+  #sidebar:not(.collapsed){width:210px;}
+  #pages-wrapper{padding:14px !important;}
+  .data-table th,.data-table td{padding-left:10px;padding-right:10px;}
+}
+@media(max-height:500px) and (orientation:landscape){
+  #login-screen > div{padding:18px !important;}
+  .modal-box{max-height:96vh;max-height:calc(var(--vh-px,100vh) * .96);}
+}
+@media(max-width:768px){
+  .modal-box{max-height:92vh;max-height:calc(var(--vh-px,100vh) * .92);}
+  #app{overflow:hidden;}
+  /* support chat: list first, tap a chat to open it (one panel at a time) */
+  #chat-shell{grid-template-columns:1fr !important;grid-template-rows:1fr;height:calc(var(--vh-px,var(--app-h)) - 96px - env(safe-area-inset-top));min-height:320px;}
+  #chat-shell > div{min-height:0;min-width:0;}
+  #chat-shell > div:first-child{border-right:none !important;}
+  #chat-shell .chat-pane-hide{display:none !important;}
+  #chat-shell #chat-reply-bar{padding-bottom:calc(12px + env(safe-area-inset-bottom));}
+  #chat-back-btn{display:inline-flex !important;}
+  #dash-grid{grid-template-columns:1fr !important;}
+  #bill-grid{grid-template-columns:1fr !important;}
+  /* anything with a fixed 2-col form grid stays 1 col on very small phones */
+}
+@media(max-width:400px){
+  [style*="grid-template-columns:1fr 1fr;gap:10px"]{grid-template-columns:1fr !important;}
+  #page-title{font-size:15px !important;}
+  .stat-card{padding:12px;}
+}
+#chat-back-btn{display:none;}
+
+/* ===== FULL MOBILE PASS (v4) ===== */
+input[type=date],input[type=time],input[type=datetime-local],input[type=month],select{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;}
+select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px !important;}
+input[type=date]{min-height:40px;}
+body:has(.modal-bd.open) #main{overflow:hidden;}
+.modal-box{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+@media(max-width:768px){
+  /* filter / search bars: full-width stacked controls */
+  #page-orders > div:first-child,#page-products > div:nth-child(2),#page-customers > div:first-child{gap:8px !important;}
+  #page-orders > div:first-child > *,#page-products input#product-search,#customer-search{max-width:none !important;}
+  #page-orders > div:first-child > div,#page-orders > div:first-child > select,#page-orders > div:first-child > input,#page-orders > div:first-child > button{flex:1 1 calc(50% - 8px);min-width:0 !important;width:auto !important;}
+  #page-orders > div:first-child > div:first-child{flex-basis:100%;}
+  #product-search,#page-products div:has(> #product-search),#page-customers > div:first-child{width:100% !important;max-width:none !important;flex:1 1 100%;}
+  /* page header rows: title + button wrap, buttons go full-width */
+  .page-content > div[style*="justify-content:space-between"][style*="flex-wrap:wrap"] > button{flex:1 1 auto;justify-content:center;}
+  /* tab rows (CMS, billing, bill format) wrap instead of overflowing */
+  div:has(> .tab-btn){display:flex;flex-wrap:wrap;gap:6px;}
+  div:has(> .tab-btn) > .tab-btn{flex:1 1 auto;white-space:nowrap;}
+  /* categories grid: 2 per row on phones */
+  #categories-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr)) !important;}
+  /* CMS banner + blog cards: let content and actions wrap */
+  #banners-list > div,#blogs-list > div,#faqs-list > div{flex-wrap:wrap;}
+  #banners-list > div > div:last-child,#blogs-list > div > div:last-child{width:100%;justify-content:flex-end;}
+  #banners-list > div > div:nth-child(2),#blogs-list > div > div:nth-child(2){flex:1 1 140px;}
+  /* readable small text */
+  .badge{font-size:12px;padding:3px 10px;}
+  .lbl{font-size:11px;}
+  table.data-table td{font-size:13px !important;}
+  table.data-table td .btn,table.data-table td button{min-height:38px;padding:7px 12px !important;font-size:12px !important;}
+  /* chart: tooltip text says hover -> hide on touch */
+  #page-dashboard [style*="overflow-x"]{-webkit-overflow-scrolling:touch;}
+  /* hostel/link rows */
+  #page-hostels [style*="monospace"]{word-break:break-all;white-space:normal !important;}
+  /* long words/urls never push the page wider */
+  .stat-card,.modal-box,td,.tdv{overflow-wrap:anywhere;}
+  /* images in lists */
+  td img{max-width:48px;}
+}
+@media(hover:none){
+  .nav-item:hover{background:transparent;color:#4b5563;}
+  .nav-item.active:hover{background:#1a5c2a;color:white;}
+  .data-table tr:hover td{background:transparent;}
+}
+@media(max-width:360px){
+  #pages-wrapper{padding:8px !important;}
+  #quick-room-delivery-label{max-width:64px !important;}
+  .tab-btn{padding:9px 10px;font-size:12px;}
+}
 </style>
 </head>
-<body class="bg-gray-100 overflow-hidden">
+<body class="bg-gray-100">
 <div id="toast"></div>
 <div id="new-order-flash">
   <span style="color:#2d8a45;font-size:18px">&#9679;</span> New order received!
@@ -355,7 +462,7 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
     <button onclick="openBulkAssignProducts()" class="btn" style="padding:8px 14px;background:#d97706;color:white;border:none;border-radius:8px;font-size:12.5px;font-weight:700;flex-shrink:0;">Bulk Assign Branch</button>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-    <div style="position:relative;"><span class="material-symbols-outlined ms" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#9ca3af;">search</span><input id="product-search" type="text" placeholder="Search products..." oninput="renderProductsAdmin()" class="input-f" style="padding-left:34px;width:240px;"></div>
+    <div style="position:relative;"><span class="material-symbols-outlined ms" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#9ca3af;">search</span><input id="product-search" type="text" placeholder="Search products..." oninput="renderProductsAdmin()" class="input-f" style="padding-left:34px;width:100%;max-width:240px;"></div>
     <button onclick="openAddProduct()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 16px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:18px;">add</span>Add Product</button>
   </div>
   <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
@@ -491,7 +598,7 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
 
 <!-- ===== SUPPORT CHATS ===== -->
 <div class="page-content" id="page-chats">
-  <div style="display:grid;grid-template-columns:320px 1fr;gap:0;background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;height:calc(100vh - 120px);">
+  <div style="display:grid;grid-template-columns:320px 1fr;gap:0;background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;" id="chat-shell">
     <!-- Chat list -->
     <div style="border-right:1px solid #e5e7eb;display:flex;flex-direction:column;">
       <div style="padding:14px;border-bottom:1px solid #e5e7eb;font-size:14px;font-weight:700;background:#f9fafb;">Customer Chats</div>
@@ -501,6 +608,7 @@ button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
     <!-- Chat view -->
     <div id="chat-view" style="display:flex;flex-direction:column;">
       <div id="chat-view-header" style="padding:14px;border-bottom:1px solid #e5e7eb;background:#f9fafb;">
+        <button id="chat-back-btn" onclick="chatBackToList()" class="btn" style="align-items:center;gap:4px;border:none;background:none;color:#2d8a45;font-weight:700;font-size:13px;padding:0 0 8px;"><span class="material-symbols-outlined ms" style="font-size:18px;">arrow_back</span>Chats</button>
         <div id="chat-view-name" style="font-size:14px;font-weight:700;color:#9ca3af;">Select a chat to start replying</div>
       </div>
       <div id="chat-view-messages" style="flex:1;overflow-y:auto;padding:14px;background:#f8f9fb;display:flex;flex-direction:column;gap:8px;">
@@ -1638,7 +1746,7 @@ function renderOrderTimeline(){
   }).slice(-14);
   if(!days.length){el.innerHTML='<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">No data in this period</div>';return;}
   const maxC=Math.max(...days.map(d=>d.count),1);
-  el.innerHTML=`<div style="display:flex;align-items:flex-end;gap:4px;height:110px;padding-bottom:20px;">${days.map(d=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;"><div title="${d.count} orders | Revenue ₹${Math.round(d.revenue)} | Profit ₹${Math.round(d.profit)}" style="width:100%;background:linear-gradient(to top,#2d8a45,#ffaa55);border-radius:3px 3px 0 0;height:${Math.max(d.count/maxC*88,3)}px;min-height:3px;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'"></div><div style="font-size:9px;color:#9ca3af;margin-top:3px;white-space:nowrap;overflow:hidden;max-width:100%;text-align:center;">${d.date.split('/').slice(0,2).join('/')}</div></div>`).join('')}</div><div style="display:flex;gap:12px;flex-wrap:wrap;"><div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;background:#2d8a45;border-radius:2px;"></div><span style="font-size:11px;color:#6b7280;">Orders per day (${orders.length} total) | Hover bar for revenue/profit</span></div></div>`;
+  el.innerHTML=`<div style="display:flex;align-items:flex-end;gap:4px;height:110px;padding-bottom:20px;">${days.map(d=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;"><div title="${d.count} orders | Revenue ₹${Math.round(d.revenue)} | Profit ₹${Math.round(d.profit)}" style="width:100%;background:linear-gradient(to top,#2d8a45,#ffaa55);border-radius:3px 3px 0 0;height:${Math.max(d.count/maxC*88,3)}px;min-height:3px;cursor:pointer;transition:opacity .15s;" onclick="showToast(this.title)" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'"></div><div style="font-size:9px;color:#9ca3af;margin-top:3px;white-space:nowrap;overflow:hidden;max-width:100%;text-align:center;">${d.date.split('/').slice(0,2).join('/')}</div></div>`).join('')}</div><div style="display:flex;gap:12px;flex-wrap:wrap;"><div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;background:#2d8a45;border-radius:2px;"></div><span style="font-size:11px;color:#6b7280;">Orders per day (${orders.length} total) | Tap/hover a bar for revenue/profit</span></div></div>`;
 }
 
 // ─── ORDERS ───
@@ -2555,6 +2663,7 @@ function renderChatList(){
 
 async function openChatView(userId){
   activeChatUserId=userId;
+  if(typeof chatMobileShow==='function')chatMobileShow('chat');
   const chat=allChats.find(c=>c.id===userId);
   document.getElementById('chat-view-name').innerHTML=`<div style="font-weight:700;">${chat?.userName||'Customer'}</div><div style="font-size:11px;color:#9ca3af;">${chat?.userEmail||''}</div>`;
   document.getElementById('admin-chat-input').disabled=false;
@@ -3428,12 +3537,14 @@ function buildBillHtml(billNo){
   }
 
   const html=`<!DOCTYPE html>
-<html><head><meta charset="utf-8">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${billMode==='invoice'?'Invoice':'Receipt'} – ${storeName}</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'Segoe UI',sans-serif;background:#f3f4f6;display:flex;justify-content:center;padding:20px;}
-  .paper{background:white;width:${billMode==='invoice'?'720px':'380px'};padding:${billMode==='invoice'?'36px':'24px'};border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.1);}
+  body{font-family:'Segoe UI',sans-serif;background:#f3f4f6;display:flex;justify-content:center;padding:20px;margin:0;-webkit-text-size-adjust:100%;}
+  @media(max-width:600px){body{padding:8px;}.paper{padding:16px !important;}}
+  .paper{overflow-x:auto;}
+  .paper{background:white;width:100%;max-width:${billMode==='invoice'?'720px':'380px'};padding:${billMode==='invoice'?'36px':'24px'};border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.1);}
   table{width:100%;border-collapse:collapse;}
   th{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;padding:8px 4px;border-bottom:2px solid #111827;text-align:left;}
   th:nth-child(2){text-align:center;}th:nth-child(3),th:nth-child(4){text-align:right;}
@@ -3601,6 +3712,7 @@ async function persistCategories(){
 
 function navAdmin(page){
   currentPage=page;
+  if(page==='chats'&&typeof chatMobileShow==='function')chatMobileShow('list');
   document.body.classList.toggle('on-billing',page==='billing');
   document.querySelectorAll('.page-content').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page)?.classList.add('active');
@@ -3653,6 +3765,41 @@ function applyResponsive(){
 }
 window.addEventListener('resize',applyResponsive);
 applyResponsive();
+
+// ─── UNIVERSAL FIT (v3) ───
+(function(){
+  function setVh(){
+    var h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
+    document.documentElement.style.setProperty('--vh-px',Math.round(h)+'px');
+  }
+  setVh();
+  window.addEventListener('resize',setVh);
+  window.addEventListener('orientationchange',function(){setTimeout(setVh,250);});
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',setVh);
+  // close drawer when leaving mobile width (rotate / resize) so overlay never sticks
+  window.addEventListener('resize',function(){
+    if(window.innerWidth>768)document.getElementById('sidebar')?.classList.remove('mobile-open');
+  });
+  // keep focused input visible above the keyboard
+  document.addEventListener('focusin',function(e){
+    var t=e.target;
+    if(window.innerWidth<=768&&t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)){
+      setTimeout(function(){try{t.scrollIntoView({block:'center',behavior:'smooth'});}catch(_){}},300);
+    }
+  });
+})();
+function chatMobileShow(view){
+  if(window.innerWidth>768)return;
+  var sh=document.getElementById('chat-shell');if(!sh)return;
+  var list=sh.children[0],chat=sh.children[1];
+  if(view==='chat'){list.classList.add('chat-pane-hide');chat.classList.remove('chat-pane-hide');}
+  else{chat.classList.add('chat-pane-hide');list.classList.remove('chat-pane-hide');}
+}
+function chatBackToList(){chatMobileShow('list');}
+window.addEventListener('resize',function(){
+  var sh=document.getElementById('chat-shell');if(!sh)return;
+  if(window.innerWidth>768){sh.children[0].classList.remove('chat-pane-hide');sh.children[1].classList.remove('chat-pane-hide');}
+});
 </script>
 <script>
 // ─── ONLINE ORDER BILLS (added) ───────────────────────────────────────────────
