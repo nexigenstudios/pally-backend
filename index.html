@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Santhom Stores – Admin</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -95,8 +95,86 @@ textarea.input-f { resize:vertical; min-height:80px; }
 .space-y-3>*+* { margin-top:12px; }
 ::-webkit-scrollbar { width:4px; height:4px; }
 ::-webkit-scrollbar-thumb { background:#e5e7eb; border-radius:10px; }
-@media(max-width:768px) { #sidebar { position:fixed; left:-240px; height:100%; transition:left .25s; } #sidebar.mobile-open { left:0; } }
 @media(max-width:900px) { #bill-grid { grid-template-columns:1fr !important; } }
+/* ===== MOBILE + BILL (added) ===== */
+html,body{max-width:100%;-webkit-text-size-adjust:100%;}
+*{-webkit-tap-highlight-color:transparent;}
+button,select,.btn,.nav-item,.tab-btn,.date-chip{touch-action:manipulation;}
+#app{height:100vh;height:100dvh;}
+#sidebar{height:100vh;height:100dvh;}
+#main{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+#page-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(17,24,39,.45);z-index:45;}
+.tdv{min-width:0;}
+#order-bill-modal .obm-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+.row-bill-btn{padding:5px 10px;background:#1a5c2a;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;margin-left:4px;cursor:pointer;}
+
+@media(max-width:900px){
+  #bill-grid{display:flex !important;flex-direction:column;gap:14px;}
+  #bill-grid > div:first-child{display:contents;}
+  #bill-grid #bill-pos-panel,#bill-grid #bill-invoice-panel{order:1;}
+  #bill-grid > div:first-child > .stat-card:last-child{order:3;}
+  #bill-grid > div:last-child{order:2;position:static !important;}
+}
+
+@media(max-width:768px){
+  /* drawer menu */
+  #sidebar{position:fixed;left:0;top:0;bottom:0;width:280px;max-width:86vw;transform:translateX(-102%);transition:transform .25s ease;z-index:60;box-shadow:none;padding-top:env(safe-area-inset-top);}
+  #sidebar.mobile-open{transform:translateX(0);box-shadow:8px 0 32px rgba(0,0,0,.2);}
+  #sidebar.mobile-open + #sidebar-overlay{display:block;}
+  #sidebar.collapsed{width:280px;}
+  #sidebar.collapsed .nav-label,#sidebar.collapsed .brand-label{display:inline;}
+  .nav-item{padding:13px 14px;font-size:14px;}
+
+  /* top bar */
+  #main > div:first-child{padding:10px 12px !important;padding-top:calc(10px + env(safe-area-inset-top)) !important;gap:8px !important;}
+  #topbar-refresh .tb-txt{display:none;}
+  #topbar-refresh{padding:8px 10px !important;}
+  #quick-room-delivery-btn{padding:8px 10px !important;font-size:11px !important;white-space:nowrap;}
+  #pages-wrapper{padding:12px !important;padding-bottom:calc(24px + env(safe-area-inset-bottom)) !important;}
+
+  /* touch-size controls, no iOS zoom on focus */
+  input,select,textarea,.input-f{font-size:16px !important;}
+  .input-f{padding:12px;min-height:44px;}
+  .btn{min-height:40px;}
+  .tab-btn{padding:10px 14px;}
+  .date-chip{padding:9px 14px;}
+  #date-from,#date-to{flex:1;min-width:120px;}
+
+  /* modals become bottom sheets */
+  .modal-bd{align-items:flex-end;padding:0;}
+  .modal-box{max-width:100% !important;border-radius:20px 20px 0 0;max-height:92vh;max-height:92dvh;padding:18px 16px calc(18px + env(safe-area-inset-bottom)) !important;}
+
+  /* toast */
+  #toast{left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));text-align:center;}
+  #new-order-flash{max-width:calc(100vw - 24px);}
+
+  /* tables -> cards */
+  table.data-table,table.data-table tbody{display:block;width:100%;}
+  table.data-table thead{display:none;}
+  table.data-table tr{display:block;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin:10px 0;padding:4px 12px;}
+  table.data-table tr:hover td{background:transparent;}
+  table.data-table td{display:flex;justify-content:space-between;align-items:center;gap:14px;text-align:right;padding:9px 0 !important;border-bottom:1px dashed #eef0f3 !important;white-space:normal !important;}
+  table.data-table td:last-child{border-bottom:none !important;}
+  table.data-table td[data-label]::before{content:attr(data-label);flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;text-align:left;}
+  table.data-table td[data-label=""]::before{display:none;}
+  table.data-table td[data-label=""]{justify-content:flex-end;}
+  table.data-table td[colspan]{display:block;text-align:center;}
+  table.data-table td select{max-width:60%;min-width:0 !important;}
+  #orders-tbody td[data-label="Mode"],#orders-tbody td[data-label="Date"]{display:none;}
+
+  /* page-specific */
+  [style*="grid-template-columns:320px 1fr"]{grid-template-columns:1fr !important;}
+  [style*="grid-template-columns:1fr 1fr 1fr;"]{grid-template-columns:1fr 1fr !important;}
+  [style*="grid-template-columns:2fr 1fr 1fr auto"]{grid-template-columns:1fr 1fr !important;}
+  [style*="grid-template-columns:2fr 1fr 1fr auto"] > div:first-child,[style*="grid-template-columns:2fr 1fr 1fr auto"] > button{grid-column:1/-1;}
+  .bill-actions{margin-left:0 !important;width:100%;}
+  .bill-actions button{flex:1;}
+  #order-bill-modal #order-bill-frame{height:56vh;height:56dvh;}
+}
+@media(max-width:380px){
+  #quick-room-delivery-label{max-width:84px;overflow:hidden;text-overflow:ellipsis;}
+}
 </style>
 </head>
 <body class="bg-gray-100 overflow-hidden">
@@ -162,6 +240,7 @@ textarea.input-f { resize:vertical; min-height:80px; }
       <button onclick="adminLogout()" class="nav-item btn" style="width:100%;color:#ef4444;margin:0;justify-content:flex-start;"><span class="material-symbols-outlined ms" style="font-size:18px;flex-shrink:0;">logout</span><span class="nav-label">Sign Out</span></button>
     </div>
   </nav>
+  <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
   <main id="main">
     <div style="position:sticky;top:0;z-index:40;background:#f3f4f6;border-bottom:1px solid #e5e7eb;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
@@ -171,7 +250,7 @@ textarea.input-f { resize:vertical; min-height:80px; }
         <span class="material-symbols-outlined ms" id="quick-room-delivery-icon" style="font-size:15px;">storefront</span>
         <span id="quick-room-delivery-label">Store Open: ON</span>
       </button>
-      <button onclick="refreshAll()" class="btn" style="display:flex;align-items:center;gap:5px;padding:7px 14px;background:white;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-weight:600;color:#6b7280;"><span class="material-symbols-outlined ms" style="font-size:15px;">refresh</span>Refresh</button>
+      <button onclick="refreshAll()" id="topbar-refresh" class="btn" style="display:flex;align-items:center;gap:5px;padding:7px 14px;background:white;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-weight:600;color:#6b7280;"><span class="material-symbols-outlined ms" style="font-size:15px;">refresh</span><span class="tb-txt">Refresh</span></button>
     </div>
     <div style="padding:20px;flex:1;" id="pages-wrapper">
 
@@ -492,7 +571,7 @@ textarea.input-f { resize:vertical; min-height:80px; }
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
     <button class="tab-btn active" id="bill-tab-pos" onclick="switchBillMode('pos')">🧾 POS Billing</button>
     <button class="tab-btn" id="bill-tab-invoice" onclick="switchBillMode('invoice')">📄 Invoice Generator</button>
-    <div style="margin-left:auto;display:flex;gap:8px;">
+    <div class="bill-actions" style="margin-left:auto;display:flex;gap:8px;">
       <button onclick="clearBillCart()" class="btn" style="padding:7px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:12px;font-weight:700;">🗑 Clear</button>
       <button onclick="saveBill()" id="bill-save-btn" class="btn" style="padding:7px 18px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">💾 Save</button>
       <button onclick="printBill()" id="bill-print-btn" class="btn" style="padding:7px 18px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">🖨 Save &amp; Print</button>
@@ -906,6 +985,24 @@ textarea.input-f { resize:vertical; min-height:80px; }
       <button onclick="closeModal('order-detail-modal')" class="btn" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms" style="font-size:16px;color:#6b7280;">close</span></button>
     </div>
     <div id="od-content"></div>
+  </div>
+</div>
+<!-- Order Bill Modal (added) -->
+<div class="modal-bd" id="order-bill-modal" onclick="closeModal('order-bill-modal')">
+  <div class="modal-box" style="max-width:780px;padding:18px;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;">
+      <div style="min-width:0;"><h2 style="font-size:16px;font-weight:800;">Bill</h2><p style="font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="obm-sub"></p></div>
+      <button onclick="closeModal('order-bill-modal')" class="btn" style="width:34px;height:34px;min-height:0;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="material-symbols-outlined ms" style="font-size:18px;color:#6b7280;">close</span></button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;">
+      <button class="tab-btn active" id="obm-fmt-invoice" onclick="setOrderBillFormat('invoice')">Invoice (A4)</button>
+      <button class="tab-btn" id="obm-fmt-receipt" onclick="setOrderBillFormat('receipt')">Receipt (80mm)</button>
+    </div>
+    <iframe id="order-bill-frame" title="Bill preview" style="width:100%;height:58vh;border:1px solid #e5e7eb;border-radius:12px;background:#f3f4f6;"></iframe>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+      <button class="obm-btn" style="background:#1a5c2a;color:#fff;flex:1;min-width:150px;" onclick="printOrderBill()"><span class="material-symbols-outlined ms" style="font-size:18px;">print</span>Print / Save PDF</button>
+      <button class="obm-btn" style="background:#25d366;color:#fff;flex:1;min-width:150px;" onclick="whatsappOrderBill()"><span class="material-symbols-outlined ms" style="font-size:18px;">send</span>Send on WhatsApp</button>
+    </div>
   </div>
 </div>
 <script>
@@ -1578,7 +1675,7 @@ function renderOrdersTable(){
       <td style="font-size:13px;font-weight:800;color:#1a5c2a;">₹${(o.total||0).toFixed(0)}</td>
       <td><select onchange="updateOrderStatus('${o.firestoreId}',this.value)" style="padding:5px 6px;border:1px solid #e5e7eb;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;background:white;outline:none;min-width:130px;">${ALL_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${adminDisplayStatus(s)}</option>`).join('')}</select></td>
       <td style="font-size:11px;color:#9ca3af;white-space:nowrap;">${o.date}</td>
-      <td><button onclick="openOrderDetail('${o.firestoreId}')" class="btn" style="padding:5px 10px;background:#e2f0e6;color:#1a5c2a;border:none;border-radius:7px;font-size:11px;font-weight:700;">View</button></td>
+      <td><button onclick="openOrderDetail('${o.firestoreId}')" class="btn" style="padding:5px 10px;background:#e2f0e6;color:#1a5c2a;border:none;border-radius:7px;font-size:11px;font-weight:700;">View</button><button onclick="openOrderBill('${o.firestoreId}')" class="btn row-bill-btn">🧾 Bill</button></td>
     </tr>`;
   }).join('');
 }
@@ -1647,7 +1744,8 @@ function openOrderDetail(fid){
     ${o.discountAmount>0?`<div style="display:flex;justify-content:space-between;font-size:12px;color:#16a34a;padding:6px 0;"><span>Discount (${o.promoUsed})</span><span style="font-weight:700;">-₹${(o.discountAmount||0).toFixed(2)}</span></div>`:''}
     <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:10px 0;border-top:2px solid #f3f4f6;margin-top:4px;"><span>Revenue</span><span style="color:#2d8a45;">₹${(o.total||0).toFixed(2)}</span></div>
     <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:2px 0;"><span>Gross Profit</span><span style="color:${totalProfit>=0?'#16a34a':'#dc2626'};">₹${totalProfit.toFixed(2)}</span></div>
-    <div style="margin-top:12px;"><label class="lbl">Update Status</label><select onchange="updateOrderStatus('${o.firestoreId}',this.value);closeModal('order-detail-modal')" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-weight:600;background:white;outline:none;cursor:pointer;">${ALL_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${adminDisplayStatus(s)}</option>`).join('')}</select></div>`;
+    <div style="margin-top:12px;"><label class="lbl">Update Status</label><select onchange="updateOrderStatus('${o.firestoreId}',this.value);closeModal('order-detail-modal')" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-weight:600;background:white;outline:none;cursor:pointer;">${ALL_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${adminDisplayStatus(s)}</option>`).join('')}</select></div>
+    <button onclick="openOrderBill('${o.firestoreId}')" class="btn" style="width:100%;margin-top:12px;padding:12px;background:#1a5c2a;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined ms" style="font-size:18px;">receipt_long</span>Generate Bill</button>`;
   document.getElementById('order-detail-modal').classList.add('open');
 }
 
@@ -3440,7 +3538,7 @@ function navAdmin(page){
 
 function toggleSidebar(){
   const sb=document.getElementById('sidebar');
-  if(window.innerWidth<768)sb.classList.toggle('mobile-open');
+  if(window.innerWidth<=768)sb.classList.toggle('mobile-open');
   else sb.classList.toggle('collapsed');
 }
 
@@ -3458,6 +3556,169 @@ function applyResponsive(){
 }
 window.addEventListener('resize',applyResponsive);
 applyResponsive();
+</script>
+<script>
+// ─── ONLINE ORDER BILLS (added) ───────────────────────────────────────────────
+let _obm={order:null,fmt:'invoice'};
+
+function billEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function billMoney(n){return '₹'+(Number(n)||0).toFixed(2);}
+
+function getOrderBillData(o){
+  const g=id=>(document.getElementById(id)?.value||'').trim();
+  const items=(o.items||[]).map(i=>({name:i.name||'Item',qty:Number(i.qty)||0,price:Number(i.price)||0}));
+  const subtotal=items.reduce((s,i)=>s+i.qty*i.price,0);
+  const discount=Number(o.discountAmount)||0;
+  const total=Number(o.total)||0;
+  const other=Math.round((total-(subtotal-discount))*100)/100; // delivery / handling / rounding, if any
+  return{
+    store:{name:g('s-store-name')||'Santhom Stores',phone:g('s-phone'),hours:g('s-delivery-time')},
+    billNo:'BILL-'+(o.orderId||String(o.firestoreId||'').substring(0,8)),
+    orderId:o.orderId||'',date:o.date||'',time:o.time||'',
+    name:o.name||'Customer',phone:o.phone||'',
+    pickup:o.pickupLocation||'Store Counter',
+    payment:o.payment||'',status:o.status||'',promo:o.promoUsed||'',notes:o.notes||'',
+    items,subtotal,discount,other,total
+  };
+}
+
+function buildOrderBillHtml(o,fmt){
+  const d=getOrderBillData(o);
+  const rec=fmt==='receipt';
+  const rows=d.items.map((i,n)=>`<tr><td>${rec?'':`<span class="n">${n+1}.</span>`}${billEsc(i.name)}</td><td class="c">${i.qty}</td><td class="r">${i.price.toFixed(2)}</td><td class="r b">${(i.qty*i.price).toFixed(2)}</td></tr>`).join('');
+  const cancelled=/cancel/i.test(d.status);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${billEsc(d.billNo)}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans','Segoe UI',system-ui,-apple-system,sans-serif;background:#f3f4f6;color:#111827;padding:14px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.paper{background:#fff;width:100%;max-width:${rec?'380px':'720px'};margin:0 auto;padding:${rec?'18px':'28px'};border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);position:relative;}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px;${rec?'flex-direction:column;align-items:center;text-align:center;border-bottom:2px dashed #e5e7eb;padding-bottom:12px;':''}}
+.store{font-size:${rec?'18px':'24px'};font-weight:800;letter-spacing:-.5px;}
+.muted{font-size:12px;color:#6b7280;}
+.title{${rec?'':'text-align:right;'}}
+@media(max-width:480px){.head{flex-direction:column;gap:8px;}.title{text-align:left;}}
+.title h2{font-size:${rec?'13px':'20px'};font-weight:800;color:#1a5c2a;letter-spacing:.5px;}
+.box{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;background:#f9fafb;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;}
+.box .k{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:3px;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;padding:8px 4px;border-bottom:2px solid #111827;text-align:left;}
+th.c,td.c{text-align:center;}th.r,td.r{text-align:right;}
+td{padding:8px 4px;font-size:13px;border-bottom:1px solid #f3f4f6;vertical-align:top;}
+td.b{font-weight:700;}.n{display:inline-block;min-width:20px;color:#9ca3af;}
+.tot{margin:14px 0 0 auto;width:${rec?'100%':'260px'};max-width:100%;}
+.tot div{display:flex;justify-content:space-between;font-size:13px;color:#6b7280;margin-bottom:4px;}
+.tot .g{color:#16a34a;}
+.tot .t{font-size:16px;font-weight:800;color:#111827;border-top:2px solid #111827;padding-top:8px;margin-top:6px;}
+.note{margin-top:16px;padding:10px 12px;background:#f9fafb;border-left:3px solid #2d8a45;border-radius:6px;font-size:12px;color:#374151;}
+.foot{margin-top:18px;text-align:center;font-size:11px;color:#9ca3af;${rec?'border-top:2px dashed #e5e7eb;padding-top:12px;':''}}
+.cancel{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-size:44px;font-weight:900;color:rgba(220,38,38,.18);border:5px solid rgba(220,38,38,.18);padding:4px 18px;border-radius:10px;pointer-events:none;}
+@page{size:${rec?'80mm auto':'A4'};margin:${rec?'3mm':'12mm'};}
+@media print{body{background:#fff;padding:0;}.paper{box-shadow:none;border-radius:0;max-width:100%;padding:${rec?'0':'0'};}}
+</style></head><body><div class="paper">
+${cancelled?'<div class="cancel">CANCELLED</div>':''}
+<div class="head">
+  <div><div class="store">${billEsc(d.store.name)}</div>
+    ${d.store.phone?`<div class="muted">📞 ${billEsc(d.store.phone)}</div>`:''}
+    ${d.store.hours?`<div class="muted">🕐 ${billEsc(d.store.hours)}</div>`:''}</div>
+  <div class="title"><h2>${rec?'RECEIPT':'INVOICE'}</h2>
+    <div style="font-size:13px;font-weight:700;">${billEsc(d.billNo)}</div>
+    <div class="muted">${billEsc(d.date)} ${billEsc(d.time)}</div></div>
+</div>
+<div class="box">
+  <div><div class="k">Bill To</div><div style="font-weight:700;">${billEsc(d.name)}</div>${d.phone?`<div class="muted">${billEsc(d.phone)}</div>`:''}</div>
+  <div style="${rec?'':'text-align:right;'}"><div class="k">Order</div><div style="font-weight:700;">${billEsc(d.orderId||'—')}</div><div class="muted">Pickup: ${billEsc(d.pickup)}</div>${d.payment?`<div class="muted">Payment: ${billEsc(d.payment)}</div>`:''}</div>
+</div>
+<table><thead><tr><th>Item</th><th class="c">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="muted">No items</td></tr>'}</tbody></table>
+<div class="tot">
+  <div><span>Subtotal</span><span>${billMoney(d.subtotal)}</span></div>
+  ${d.discount>0?`<div class="g"><span>Discount${d.promo?' ('+billEsc(d.promo)+')':''}</span><span>-${billMoney(d.discount)}</span></div>`:''}
+  ${Math.abs(d.other)>=0.01?`<div><span>${d.other>0?'Other charges':'Adjustment'}</span><span>${d.other<0?'-':''}${billMoney(Math.abs(d.other))}</span></div>`:''}
+  <div class="t"><span>TOTAL</span><span>${billMoney(d.total)}</span></div>
+</div>
+${d.notes?`<div class="note"><b>Notes:</b> ${billEsc(d.notes)}</div>`:''}
+<div class="foot">Thank you for shopping at ${billEsc(d.store.name)}!<br>${rec?'':'This is a computer-generated bill. No signature required.'}</div>
+</div></body></html>`;
+}
+
+function renderOrderBill(){
+  const {order,fmt}=_obm; if(!order)return;
+  document.getElementById('order-bill-frame').srcdoc=buildOrderBillHtml(order,fmt);
+  document.getElementById('obm-fmt-invoice').classList.toggle('active',fmt==='invoice');
+  document.getElementById('obm-fmt-receipt').classList.toggle('active',fmt==='receipt');
+}
+function setOrderBillFormat(fmt){_obm.fmt=fmt;renderOrderBill();}
+
+function openOrderBill(fid){
+  const o=allOrders.find(x=>x.firestoreId===fid); if(!o)return;
+  _obm.order=o;
+  document.getElementById('obm-sub').textContent=(o.orderId||'Order')+' · '+(o.name||'');
+  if(/cancel/i.test(o.status||''))showToast('Note: this order is cancelled');
+  renderOrderBill();
+  document.getElementById('order-bill-modal').classList.add('open');
+}
+
+function printOrderBill(){
+  const f=document.getElementById('order-bill-frame');
+  try{f.contentWindow.focus();f.contentWindow.print();}
+  catch(e){
+    const w=window.open('','_blank');
+    if(w){w.document.write(f.srcdoc);w.document.close();setTimeout(()=>w.print(),400);}
+    else showToast('Allow pop-ups to print this bill');
+  }
+}
+
+function whatsappOrderBill(){
+  const o=_obm.order; if(!o)return;
+  const d=getOrderBillData(o);
+  const lines=[
+    `*${d.store.name}*`,
+    `Bill: ${d.billNo}`,
+    `Date: ${d.date} ${d.time}`,
+    `Customer: ${d.name}`,
+    '------------------------',
+    ...d.items.map((i,n)=>`${n+1}. ${i.name} x${i.qty} — ₹${(i.qty*i.price).toFixed(2)}`),
+    '------------------------',
+    `Subtotal: ₹${d.subtotal.toFixed(2)}`,
+    ...(d.discount>0?[`Discount: -₹${d.discount.toFixed(2)}`]:[]),
+    ...(Math.abs(d.other)>=0.01?[`${d.other>0?'Other charges':'Adjustment'}: ${d.other<0?'-':''}₹${Math.abs(d.other).toFixed(2)}`]:[]),
+    `*Total: ₹${d.total.toFixed(2)}*`,
+    ...(d.payment?[`Payment: ${d.payment}`]:[]),
+    '',
+    'Thank you for shopping with us!'
+  ];
+  let p=String(d.phone).replace(/\D/g,'');
+  if(p.length===10)p='91'+p;           // Indian mobile without country code
+  const url='https://wa.me/'+(p.length>=11?p:'')+'?text='+encodeURIComponent(lines.join('\n'));
+  window.open(url,'_blank');
+}
+
+// ─── MOBILE: label table cells so rows can render as cards ────────────────────
+function labelTableCells(){
+  document.querySelectorAll('table.data-table').forEach(t=>{
+    const heads=[...t.querySelectorAll('thead th')].map(th=>th.textContent.trim());
+    t.querySelectorAll('tbody tr').forEach(tr=>{
+      [...tr.children].forEach((td,i)=>{
+        if(td.tagName!=='TD'||td.dataset.label!==undefined)return;
+        td.dataset.label=td.colSpan>1?'':(heads[i]||'');
+        if(td.colSpan>1)return;
+        const w=document.createElement('div');w.className='tdv';
+        while(td.firstChild)w.appendChild(td.firstChild);
+        td.appendChild(w);
+      });
+    });
+  });
+}
+(function(){
+  let raf=0;
+  const run=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(labelTableCells);};
+  const start=()=>{
+    const root=document.getElementById('pages-wrapper')||document.body;
+    new MutationObserver(run).observe(root,{childList:true,subtree:true});
+    run();
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
 </script>
 </body>
 </html>
