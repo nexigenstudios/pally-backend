@@ -901,6 +901,15 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
         <div style="font-weight:800;font-size:13px;color:#111827;margin-bottom:2px;" id="bill-store-name">Santhomart</div>
         <div id="bill-store-phone"></div>
         <div id="bill-store-hours"></div>
+        <div style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px;">
+          <label class="lbl">Print receipt as</label>
+          <select id="bill-print-style" class="input-f" onchange="setPosPrintStyle(this.value)">
+            <option value="standard">Standard receipt</option>
+            <option value="thermal80">Thermal printer - 80 mm</option>
+            <option value="thermal58">Thermal printer - 58 mm</option>
+          </select>
+          <button onclick="openPrinterSetup()" class="btn" style="margin-top:8px;width:100%;padding:9px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:12px;font-weight:700;">⚙ Printer Setup (Bluetooth / USB / RawBT)</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1217,15 +1226,52 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     </div>
     <div style="display:flex;gap:6px;margin-bottom:10px;">
       <button class="tab-btn active" id="obm-fmt-invoice" onclick="setOrderBillFormat('invoice')">Invoice (A4)</button>
-      <button class="tab-btn" id="obm-fmt-receipt" onclick="setOrderBillFormat('receipt')">Receipt (80mm)</button>
+      <button class="tab-btn" id="obm-fmt-receipt" onclick="setOrderBillFormat('receipt')">Receipt</button>
+      <button class="tab-btn" id="obm-fmt-thermal" onclick="setOrderBillFormat('thermal')">🧾 Thermal</button>
+      <select id="obm-thermal-w" class="input-f" style="display:none;width:auto;padding:7px 28px 7px 10px;min-height:0;" onchange="setThermalWidth(this.value)"><option value="80">80 mm roll</option><option value="58">58 mm roll</option></select>
     </div>
     <iframe id="order-bill-frame" title="Bill preview" style="width:100%;height:58vh;border:1px solid #e5e7eb;border-radius:12px;background:#f3f4f6;"></iframe>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
       <button class="obm-btn" style="background:#1a5c2a;color:#fff;flex:1;min-width:150px;" onclick="printOrderBill()"><span class="material-symbols-outlined ms" style="font-size:18px;">print</span>Print / Save PDF</button>
+      <button class="obm-btn" style="background:#111827;color:#fff;flex:1;min-width:150px;" onclick="printOrderBillThermal()"><span class="material-symbols-outlined ms" style="font-size:18px;">receipt_long</span>Thermal Print</button>
+      <button class="obm-btn" style="background:#f3f4f6;color:#374151;flex:1;min-width:150px;" onclick="openPrinterSetup()"><span class="material-symbols-outlined ms" style="font-size:18px;">settings</span>Printer Setup</button>
       <button class="obm-btn" style="background:#25d366;color:#fff;flex:1;min-width:150px;" onclick="whatsappOrderBill()"><span class="material-symbols-outlined ms" style="font-size:18px;">send</span>Send on WhatsApp</button>
     </div>
   </div>
 </div>
+
+<!-- ===== PRINTER SETUP (thermal / ESC-POS) ===== -->
+<div class="modal-bd" id="printer-setup-modal" style="z-index:260;" onclick="closeModal('printer-setup-modal')">
+  <div class="modal-box" style="max-width:440px;padding:20px;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div><h2 style="font-size:15px;font-weight:800;">🖨 Printer Setup</h2><p style="font-size:11px;color:#9ca3af;">Thermal receipt printer - saved on this device</p></div>
+      <button onclick="closeModal('printer-setup-modal')" class="btn" style="width:28px;height:28px;min-height:0;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms" style="font-size:16px;color:#6b7280;">close</span></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div><label class="lbl">How is your printer connected?</label>
+        <select id="tp-method" class="input-f" onchange="tpMethodChanged()">
+          <option value="browser">Print dialog (printer installed on this device)</option>
+          <option value="bluetooth" data-label="Bluetooth (direct)">Bluetooth (direct)</option>
+          <option value="usb" data-label="USB (direct)">USB (direct)</option>
+          <option value="serial" data-label="Serial / COM port (direct)">Serial / COM port (direct)</option>
+          <option value="rawbt" data-label="RawBT app (Android)">RawBT app (Android)</option>
+        </select></div>
+      <div style="background:#f9fafb;border-radius:8px;padding:9px 11px;font-size:12px;color:#4b5563;line-height:1.45;" id="tp-tip"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label class="lbl">Paper roll</label>
+          <select id="tp-width" class="input-f" onchange="tpWidthChanged()"><option value="80">80 mm</option><option value="58">58 mm</option></select></div>
+        <div id="tp-baud-wrap" style="display:none;"><label class="lbl">Baud rate (serial)</label>
+          <select id="tp-baud" class="input-f" onchange="tpBaudChanged()"><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="tp-connect" onclick="tpConnect()" class="btn" style="flex:1;min-width:120px;padding:10px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Connect printer</button>
+        <button onclick="tpTestPrint()" class="btn" style="flex:1;min-width:120px;padding:10px;background:#111827;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Test print</button>
+      </div>
+      <p style="font-size:11px;color:#9ca3af;">Direct methods need Chrome or Edge (on iPhone: the Bluefy browser). Connect once; it is remembered next time.</p>
+    </div>
+  </div>
+</div>
+
 <!-- ===== PACKING LIST QUICK MODAL (from Orders page button) ===== -->
 <div class="modal-bd" id="packing-modal" onclick="closeModal('packing-modal')">
   <div class="modal-box" style="max-width:420px;padding:20px;" onclick="event.stopPropagation()">
@@ -3935,6 +3981,7 @@ function switchBillMode(mode){
 }
 
 function initBillingPage(){
+  try{_initPosPrintStyle();}catch(e){}
   // Pre-fill invoice number with date-based default
   const today=new Date();
   const pad=n=>String(n).padStart(2,'0');
@@ -4205,24 +4252,42 @@ function openSavedBillPreview(res){
   const now=new Date();
   const o={...res.order,firestoreId:res.id,createdAt:null,dateObj:now,date:now.toLocaleDateString('en-IN'),time:now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})};
   _obm.order=o;
+  if(getPosPrintStyle().startsWith('thermal'))_obm.fmt='thermal';
   document.getElementById('obm-sub').textContent=(o.orderId||'Bill')+' · '+(o.name||'');
   renderOrderBill();
   document.getElementById('order-bill-modal').classList.add('open');
 }
+
+// POS receipt style: 'standard' | 'thermal80' | 'thermal58' (remembered on this device)
+function getPosPrintStyle(){try{return localStorage.getItem('santhom_pos_print')||'standard';}catch(e){return 'standard';}}
+function setPosPrintStyle(v){try{localStorage.setItem('santhom_pos_print',v);if(v==='thermal58')localStorage.setItem('santhom_thermal_w','58');if(v==='thermal80')localStorage.setItem('santhom_thermal_w','80');}catch(e){}}
+function _initPosPrintStyle(){const el=document.getElementById('bill-print-style');if(el)el.value=getPosPrintStyle();}
 
 async function printBill(){
   if(billBusy)return;
   const id=prepareBillId();if(!id)return;
   setBillBusy(true);
   // Open the receipt window now (inside the click) so pop-up blockers allow it
-  const win=window.open('','_blank','width=800,height=900');
+  const direct=getPosPrintStyle().startsWith('thermal')&&getPrinterMethod()!=='browser';
+  const win=direct?null:window.open('','_blank','width=800,height=900');
+  let to=null,preErr=null;
   try{
+    if(direct){try{await ensurePrinterConnected(false);}catch(e){preErr=e;}}
     // Receipt must be built from the bill BEFORE it is reset
-    const html=buildBillHtml(id);
+    let html=buildBillHtml(id);
     const res=await commitBill(id);
     if(!res){ if(win)win.close(); return; }
     _usedBillNos.add(id);
-    if(win){ win.document.write(html); win.document.close(); }
+    if(getPosPrintStyle().startsWith('thermal')){
+      const now=new Date();
+      to={...res.order,firestoreId:res.id,createdAt:null,dateObj:now,date:now.toLocaleDateString('en-IN'),time:now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})};
+      html=buildThermalBillHtml(to,getPosPrintStyle()==='thermal58'?'58':'80',true);
+    }
+    if(direct){
+      const ok=!preErr&&await directPrint(to);
+      if(!ok){ if(preErr)showToast('Printer not connected - open Printer Setup'); openSavedBillPreview(res); }
+    }
+    else if(win){ win.document.write(html); win.document.close(); }
     else openSavedBillPreview(res);
     resetBill();
     showToast('Bill '+id+' saved · stock, orders & revenue updated');
@@ -4616,7 +4681,293 @@ function getOrderBillData(o){
   };
 }
 
+// ─── THERMAL RECEIPT (58mm / 80mm) ───
+function getThermalWidth(){const w=localStorage.getItem('santhom_thermal_w');return w==='58'?'58':'80';}
+function _thermalMoney(n){return (Number(n)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+// Black-on-white, monospace, compact: made for thermal paper. w = '80' or '58'.
+function buildThermalBillHtml(o,w,autoPrint){
+  w=w==='58'?'58':'80';
+  const d=getOrderBillData(o);
+  const mm=w==='58'?48:72;                 // printable width of the roll
+  const fs=w==='58'?11:12.5;               // base font size (px)
+  const cancelled=/cancel/i.test(d.status);
+  const line=`<div class="ln"></div>`;
+  const rows=d.items.map(i=>`<div class="it"><div class="nm">${billEsc(i.name)}</div>
+    <div class="rw"><span>${i.qty} x ${_thermalMoney(i.price)}</span><span class="b">${_thermalMoney(i.qty*i.price)}</span></div></div>`).join('')||'<div class="c">No items</div>';
+  const units=d.items.reduce((s,i)=>s+i.qty,0);
+  const row=(a,b,cls)=>`<div class="rw ${cls||''}"><span>${a}</span><span>${b}</span></div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${billEsc(d.billNo)}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:#e5e7eb;}
+body{font-family:'Courier New',Courier,'Liberation Mono',monospace;color:#000;font-size:${fs}px;line-height:1.35;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.paper{background:#fff;width:${mm}mm;max-width:100%;margin:12px auto;padding:3mm 2mm 10mm;}
+.c{text-align:center;}.b{font-weight:700;}
+.store{font-size:${fs+(w==='58'?3:4.5)}px;font-weight:900;text-align:center;letter-spacing:.5px;text-transform:uppercase;word-break:break-word;}
+.sm{font-size:${fs-1.5}px;text-align:center;}
+.ln{border-top:1px dashed #000;margin:5px 0;height:0;}
+.ln2{border-top:2px solid #000;margin:5px 0;height:0;}
+.rw{display:flex;justify-content:space-between;gap:6px;}
+.rw span:last-child{text-align:right;white-space:nowrap;}
+.it{margin-bottom:4px;}
+.nm{font-weight:700;word-break:break-word;}
+.tot{font-size:${fs+(w==='58'?2.5:4)}px;font-weight:900;margin-top:2px;}
+.hd{font-weight:900;text-align:center;letter-spacing:2px;}
+.stamp{text-align:center;font-weight:900;border:2px solid #000;padding:2px;margin:4px 0;}
+@page{size:${w}mm auto;margin:0;}
+@media print{html,body{background:#fff;}.paper{margin:0 auto;width:${mm}mm;box-shadow:none;}}
+</style></head><body><div class="paper">
+<div class="store">${billEsc(d.store.name)}</div>
+${d.store.phone?`<div class="sm">Ph: ${billEsc(d.store.phone)}</div>`:''}
+${d.store.hours?`<div class="sm">${billEsc(d.store.hours)}</div>`:''}
+${line}
+<div class="hd">${d.gst>0?'TAX INVOICE':'CASH RECEIPT'}</div>
+${cancelled?'<div class="stamp">** CANCELLED **</div>':''}
+${line}
+${row('Bill:',billEsc(d.billNo.replace(/^BILL-/,'')))}
+${row('Date:',billEsc(d.date)+' '+billEsc(d.time))}
+${d.name&&!/^walk-in/i.test(d.name)?row('Cust:',billEsc(d.name)):''}
+${d.phone?row('Ph:',billEsc(d.phone)):''}
+${d.pickup&&!/walk-in/i.test(d.pickup)?row('Pickup:',billEsc(d.pickup)):''}
+${line}
+<div class="rw b"><span>ITEM</span><span>AMOUNT</span></div>
+${line}
+${rows}
+${line}
+${row('Items: '+d.items.length+'  Qty: '+units,'')}
+${row('Subtotal',_thermalMoney(d.subtotal))}
+${d.discount>0?row('Discount'+(d.promo?' ('+billEsc(d.promo)+')':''),'-'+_thermalMoney(d.discount)):''}
+${d.gst>0?row('GST'+(d.gstPct?' '+d.gstPct+'%':''),_thermalMoney(d.gst)):''}
+${Math.abs(d.other)>=0.01?row(d.other>0?'Other charges':'Adjustment',(d.other<0?'-':'')+_thermalMoney(Math.abs(d.other))):''}
+<div class="ln2"></div>
+${row('TOTAL','Rs.'+_thermalMoney(d.total),'tot')}
+<div class="ln2"></div>
+${d.payment?row('Paid by:',billEsc(d.payment)):''}
+${d.notes?`<div class="sm" style="text-align:left;margin-top:4px;">Note: ${billEsc(d.notes)}</div>`:''}
+${line}
+<div class="c b">Thank you! Visit again</div>
+<div class="sm">${billEsc(d.store.name)}</div>
+</div>${autoPrint?'<script>window.addEventListener("load",function(){setTimeout(function(){window.focus();window.print();},350);});<\/script>':''}</body></html>`;
+}
+
+// ─── DIRECT THERMAL PRINTING (ESC/POS) ───────────────────────────────────────
+// Methods: browser (print dialog) | bluetooth (Web Bluetooth, BLE) | usb (WebUSB) | serial (Web Serial / COM port) | rawbt (Android RawBT app)
+const _tp={bt:null,usb:null,serial:null};
+const _BT_SERVICES=['000018f0-0000-1000-8000-00805f9b34fb','e7810a71-73ae-499d-8c15-faa9aef0c3f2','0000ff00-0000-1000-8000-00805f9b34fb','0000ffe0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455','38eb4a80-c570-11e3-9507-0002a5d5c51b','0000fee7-0000-1000-8000-00805f9b34fb','0000ae30-0000-1000-8000-00805f9b34fb'];
+function getPrinterMethod(){try{return localStorage.getItem('santhom_tp_method')||'browser';}catch(e){return 'browser';}}
+const _delay=ms=>new Promise(r=>setTimeout(r,ms));
+
+function buildEscPos(o,w){
+  w=w==='58'?'58':'80';
+  const cols=w==='58'?32:48,d=getOrderBillData(o),out=[];
+  const raw=(...a)=>a.forEach(x=>{if(Array.isArray(x))out.push(...x);else out.push(x);});
+  const clean=v=>String(v==null?'':v).replace(/₹/g,'Rs.').replace(/[^\x20-\x7E]/g,'').trim();
+  const put=v=>{const t=clean(v);for(let i=0;i<t.length;i++)out.push(t.charCodeAt(i));out.push(10);};
+  const wrap=(v,n)=>{v=clean(v)||'Item';const r=[];while(v.length>n){let k=v.lastIndexOf(' ',n);if(k<n*0.4)k=n;r.push(v.slice(0,k).trim());v=v.slice(k).trim();}r.push(v);return r;};
+  const lr=(a,b,n)=>{n=n||cols;a=clean(a);b=clean(b);const gap=n-a.length-b.length;return gap>=1?a+' '.repeat(gap)+b:a.slice(0,Math.max(0,n-b.length-1))+' '+b;};
+  const al=n=>raw([27,97,n]),bold=n=>raw([27,69,n]),size=n=>raw([29,33,n]);
+  const dash='-'.repeat(cols),dbl='='.repeat(cols),m=_thermalMoney;
+  const cancelled=/cancel/i.test(d.status);
+  raw([27,64]);                                   // initialise
+  al(1);bold(1);size(0x11);wrap(d.store.name.toUpperCase(),Math.floor(cols/2)).forEach(put);size(0);bold(0);
+  if(d.store.phone)put('Ph: '+d.store.phone);
+  if(d.store.hours)put(d.store.hours);
+  al(0);put(dash);
+  al(1);bold(1);put(d.gst>0?'TAX INVOICE':'CASH RECEIPT');bold(0);
+  if(cancelled){bold(1);put('** CANCELLED **');bold(0);}
+  al(0);put(dash);
+  put(lr('Bill:',d.billNo.replace(/^BILL-/,'')));
+  put(lr('Date:',d.date+' '+d.time));
+  if(d.name&&!/^walk-in/i.test(d.name))put(lr('Cust:',d.name));
+  if(d.phone)put(lr('Ph:',d.phone));
+  if(d.pickup&&!/walk-in/i.test(d.pickup))put(lr('Pickup:',d.pickup));
+  put(dash);bold(1);put(lr('ITEM','AMOUNT'));bold(0);put(dash);
+  d.items.forEach(i=>{bold(1);wrap(i.name,cols).forEach(put);bold(0);put(lr(i.qty+' x '+m(i.price),m(i.qty*i.price)));});
+  put(dash);
+  put('Items: '+d.items.length+'  Qty: '+d.items.reduce((a,i)=>a+i.qty,0));
+  put(lr('Subtotal',m(d.subtotal)));
+  if(d.discount>0)put(lr('Discount'+(d.promo?' ('+d.promo+')':''),'-'+m(d.discount)));
+  if(d.gst>0)put(lr('GST'+(d.gstPct?' '+d.gstPct+'%':''),m(d.gst)));
+  if(Math.abs(d.other)>=0.01)put(lr(d.other>0?'Other charges':'Adjustment',(d.other<0?'-':'')+m(Math.abs(d.other))));
+  put(dbl);bold(1);size(0x01);put(lr('TOTAL','Rs.'+m(d.total)));size(0);bold(0);put(dbl);
+  if(d.payment)put(lr('Paid by:',d.payment));
+  if(d.notes)wrap('Note: '+d.notes,cols).forEach(put);
+  put(dash);
+  al(1);bold(1);put('Thank you! Visit again');bold(0);put(d.store.name);
+  raw([27,100,4]);                                // feed
+  raw([29,86,66,0]);                              // partial cut (ignored by printers without a cutter)
+  return new Uint8Array(out);
+}
+
+// ----- Bluetooth (BLE) -----
+async function _btGet(forcePick){
+  if(!navigator.bluetooth)throw new Error('Bluetooth printing is not supported in this browser');
+  if(_tp.bt&&_tp.bt.char&&_tp.bt.device.gatt.connected)return _tp.bt.char;
+  let device=_tp.bt&&_tp.bt.device;
+  if(!device&&!forcePick&&navigator.bluetooth.getDevices){
+    try{const id=localStorage.getItem('santhom_bt_id');device=(await navigator.bluetooth.getDevices()).find(x=>x.id===id);}catch(e){}
+  }
+  if(!device)device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:_BT_SERVICES});
+  const server=await device.gatt.connect();
+  let char=null;
+  for(const sv of await server.getPrimaryServices()){
+    for(const c of await sv.getCharacteristics()){if(c.properties.write||c.properties.writeWithoutResponse){char=c;break;}}
+    if(char)break;
+  }
+  if(!char)throw new Error('This Bluetooth printer is not supported (no write channel). Try RawBT or Serial.');
+  _tp.bt={device,char};
+  try{localStorage.setItem('santhom_bt_id',device.id);}catch(e){}
+  return char;
+}
+async function _btSend(bytes){
+  const char=await _btGet(false);let lastErr;
+  for(const size of [180,100,20]){
+    try{
+      for(let i=0;i<bytes.length;i+=size){
+        const chunk=bytes.slice(i,i+size);
+        if(char.properties.writeWithoutResponse)await char.writeValueWithoutResponse(chunk);else await char.writeValue(chunk);
+        await _delay(size<=20?30:12);
+      }
+      return;
+    }catch(e){lastErr=e;}
+  }
+  _tp.bt=null;throw lastErr;
+}
+
+// ----- USB -----
+async function _usbGet(forcePick){
+  if(!navigator.usb)throw new Error('USB printing is not supported in this browser');
+  if(_tp.usb&&_tp.usb.dev.opened)return _tp.usb;
+  let dev=null;const saved=(()=>{try{return localStorage.getItem('santhom_usb_id');}catch(e){return null;}})();
+  if(!forcePick){const ds=await navigator.usb.getDevices();dev=ds.find(x=>x.vendorId+':'+x.productId===saved)||null;}
+  if(!dev)dev=await navigator.usb.requestDevice({filters:[]});
+  await dev.open();
+  if(dev.configuration===null)await dev.selectConfiguration(1);
+  let ep=null,ifc=null,isPrinter=false;
+  for(const i of dev.configuration.interfaces){
+    for(const a of i.alternates){
+      const e=a.endpoints.find(x=>x.direction==='out'&&x.type==='bulk');
+      if(e&&(!isPrinter)){ifc=i.interfaceNumber;ep=e.endpointNumber;isPrinter=a.interfaceClass===7;}
+    }
+  }
+  if(ep==null)throw new Error('No printer endpoint found on this USB device');
+  await dev.claimInterface(ifc);
+  _tp.usb={dev,ep};
+  try{localStorage.setItem('santhom_usb_id',dev.vendorId+':'+dev.productId);}catch(e){}
+  return _tp.usb;
+}
+async function _usbSend(bytes){
+  const u=await _usbGet(false);
+  try{for(let i=0;i<bytes.length;i+=4096)await u.dev.transferOut(u.ep,bytes.slice(i,i+4096));}
+  catch(e){_tp.usb=null;throw e;}
+}
+
+// ----- Serial / COM port -----
+async function _serialGet(forcePick){
+  if(!navigator.serial)throw new Error('Serial printing is not supported in this browser');
+  if(_tp.serial)return _tp.serial;
+  let port=null;
+  if(!forcePick){const ps=await navigator.serial.getPorts();port=ps[0]||null;}
+  if(!port)port=await navigator.serial.requestPort();
+  await port.open({baudRate:Number(localStorage.getItem('santhom_tp_baud'))||9600});
+  _tp.serial=port;return port;
+}
+async function _serialSend(bytes){
+  const port=await _serialGet(false);
+  try{const w=port.writable.getWriter();await w.write(bytes);w.releaseLock();}
+  catch(e){try{await port.close();}catch(_){}_tp.serial=null;throw e;}
+}
+
+// ----- RawBT (Android app) -----
+function _rawbtSend(bytes){
+  let bin='';for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
+  window.location.href='rawbt:base64,'+btoa(bin);
+}
+
+async function ensurePrinterConnected(forcePick){
+  const m=getPrinterMethod();
+  if(m==='bluetooth')return _btGet(forcePick);
+  if(m==='usb')return _usbGet(forcePick);
+  if(m==='serial')return _serialGet(forcePick);
+  return true;
+}
+async function _sendRaw(bytes){
+  const m=getPrinterMethod();
+  if(m==='bluetooth')return _btSend(bytes);
+  if(m==='usb')return _usbSend(bytes);
+  if(m==='serial')return _serialSend(bytes);
+  if(m==='rawbt')return _rawbtSend(bytes);
+  throw new Error('Choose a printer method in Printer Setup');
+}
+// Returns true when the receipt was sent to the printer
+async function directPrint(o){
+  if(!o)return false;
+  try{
+    await _sendRaw(buildEscPos(o,getThermalWidth()));
+    showToast(getPrinterMethod()==='rawbt'?'Sent to RawBT':'Sent to printer');
+    return true;
+  }catch(e){
+    console.error('Direct print failed:',e);
+    const msg=(e&&e.message)||'';
+    showToast(/gesture|permission|denied|NotAllowed|cancel/i.test(msg)||!msg
+      ?'Printer not connected - open Printer Setup and tap Connect'
+      :('Print failed: '+msg.slice(0,90)));
+    return false;
+  }
+}
+
+// ----- Printer Setup dialog -----
+const _TP_TIPS={
+  browser:'Uses the normal print dialog. The printer must be installed on this device (driver / system printer). On Windows, a USB printer works best this way.',
+  bluetooth:'Chrome or Edge on Android, Windows, Mac - or the Bluefy browser on iPhone. Needs a BLE (Bluetooth 4+) printer. Tap Connect and pick the printer. If it is not listed, use RawBT (Android) or Serial.',
+  usb:'Chrome or Edge on Android, Mac and Windows. On Windows the printer must use the WinUSB driver (install with the free Zadig tool); otherwise use Serial or the browser print dialog.',
+  serial:'Chrome or Edge on Windows, Mac, Linux. Works with USB printers that create a COM port, and Bluetooth printers paired in Windows. Tap Connect and pick the COM port.',
+  rawbt:'Android only. Install the free RawBT app, pair your Bluetooth printer inside RawBT, then print - the receipt is handed to RawBT automatically.'
+};
+function openPrinterSetup(){
+  const sup={bluetooth:!!navigator.bluetooth,usb:!!navigator.usb,serial:!!navigator.serial,rawbt:/android/i.test(navigator.userAgent)};
+  const sel=document.getElementById('tp-method');
+  [...sel.options].forEach(op=>{const k=op.value;if(k==='browser')return;op.textContent=op.dataset.label+(sup[k]?'':'  (not available here)');});
+  sel.value=getPrinterMethod();
+  document.getElementById('tp-width').value=getThermalWidth();
+  tpMethodChanged(true);
+  document.getElementById('printer-setup-modal').classList.add('open');
+}
+function tpMethodChanged(skipSave){
+  const m=document.getElementById('tp-method').value;
+  if(!skipSave){try{localStorage.setItem('santhom_tp_method',m);}catch(e){}}
+  document.getElementById('tp-tip').textContent=_TP_TIPS[m]||'';
+  document.getElementById('tp-connect').style.display=(m==='bluetooth'||m==='usb'||m==='serial')?'':'none';
+  document.getElementById('tp-baud-wrap').style.display=m==='serial'?'':'none';
+  document.getElementById('tp-baud').value=localStorage.getItem('santhom_tp_baud')||'9600';
+}
+function tpWidthChanged(){const v=document.getElementById('tp-width').value;try{localStorage.setItem('santhom_thermal_w',v==='58'?'58':'80');}catch(e){}}
+function tpBaudChanged(){try{localStorage.setItem('santhom_tp_baud',document.getElementById('tp-baud').value);}catch(e){}}
+async function tpConnect(){
+  try{
+    _tp.bt=_tp.usb=null;if(_tp.serial){try{await _tp.serial.close();}catch(e){}_tp.serial=null;}
+    await ensurePrinterConnected(true);
+    showToast('Printer connected');
+  }catch(e){showToast((e&&e.name==='NotFoundError')?'No printer selected':('Could not connect: '+((e&&e.message)||'').slice(0,80)));}
+}
+async function tpTestPrint(){
+  const m=document.getElementById('tp-method').value;
+  try{localStorage.setItem('santhom_tp_method',m);}catch(e){}
+  const demo={orderId:'TEST-001',firestoreId:'test',name:'Test Customer',phone:'',payment:'Cash',status:'Delivered',total:130,date:new Date().toLocaleDateString('en-IN'),time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),pickupLocation:'Store Counter',items:[{name:'Test Item One',qty:2,price:40},{name:'Test Item Two',qty:1,price:50}]};
+  if(m==='browser'){
+    const f=document.getElementById('order-bill-frame');
+    const w=window.open('','_blank','width=420,height=700');
+    if(w){w.document.write(buildThermalBillHtml(demo,getThermalWidth(),true));w.document.close();}
+    else showToast('Allow pop-ups to open the test receipt');
+    return;
+  }
+  await directPrint(demo);
+}
+
 function buildOrderBillHtml(o,fmt){
+  if(fmt==='thermal')return buildThermalBillHtml(o,getThermalWidth());
   const d=getOrderBillData(o);
   const rec=fmt==='receipt';
   const rows=d.items.map((i,n)=>`<tr><td>${rec?'':`<span class="n">${n+1}.</span>`}${billEsc(i.name)}</td><td class="c">${i.qty}</td><td class="r">${i.price.toFixed(2)}</td><td class="r b">${(i.qty*i.price).toFixed(2)}</td></tr>`).join('');
@@ -4681,12 +5032,28 @@ function renderOrderBill(){
   document.getElementById('order-bill-frame').srcdoc=buildOrderBillHtml(order,fmt);
   document.getElementById('obm-fmt-invoice').classList.toggle('active',fmt==='invoice');
   document.getElementById('obm-fmt-receipt').classList.toggle('active',fmt==='receipt');
+  document.getElementById('obm-fmt-thermal').classList.toggle('active',fmt==='thermal');
+  const ws=document.getElementById('obm-thermal-w');
+  if(ws){ws.style.display=fmt==='thermal'?'':'none';ws.value=getThermalWidth();}
 }
-function setOrderBillFormat(fmt){_obm.fmt=fmt;renderOrderBill();}
+function setOrderBillFormat(fmt){_obm.fmt=fmt;try{localStorage.setItem('santhom_bill_fmt',fmt);}catch(e){}renderOrderBill();}
+function setThermalWidth(w){try{localStorage.setItem('santhom_thermal_w',w==='58'?'58':'80');}catch(e){}renderOrderBill();}
+// one tap: switch to the thermal layout and print it
+function printOrderBillThermal(){
+  if(!_obm.order)return;
+  if(getPrinterMethod()!=='browser'){directPrint(_obm.order);return;}
+  const f=document.getElementById('order-bill-frame');
+  const go=()=>setTimeout(printOrderBill,150);
+  if(_obm.fmt==='thermal'){go();return;}
+  _obm.fmt='thermal';try{localStorage.setItem('santhom_bill_fmt','thermal');}catch(e){}
+  let done=false;const once=()=>{if(done)return;done=true;f.onload=null;go();};
+  f.onload=once;renderOrderBill();setTimeout(once,700);
+}
 
 function openOrderBill(fid){
   const o=allOrders.find(x=>x.firestoreId===fid); if(!o)return;
   _obm.order=o;
+  try{const sf=localStorage.getItem('santhom_bill_fmt');if(sf)_obm.fmt=sf;}catch(e){}
   document.getElementById('obm-sub').textContent=(o.orderId||'Order')+' · '+(o.name||'');
   if(/cancel/i.test(o.status||''))showToast('Note: this order is cancelled');
   renderOrderBill();
