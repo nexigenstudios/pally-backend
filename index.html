@@ -1929,33 +1929,40 @@ function renderOrdersTable(){
 }
 
 async function updateOrderStatus(fid,status){
-  const o=allOrders.find(x=>x.firestoreId===fid);
-  const{db,doc,updateDoc,runTransaction}=window._fb;
+  const{db,doc,runTransaction}=window._fb;
   try{
-    const wasCancelled=o?.status==='Cancelled',nowCancelled=status==='Cancelled';
-    // Walk-in bills deduct stock at billing time, so cancelling returns it (and re-opening takes it again).
-    if(o&&o.source==='billing'&&wasCancelled!==nowCancelled){
-      const stockItems=(o.items||[]).filter(i=>i.isProduct&&i.id);
-      await runTransaction(db,async(txn)=>{
-        const refs=stockItems.map(i=>doc(db,'products',i.id));
-        const snaps=await Promise.all(refs.map(r=>txn.get(r)));
-        if(!nowCancelled)snaps.forEach((snap,k)=>{
-          const it=stockItems[k],avail=snap.exists()?(snap.data().stock??0):0;
-          if(avail<it.qty)throw new Error('Cannot re-open: only '+avail+' of "'+it.name+'" left in stock.');
-        });
+    const orderRef=doc(db,'orders',fid);
+    let msg='Status → '+status;
+    // One transaction: re-reads the live order (so two people can never restock twice),
+    // returns stock when an order becomes Cancelled, takes it again if it is re-opened.
+    await runTransaction(db,async(txn)=>{
+      const oSnap=await txn.get(orderRef);
+      if(!oSnap.exists())throw new Error('Order no longer exists');
+      const o=oSnap.data();
+      const wasCancelled=o.status==='Cancelled',nowCancelled=status==='Cancelled';
+      if(wasCancelled===nowCancelled){txn.update(orderRef,{status});return;}
+      // Online orders and walk-in bills both deduct stock when placed. Skip free-text bill lines.
+      const qtyById={};
+      (o.items||[]).forEach(i=>{if(i.id&&i.isProduct!==false)qtyById[i.id]=(qtyById[i.id]||0)+(Number(i.qty)||0);});
+      const ids=Object.keys(qtyById);
+      const refs=ids.map(id=>doc(db,'products',id));
+      const snaps=await Promise.all(refs.map(r=>txn.get(r)));
+      if(wasCancelled&&!nowCancelled){
         snaps.forEach((snap,k)=>{
-          if(!snap.exists())return;
-          const delta=(nowCancelled?1:-1)*stockItems[k].qty;
-          txn.update(refs[k],{stock:(snap.data().stock??0)+delta,updatedAt:new Date().toISOString()});
+          const avail=snap.exists()?(snap.data().stock??0):0;
+          if(avail<qtyById[ids[k]])throw new Error('Cannot re-open: only '+avail+' of "'+(snap.exists()?snap.data().name:ids[k])+'" left in stock.');
         });
-        txn.update(doc(db,'orders',fid),{status});
+      }
+      snaps.forEach((snap,k)=>{
+        if(!snap.exists())return;
+        const delta=(nowCancelled?1:-1)*qtyById[ids[k]];
+        txn.update(refs[k],{stock:(snap.data().stock??0)+delta,updatedAt:new Date().toISOString()});
       });
-      showToast('Status → '+status+(nowCancelled?' · stock returned':' · stock deducted'));
-    }else{
-      await updateDoc(doc(db,'orders',fid),{status});
-      showToast('Status → '+status);
-    }
-  }catch(e){showToast(e.message&&/stock/.test(e.message)?e.message:'Error updating status');}
+      txn.update(orderRef,{status});
+      if(ids.length)msg+=nowCancelled?' · stock returned':' · stock deducted';
+    });
+    showToast(msg);
+  }catch(e){showToast(e.message&&/stock|exist/.test(e.message)?e.message:'Error updating status');}
 }
 
 async function assignDeliveryBoy(fid,workerId){
