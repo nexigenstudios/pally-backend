@@ -711,7 +711,8 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
         <div id="s-pack-preview" style="background:#fff7ed;border-radius:8px;padding:8px 12px;font-size:12px;color:#374151;min-height:28px;"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="downloadPackingCSV()" class="btn" style="flex:1;padding:9px;background:#c2410c;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;min-width:120px;"><span class="material-symbols-outlined ms" style="font-size:15px;">download</span>CSV</button>
-          <button onclick="downloadPackingPDF()" class="btn" style="flex:1;padding:9px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;min-width:120px;"><span class="material-symbols-outlined ms" style="font-size:15px;">picture_as_pdf</span>PDF</button>
+          <button onclick="downloadPackingPDF('items')" class="btn" style="flex:1;padding:9px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;min-width:120px;"><span class="material-symbols-outlined ms" style="font-size:15px;">picture_as_pdf</span> Items PDF</button>
+          <button onclick="downloadPackingPDF('customers')" class="btn" style="flex:1;padding:9px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;min-width:120px;"><span class="material-symbols-outlined ms" style="font-size:15px;">groups</span> Customer PDF</button>
         </div>
       </div>
     </div>
@@ -1244,9 +1245,10 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
         <button onclick="setPackingModalRange('lastsat')" class="btn" style="padding:4px 9px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">Last Sat</button>
       </div>
       <div id="pm-pack-preview" style="background:#fff7ed;border-radius:8px;padding:8px 10px;font-size:12px;color:#374151;min-height:26px;"></div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button onclick="downloadPackingCSVFromModal()" class="btn" style="flex:1;padding:10px;background:#c2410c;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;"><span class="material-symbols-outlined ms" style="font-size:15px;">download</span>CSV</button>
-        <button onclick="downloadPackingPDFFromModal()" class="btn" style="flex:1;padding:10px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;"><span class="material-symbols-outlined ms" style="font-size:15px;">picture_as_pdf</span>PDF</button>
+        <button onclick="downloadPackingPDFFromModal('items')" class="btn" style="flex:1;padding:10px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;min-width:110px;"><span class="material-symbols-outlined ms" style="font-size:15px;">picture_as_pdf</span> Items PDF</button>
+          <button onclick="downloadPackingPDFFromModal('customers')" class="btn" style="flex:1;padding:10px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;min-width:110px;"><span class="material-symbols-outlined ms" style="font-size:15px;">groups</span> Customer PDF</button>
       </div>
     </div>
   </div>
@@ -2955,10 +2957,10 @@ function downloadPackingCSV(){
   _downloadBlob(_buildPackingCSV(f,t),'text/csv',`packing-list-${f}-to-${t}.csv`);
   showToast('Packing list downloaded');
 }
-function downloadPackingPDF(){
+function downloadPackingPDF(kind){
   const f=document.getElementById('s-pack-from')?.value,t=document.getElementById('s-pack-to')?.value;
   if(!f||!t){showToast('Select a date range');return;}
-  _printPackingPDF(f,t);
+  _printPackingPDF(f,t,kind||'items');
 }
 
 // ─── PACKING LIST MODAL (from Orders page) ───
@@ -2978,11 +2980,10 @@ function downloadPackingCSVFromModal(){
   showToast('Packing list downloaded');
   closeModal('packing-modal');
 }
-function downloadPackingPDFFromModal(){
+function downloadPackingPDFFromModal(kind){
   const f=document.getElementById('pm-pack-from')?.value,t=document.getElementById('pm-pack-to')?.value;
   if(!f||!t){showToast('Select a date range');return;}
-  _printPackingPDF(f,t);
-  closeModal('packing-modal');
+  _printPackingPDF(f,t,kind||'items');
 }
 
 // ─── PDF PRINT ENGINE ───
@@ -3023,42 +3024,272 @@ function _printReportPDF(fromStr,toStr,type){
   _openPrintWindow(html,`orders-report-${fromStr}-to-${toStr}.pdf`);
 }
 
-function _printPackingPDF(fromStr,toStr){
+// ─── PACKING PDFs (real downloads: jsPDF) ───
+// PDF 1 = item totals (what to pack), PDF 2 = customer-wise (who ordered what + price)
+const _PDF_GREEN=[26,92,42], _PDF_MID=[45,138,69], _PDF_DARK=[17,24,39], _PDF_GREY=[107,114,128], _PDF_TINT=[236,246,239], _PDF_LINE=[214,224,217];
+const _pdfT=s=>String(s==null?'':s).replace(/[^\x20-\x7E\u00A0-\u00FF]/g,'').replace(/\s+/g,' ').trim();
+const _inr=n=>(Number(n)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const _rs=n=>'Rs. '+_inr(n);
+
+function _loadScriptOnce(src){
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');s.src=src;
+    s.onload=()=>res();
+    s.onerror=()=>{s.remove();rej(new Error('Could not load '+src));};
+    document.head.appendChild(s);
+  });
+}
+async function _ensurePdfLibs(){
+  if(!(window.jspdf&&window.jspdf.jsPDF))
+    await _loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  if(!(window.jspdf.jsPDF.API&&window.jspdf.jsPDF.API.autoTable))
+    await _loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+}
+
+function _pdfStoreInfo(){
+  const g=id=>(document.getElementById(id)?.value||'').trim();
+  return{name:_pdfT(g('s-store-name')||'Santhom Stores'),phone:_pdfT(g('s-phone'))};
+}
+
+// Green brand header band with logo. Returns the y where content can start.
+function _pdfHeader(doc,title,fromStr,toStr){
+  const W=210,store=_pdfStoreInfo();
+  const fmt=s=>s?new Date(s+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):s;
+  doc.setFillColor(..._PDF_GREEN);doc.rect(0,0,W,34,'F');
+  doc.setFillColor(..._PDF_MID);doc.rect(0,34,W,2,'F');
+  // logo (taken from the admin sidebar, if present)
+  let textX=14;
+  try{
+    const img=document.querySelector('#sidebar img');
+    if(img&&/^data:image\/(jpeg|png|webp)/i.test(img.src)){
+      doc.setFillColor(255,255,255);doc.roundedRect(14,7,20,20,2.5,2.5,'F');
+      const nw=img.naturalWidth||1,nh=img.naturalHeight||1,box=16,sc=Math.min(box/nw,box/nh),w=nw*sc,h=nh*sc;
+      const fmtImg=/png/i.test(img.src)?'PNG':/webp/i.test(img.src)?'WEBP':'JPEG';
+      doc.addImage(img.src,fmtImg,24-w/2,17-h/2,w,h);
+      textX=39;
+    }
+  }catch(e){}
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text(store.name.toUpperCase(),textX,16.5);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(200,228,208);
+  doc.text(store.phone?('Tel: '+store.phone):'Online Grocery & Daily Needs',textX,23);
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(12.5);
+  doc.text(title,W-14,14.5,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(200,228,208);
+  const per=fromStr===toStr?fmt(fromStr):(fmt(fromStr)+'  to  '+fmt(toStr));
+  doc.text('Period: '+per,W-14,21,{align:'right'});
+  doc.text('Generated: '+new Date().toLocaleString('en-IN'),W-14,26,{align:'right'});
+  return 44;
+}
+
+// Row of summary boxes. stats=[{label,value}]
+function _pdfStats(doc,y,stats){
+  const left=14,total=182,gap=4,n=stats.length,w=(total-gap*(n-1))/n,h=17;
+  stats.forEach((s,i)=>{
+    const x=left+i*(w+gap);
+    doc.setFillColor(..._PDF_TINT);doc.roundedRect(x,y,w,h,2,2,'F');
+    doc.setFillColor(..._PDF_GREEN);doc.rect(x,y+2,1.4,h-4,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(..._PDF_GREEN);
+    doc.text(String(s.value),x+5,y+8.5);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(..._PDF_GREY);
+    doc.text(String(s.label).toUpperCase(),x+5,y+13.5);
+  });
+  return y+h+7;
+}
+
+// Footer + page numbers on every page (call once at the end)
+function _pdfFooters(doc,label){
+  const n=doc.getNumberOfPages(),store=_pdfStoreInfo();
+  for(let p=1;p<=n;p++){
+    doc.setPage(p);
+    doc.setDrawColor(..._PDF_LINE);doc.setLineWidth(.3);doc.line(14,286,196,286);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(..._PDF_GREY);
+    doc.text(store.name+'  |  '+label,14,291);
+    doc.text('Page '+p+' of '+n,196,291,{align:'right'});
+  }
+}
+
+function _pdfSectionTitle(doc,y,text){
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(..._PDF_DARK);
+  doc.text(text,14,y);
+  doc.setDrawColor(..._PDF_GREEN);doc.setLineWidth(.7);doc.line(14,y+2,38,y+2);
+  return y+7;
+}
+
+// ── PDF 1: total quantity of every item, grouped by category ──
+function _buildItemsPDF(doc,rows,fromStr,toStr){
+  const map={};
+  rows.forEach(o=>(o.items||[]).forEach(i=>{
+    const k=i.id||i.name,q=Number(i.qty)||0;
+    if(!map[k])map[k]={name:_pdfT(i.name)||'Item',cat:_pdfT(i.category)||'Other',qty:0,orders:new Set()};
+    map[k].qty+=q;map[k].orders.add(o.firestoreId||o.orderId);
+  }));
+  const items=Object.values(map);
+  const totalUnits=items.reduce((s,i)=>s+i.qty,0);
+  const cats={};items.forEach(it=>{(cats[it.cat]=cats[it.cat]||[]).push(it);});
+  const catNames=Object.keys(cats).sort((a,b)=>a.localeCompare(b));
+
+  let y=_pdfHeader(doc,'PACKING LIST - ITEM TOTALS',fromStr,toStr);
+  y=_pdfStats(doc,y,[
+    {label:'Orders',value:rows.length},
+    {label:'Unique Items',value:items.length},
+    {label:'Categories',value:catNames.length},
+    {label:'Total Units to Pack',value:totalUnits}
+  ]);
+  y=_pdfSectionTitle(doc,y+1,'Items to Pack');
+
+  const body=[],itemRowIdx=new Set();let sn=0;
+  catNames.forEach(c=>{
+    const list=cats[c].sort((a,b)=>a.name.localeCompare(b.name));
+    const sub=list.reduce((s,i)=>s+i.qty,0);
+    body.push([
+      {content:c.toUpperCase()+'  ('+list.length+(list.length===1?' item':' items')+')',colSpan:2,styles:{fillColor:_PDF_TINT,textColor:_PDF_GREEN,fontStyle:'bold',fontSize:8.5,halign:'left'}},
+      {content:'Subtotal: '+sub+' units',colSpan:3,styles:{fillColor:_PDF_TINT,textColor:_PDF_GREEN,fontStyle:'bold',fontSize:8.5,halign:'right'}}
+    ]);
+    list.forEach(it=>{
+      sn++;itemRowIdx.add(body.length);
+      body.push([sn,it.name,it.qty,it.orders.size,'']);
+    });
+  });
+
+  doc.autoTable({
+    startY:y,margin:{left:14,right:14,top:16,bottom:20},theme:'grid',
+    head:[['#','Item Description','Total Qty','In Orders','Packed']],
+    body,
+    foot:[[{content:'GRAND TOTAL',colSpan:2,styles:{halign:'right'}},{content:String(totalUnits),styles:{halign:'center'}},{content:'',colSpan:2}]],
+    showHead:'everyPage',showFoot:'lastPage',
+    styles:{font:'helvetica',fontSize:9.5,cellPadding:{top:3,bottom:3,left:3,right:3},textColor:_PDF_DARK,lineColor:_PDF_LINE,lineWidth:.2,valign:'middle'},
+    headStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:8.5,halign:'center',lineColor:_PDF_GREEN},
+    footStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:10,lineColor:_PDF_GREEN},
+    columnStyles:{
+      0:{cellWidth:14,halign:'center',textColor:_PDF_GREY},
+      1:{cellWidth:'auto',fontStyle:'bold'},
+      2:{cellWidth:28,halign:'center',fontStyle:'bold',fontSize:12,textColor:_PDF_GREEN},
+      3:{cellWidth:24,halign:'center',textColor:_PDF_GREY},
+      4:{cellWidth:22,halign:'center'}
+    },
+    didDrawCell:d=>{
+      if(d.section==='body'&&d.column.index===4&&itemRowIdx.has(d.row.index)){
+        doc.setDrawColor(55,65,81);doc.setLineWidth(.4);
+        doc.rect(d.cell.x+d.cell.width/2-2.5,d.cell.y+d.cell.height/2-2.5,5,5);
+      }
+    }
+  });
+  const fy=doc.lastAutoTable.finalY+12;
+  if(fy<268){
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(..._PDF_GREY);
+    doc.setDrawColor(..._PDF_GREY);doc.setLineWidth(.3);
+    doc.line(14,fy+10,74,fy+10);doc.text('Packed by',14,fy+14);
+    doc.line(136,fy+10,196,fy+10);doc.text('Checked by',136,fy+14);
+  }
+  _pdfFooters(doc,'Packing List - Item Totals');
+}
+
+// ── PDF 2: each customer, the products they added, and the price ──
+function _buildCustomersPDF(doc,rows,fromStr,toStr){
+  const sorted=[...rows].sort((a,b)=>_pdfT(a.name).localeCompare(_pdfT(b.name))||(a.dateObj-b.dateObj));
+  const custKey=o=>(o.phone||_pdfT(o.name)||o.firestoreId||'').toString().replace(/\s+/g,'').toLowerCase();
+  const summary={};let totalUnits=0,grand=0;
+  sorted.forEach(o=>{
+    const units=(o.items||[]).reduce((s,i)=>s+(Number(i.qty)||0),0),amt=Number(o.total)||0;
+    totalUnits+=units;grand+=amt;
+    const k=custKey(o);
+    if(!summary[k])summary[k]={name:_pdfT(o.name)||'Customer',phone:_pdfT(o.phone),orders:0,units:0,amount:0};
+    summary[k].orders++;summary[k].units+=units;summary[k].amount+=amt;
+  });
+  const custCount=Object.keys(summary).length;
+
+  let y=_pdfHeader(doc,'PACKING LIST - CUSTOMER WISE',fromStr,toStr);
+  y=_pdfStats(doc,y,[
+    {label:'Customers',value:custCount},
+    {label:'Orders',value:rows.length},
+    {label:'Total Units',value:totalUnits},
+    {label:'Grand Total',value:'Rs. '+_inr(grand)}
+  ]);
+
+  sorted.forEach((o,idx)=>{
+    const d=getOrderBillData(o);
+    if(y>240){doc.addPage();y=16;}
+    // customer header strip
+    doc.setFillColor(..._PDF_TINT);doc.roundedRect(14,y,182,14,2,2,'F');
+    doc.setFillColor(..._PDF_GREEN);doc.rect(14,y+2,1.6,10,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(..._PDF_DARK);
+    doc.text((idx+1)+'.  '+(_pdfT(o.name)||'Customer'),19,y+5.8);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(..._PDF_GREY);
+    const sub=[o.phone?('Ph: '+_pdfT(o.phone)):'',o.payment?_pdfT(o.payment):'',_pdfT(o.pickupLocation||'Store Counter')].filter(Boolean).join('   |   ');
+    doc.text(sub,19,y+10.8);
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(..._PDF_GREEN);
+    doc.text('Order #'+_pdfT(o.orderId||String(o.firestoreId||'').slice(0,8)),192,y+5.8,{align:'right'});
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(..._PDF_GREY);
+    doc.text(_pdfT((o.date||'')+(o.time?'  '+o.time:'')),192,y+10.8,{align:'right'});
+
+    const qty=d.items.reduce((s,i)=>s+i.qty,0);
+    const adj=Math.abs(d.discount)>=.01||Math.abs(d.gst)>=.01||Math.abs(d.other)>=.01;
+    const fs={fillColor:_PDF_TINT,textColor:_PDF_DARK,fontStyle:'bold',fontSize:9};
+    const foot=[[
+      {content:adj?'Items Total':'ORDER TOTAL',colSpan:2,styles:{halign:'right'}},
+      {content:String(qty),styles:{halign:'center'}},{content:''},
+      {content:_inr(adj?d.subtotal:d.total),styles:{halign:'right'}}
+    ]];
+    if(Math.abs(d.discount)>=.01)foot.push([{content:'Discount',colSpan:4,styles:{halign:'right',fontStyle:'normal'}},{content:'- '+_inr(d.discount),styles:{halign:'right',fontStyle:'normal'}}]);
+    if(Math.abs(d.gst)>=.01)foot.push([{content:'GST'+(d.gstPct?' ('+d.gstPct+'%)':''),colSpan:4,styles:{halign:'right',fontStyle:'normal'}},{content:_inr(d.gst),styles:{halign:'right',fontStyle:'normal'}}]);
+    if(Math.abs(d.other)>=.01)foot.push([{content:'Delivery / Other',colSpan:4,styles:{halign:'right',fontStyle:'normal'}},{content:_inr(d.other),styles:{halign:'right',fontStyle:'normal'}}]);
+    if(adj)foot.push([{content:'NET PAYABLE',colSpan:4,styles:{halign:'right',fillColor:_PDF_GREEN,textColor:255,fontSize:10}},{content:'Rs. '+_inr(d.total),styles:{halign:'right',fillColor:_PDF_GREEN,textColor:255,fontSize:10}}]);
+
+    doc.autoTable({
+      startY:y+16,margin:{left:14,right:14,top:16,bottom:20},theme:'grid',
+      head:[['#','Product','Qty','Rate (Rs.)','Amount (Rs.)']],
+      body:d.items.map((i,n)=>[n+1,_pdfT(i.name)||'Item',i.qty,_inr(i.price),_inr(i.qty*i.price)]),
+      foot,showHead:'everyPage',showFoot:'lastPage',
+      styles:{font:'helvetica',fontSize:9,cellPadding:{top:2.4,bottom:2.4,left:3,right:3},textColor:_PDF_DARK,lineColor:_PDF_LINE,lineWidth:.2,valign:'middle'},
+      headStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:8,lineColor:_PDF_GREEN},
+      footStyles:fs,
+      columnStyles:{
+        0:{cellWidth:12,halign:'center',textColor:_PDF_GREY},
+        1:{cellWidth:'auto'},
+        2:{cellWidth:18,halign:'center',fontStyle:'bold'},
+        3:{cellWidth:30,halign:'right'},
+        4:{cellWidth:34,halign:'right',fontStyle:'bold'}
+      },
+      didParseCell:h=>{if(h.section==='head'&&[2,3,4].includes(h.column.index))h.cell.styles.halign=h.column.index===2?'center':'right';if(h.section==='head'&&h.column.index===0)h.cell.styles.halign='center';}
+    });
+    y=doc.lastAutoTable.finalY+8;
+  });
+
+  // customer summary + grand total
+  if(y>200){doc.addPage();y=16;}
+  y=_pdfSectionTitle(doc,y+2,'Customer Summary');
+  const sumRows=Object.values(summary).sort((a,b)=>a.name.localeCompare(b.name));
+  doc.autoTable({
+    startY:y,margin:{left:14,right:14,top:16,bottom:20},theme:'grid',
+    head:[['#','Customer','Phone','Orders','Units','Amount (Rs.)']],
+    body:sumRows.map((c,i)=>[i+1,c.name,c.phone,c.orders,c.units,_inr(c.amount)]),
+    foot:[[{content:'GRAND TOTAL',colSpan:3,styles:{halign:'right'}},{content:String(rows.length),styles:{halign:'center'}},{content:String(totalUnits),styles:{halign:'center'}},{content:'Rs. '+_inr(grand),styles:{halign:'right'}}]],
+    showHead:'everyPage',showFoot:'lastPage',
+    styles:{font:'helvetica',fontSize:9,cellPadding:{top:2.6,bottom:2.6,left:3,right:3},textColor:_PDF_DARK,lineColor:_PDF_LINE,lineWidth:.2,valign:'middle'},
+    headStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:8,lineColor:_PDF_GREEN},
+    footStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:10,lineColor:_PDF_GREEN},
+    columnStyles:{0:{cellWidth:12,halign:'center',textColor:_PDF_GREY},1:{fontStyle:'bold'},3:{cellWidth:20,halign:'center'},4:{cellWidth:20,halign:'center'},5:{cellWidth:36,halign:'right',fontStyle:'bold'}},
+    didParseCell:h=>{if(h.section==='head'){if([0,3,4].includes(h.column.index))h.cell.styles.halign='center';if(h.column.index===5)h.cell.styles.halign='right';}}
+  });
+  _pdfFooters(doc,'Packing List - Customer Wise');
+}
+
+async function _printPackingPDF(fromStr,toStr,kind){
   const rows=_ordersInRange(fromStr,toStr).filter(o=>o.status!=='Cancelled');
-  const fmtDate=s=>s?new Date(s+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):s;
-  const itemMap={};rows.forEach(o=>(o.items||[]).forEach(i=>{const k=i.id||i.name;if(!itemMap[k])itemMap[k]={name:i.name,cat:i.category||'',qty:0,cnt:0};itemMap[k].qty+=(i.qty||1);itemMap[k].cnt++;}));
-  const sorted=Object.values(itemMap).sort((a,b)=>b.qty-a.qty);
-  const itemRows=sorted.map((it,i)=>`<tr><td>${i+1}</td><td><b>${it.name}</b></td><td>${it.cat}</td><td class="c big">${it.qty}</td><td class="c">${it.cnt}</td><td class="check"></td></tr>`).join('');
-  const orderRows=rows.map((o,i)=>`<tr><td>${i+1}</td><td>${o.orderId||o.firestoreId?.slice(0,8)||''}</td><td>${o.name||''}</td><td>${o.phone||''}</td><td>${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</td><td class="c">${o.pickupLocation||'Counter'}</td></tr>`).join('');
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Packing List</title><style>
-  *{font-family:sans-serif;box-sizing:border-box;}body{margin:0;padding:12mm;background:#fff;color:#111;}
-  h1{font-size:18px;font-weight:800;margin:0 0 2px;}h2{font-size:13px;font-weight:800;margin:16px 0 8px;color:#1a5c2a;border-bottom:2px solid #1a5c2a;padding-bottom:3px;}
-  p{margin:0 0 10px;font-size:12px;color:#666;}
-  .meta{display:flex;gap:24px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;}
-  .meta b{font-size:16px;display:block;color:#c2410c;}
-  table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:4px;}
-  th{background:#c2410c;color:#fff;padding:7px 8px;text-align:left;}th.c{text-align:center;}
-  td{padding:7px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}td.c{text-align:center;}td.big{font-size:16px;font-weight:900;color:#c2410c;}
-  td.check{width:28px;height:28px;border:2px solid #374151;border-radius:4px;}
-  tr:nth-child(even) td{background:#fafafa;}
-  .footer{margin-top:16px;font-size:10px;color:#9ca3af;text-align:center;}
-  @page{size:A4;margin:0;}@media print{body{padding:10mm;}}</style></head><body>
-  <h1>📦 Packing List</h1>
-  <p>${fmtDate(fromStr)} → ${fmtDate(toStr)} &nbsp;·&nbsp; Generated ${new Date().toLocaleString('en-IN')}</p>
-  <div class="meta">
-    <div><b>${rows.length}</b>Orders</div>
-    <div><b>${sorted.length}</b>Unique Items</div>
-    <div><b>${sorted.reduce((s,i)=>s+i.qty,0)}</b>Total Units</div>
-  </div>
-  <h2>Item Quantities to Pack</h2>
-  <table><thead><tr><th>#</th><th>Item</th><th>Category</th><th class="c">Qty</th><th class="c">Orders</th><th class="c">✓</th></tr></thead>
-  <tbody>${itemRows}</tbody></table>
-  <h2>Order-wise Breakdown</h2>
-  <table><thead><tr><th>#</th><th>Order ID</th><th>Customer</th><th>Phone</th><th>Items</th><th class="c">Pickup</th></tr></thead>
-  <tbody>${orderRows}</tbody></table>
-  <div class="footer">Santhom Stores Admin · Packing list for ${rows.length} orders</div>
-  </body></html>`;
-  _openPrintWindow(html,`packing-list-${fromStr}-to-${toStr}.pdf`);
+  if(!rows.length){showToast('No orders in this date range');return;}
+  showToast('Preparing PDF...');
+  try{
+    await _ensurePdfLibs();
+    const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    doc.setProperties({title:kind==='customers'?'Packing List - Customer Wise':'Packing List - Item Totals',author:_pdfStoreInfo().name});
+    if(kind==='customers'){_buildCustomersPDF(doc,rows,fromStr,toStr);doc.save(`packing-customers-${fromStr}-to-${toStr}.pdf`);}
+    else{_buildItemsPDF(doc,rows,fromStr,toStr);doc.save(`packing-items-${fromStr}-to-${toStr}.pdf`);}
+    showToast('PDF downloaded');
+  }catch(e){
+    console.error(e);
+    showToast('Could not create PDF - check internet connection');
+  }
 }
 
 function _openPrintWindow(html,filename){
