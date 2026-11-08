@@ -1437,6 +1437,8 @@ function subscribeOrders(){
       if(newOnes.length){const f=document.getElementById('new-order-flash');f.style.display='flex';setTimeout(()=>f.style.display='none',10000);}
     }
     first=false;
+    // ── AUTO RESTORE STOCK: customer cancelled order is flagged stockRestorePending ──
+    allOrders.filter(o=>o.stockRestorePending===true).forEach(o=>adminRestoreStock(o.firestoreId));
     refreshDashboard();
     if(currentPage==='orders')renderOrdersTable();
     if(currentPage==='analytics')renderAnalytics();
@@ -1965,6 +1967,33 @@ async function updateOrderStatus(fid,status){
     });
     showToast(msg);
   }catch(e){showToast(e.message&&/stock|exist/.test(e.message)?e.message:'Error updating status');}
+}
+
+// Called automatically when admin listener sees stockRestorePending:true
+// (set by customer-side cancelOrder which can't write to products directly).
+// Uses a transaction so it's idempotent — safe to call multiple times.
+async function adminRestoreStock(fid){
+  const{db,doc,runTransaction}=window._fb;
+  try{
+    await runTransaction(db,async(txn)=>{
+      const orderRef=doc(db,'orders',fid);
+      const oSnap=await txn.get(orderRef);
+      if(!oSnap.exists())return;
+      const o=oSnap.data();
+      // Guard: only run when pending AND status is Cancelled
+      if(!o.stockRestorePending||o.status!=='Cancelled')return;
+      const items=(o.items||[]).filter(i=>i.id&&i.isProduct!==false);
+      const refs=items.map(i=>doc(db,'products',i.id));
+      const snaps=await Promise.all(refs.map(r=>txn.get(r)));
+      snaps.forEach((snap,k)=>{
+        if(!snap.exists())return;
+        const cur=snap.data().stock??0;
+        txn.update(refs[k],{stock:cur+Number(items[k].qty||0),updatedAt:new Date().toISOString()});
+      });
+      // Clear the flag so this never runs twice
+      txn.update(orderRef,{stockRestorePending:false});
+    });
+  }catch(e){console.error('adminRestoreStock',fid,e);}
 }
 
 async function assignDeliveryBoy(fid,workerId){
