@@ -14,7 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, deleteUser } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import { getFirestore, initializeFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, setDoc, getDoc, where, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -45,7 +45,8 @@
   window._fb = { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged,
     collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot,
     query, orderBy, serverTimestamp, setDoc, getDoc, where, runTransaction,
-    workerCreateAuth, createUserWithEmailAndPassword };
+    workerCreateAuth, createUserWithEmailAndPassword,
+    updatePassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, deleteUser };
   onAuthStateChanged(auth, user => { window._adminUser = user; if (window._onAdminAuth) window._onAdminAuth(user); });
 </script>
 <style>
@@ -447,6 +448,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <!-- Note: "Out for Delivery" = "Ready for Pickup" and "Delivered" = "Completed" in store context -->
     <input type="date" id="order-date-f" onchange="filterOrders()" class="input-f" style="width:auto;">
     <button onclick="loadAllOrders()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 14px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:15px;">refresh</span>Refresh</button>
+    <button onclick="openOrdersPackingModal()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 14px;background:#c2410c;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;" title="Download packing list for Sunday delivery"><span class="material-symbols-outlined ms" style="font-size:15px;">inventory_2</span>Packing List</button>
   </div>
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="order-chips"></div>
   <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
@@ -628,51 +630,150 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 
 <!-- ===== SETTINGS ===== -->
 <div class="page-content" id="page-settings">
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:14px;">
-    <div class="stat-card" id="settings-homebg-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:4px;">Homepage Background</h3><p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Image behind the top banner of the customer homepage</p><div id="s-hbg-preview" style="height:110px;border-radius:10px;border:1px solid #e5e7eb;background:#f9fafb;margin-bottom:12px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#9ca3af;text-align:center;padding:6px;">No background set</div><label class="lbl">Image URL</label><input id="s-hbg-url" type="url" placeholder="https://..." class="input-f" style="margin-bottom:10px;" oninput="previewHomeBg()"><label class="lbl">White overlay (keeps text readable): <span id="s-hbg-ov-val">45</span>%</label><input id="s-hbg-ov" type="range" min="0" max="90" value="45" style="width:100%;accent-color:#2d8a45;margin-bottom:12px;" oninput="previewHomeBg()"><div style="display:flex;gap:6px;"><button onclick="saveHomeBg()" class="btn" style="padding:7px 14px;background:#2d8a45;color:white;border:none;border-radius:7px;font-size:12px;font-weight:700;">Save</button><button onclick="removeHomeBg()" class="btn" style="padding:7px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:12px;font-weight:700;">Remove</button></div></div>
-    <div class="stat-card" id="settings-upi-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:4px;">UPI QR Code</h3><p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Shown to customers at checkout</p><div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:100px;height:100px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"><img id="s-upi-preview" src="" style="width:100%;height:100%;object-fit:contain;display:none;" alt="UPI QR"><span id="s-upi-ph" style="font-size:11px;color:#9ca3af;text-align:center;padding:6px;">No QR</span></div><div style="flex:1;"><label class="lbl">Image URL</label><input id="s-upi-url" type="url" placeholder="https://..." class="input-f" style="margin-bottom:8px;"><div style="display:flex;gap:6px;"><button onclick="saveUpiQr()" class="btn" style="padding:7px 14px;background:#2d8a45;color:white;border:none;border-radius:7px;font-size:12px;font-weight:700;">Save</button><button onclick="removeUpiQr()" class="btn" style="padding:7px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:12px;font-weight:700;">Remove</button></div></div></div></div>
-    <div class="stat-card" id="settings-store-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">Store Settings</h3><div style="display:flex;flex-direction:column;gap:10px;"><div><label class="lbl">Store Name</label><input id="s-store-name" type="text" class="input-f" placeholder="Santhom Stores"></div><div><label class="lbl">Store Hours</label><input id="s-delivery-time" type="text" class="input-f" placeholder="e.g. Mon–Sat 8am–8pm"></div><div><label class="lbl">Contact Phone</label><input id="s-phone" type="tel" class="input-f" placeholder="+91 98765 43210"></div><button onclick="saveStoreSettings()" class="btn" style="padding:10px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Save Settings</button></div></div>
-    <div class="stat-card" style="border-left:3px solid #16a34a;">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:4px;">Store Pickup Settings</h3>
-      <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Configure store pickup availability and auto-off time</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:14px;">
 
-      <!-- Which hostel this card is currently editing. Locked/hidden for a branch admin (always their own branch). -->
-      <div id="rd-branch-selector-wrap" style="margin-bottom:12px;">
-        <label class="lbl">Managing Branch</label>
-        <select id="rd-branch-select" class="input-f" onchange="onRoomDeliveryBranchChange()"><option value="">Select a branch...</option></select>
-      </div>
-      <div id="rd-no-hostels-msg" style="display:none;background:#e2f0e6;border-radius:8px;padding:12px;font-size:12.5px;color:#1a5c2a;font-weight:600;">Add a branch first (Branches page) before configuring store pickup settings.</div>
-
-      <div id="rd-fields-wrap" style="display:none;flex-direction:column;gap:12px;">
-        <div id="rd-effective-status" style="border-radius:8px;padding:8px 12px;font-size:11.5px;font-weight:700;"></div>
-        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:#f9fafb;border-radius:10px;padding:10px 12px;">
-          <span style="font-size:13px;font-weight:700;color:#374151;">Store Open for Orders</span>
-          <input type="checkbox" id="s-room-delivery-enabled" checked style="width:36px;height:20px;accent-color:#16a34a;cursor:pointer;" onchange="refreshEffectiveStatus()">
-        </label>
-        <div>
-          <label class="lbl">Auto-Off Time (optional)</label>
-          <input id="s-room-delivery-offtime" type="time" class="input-f" onchange="refreshEffectiveStatus()">
-          <p style="font-size:11px;color:#9ca3af;margin-top:4px;">After this time each day, ordering automatically switches off, even if the toggle above is on. Leave blank to control manually only.</p>
+    <!-- ── MY ACCOUNT ── -->
+    <div class="stat-card" style="border-left:3px solid #2d8a45;">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;">👤 My Account</h3>
+      <p style="font-size:12px;color:#9ca3af;margin-bottom:14px;">Signed in as <span id="s-my-email" style="font-weight:700;color:#374151;"></span></p>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px;">
+          <div style="font-size:12px;font-weight:800;color:#374151;margin-bottom:10px;">Change My Password</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div><label class="lbl">Current Password</label><input id="s-cur-pw" type="password" class="input-f" placeholder="Enter current password" autocomplete="current-password"></div>
+            <div><label class="lbl">New Password</label><input id="s-new-pw" type="password" class="input-f" placeholder="Min 6 characters" autocomplete="new-password"></div>
+            <div><label class="lbl">Confirm New Password</label><input id="s-cnf-pw" type="password" class="input-f" placeholder="Repeat new password" autocomplete="new-password"></div>
+          </div>
+          <button onclick="changeMyPassword()" class="btn" style="margin-top:10px;padding:9px 18px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Update Password</button>
         </div>
-        <div>
-          <label class="lbl">Pickup Location</label>
-          <input id="s-pickup-location" type="text" class="input-f" placeholder="e.g. Thomasleeha Pally Store Counter, Ground Floor">
-          <p style="font-size:11px;color:#9ca3af;margin-top:4px;">Shown to this branch's customers next to "Ready to Pickup" in their order tracking.</p>
-        </div>
-        <button onclick="saveRoomDeliverySettings()" id="save-room-delivery-btn" class="btn" style="padding:10px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Save Store Settings</button>
-
-        <!-- Reception Assignment — same idea as assigning a Delivery Boy to an
-             order, but for who permanently mans this branch's pickup counter.
-             Changeable anytime, not a one-time setup. -->
-        <div style="border-top:1px dashed #d1fae5;margin-top:6px;padding-top:14px;">
-          <h4 style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:3px;">Reception Assignment</h4>
-          <p style="font-size:11.5px;color:#9ca3af;margin-bottom:10px;">Who's permanently on this branch's pickup counter — pick anyone, switch anytime.</p>
-          <div id="reception-assignment-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-          <div id="reception-assignment-empty" style="display:none;background:#fff5ed;border-radius:8px;padding:10px 12px;font-size:12px;color:#1a5c2a;font-weight:600;">No Pickup Point exists for this branch yet — add one in the Pickup Points page first.</div>
+        <div style="border:1px solid #fde68a;border-radius:10px;padding:12px;background:#fffbeb;">
+          <div style="font-size:12px;font-weight:800;color:#92400e;margin-bottom:6px;">Forgot / Reset via Email</div>
+          <p style="font-size:11px;color:#b45309;margin-bottom:8px;">Sends a password reset link to your login email.</p>
+          <button onclick="sendMyPasswordReset()" class="btn" style="padding:8px 14px;background:#d97706;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Send Reset Email</button>
         </div>
       </div>
     </div>
-    <div class="stat-card" id="settings-index-card" style="border-left:3px solid #2d8a45;"><h3 style="font-size:14px;font-weight:700;margin-bottom:6px;">Firestore Index Required</h3><p style="font-size:12px;color:#9ca3af;margin-bottom:10px;">For customer order history to load:</p><div style="background:#f9fafb;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;color:#374151;line-height:1.9;">Collection: <b>orders</b><br>Field 1: <b>userId</b> (Ascending)<br>Field 2: <b>createdAt</b> (Descending)</div></div>
+
+    <!-- ── ADMIN ACCOUNTS ── -->
+    <div class="stat-card" id="s-admin-accounts-card" style="border-left:3px solid #1a5c2a;">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;">🛡️ Admin Accounts</h3>
+      <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Super-admins who can access this full dashboard.</p>
+      <div id="s-admin-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;min-height:32px;"></div>
+      <div style="border-top:1px solid #e5e7eb;padding-top:12px;">
+        <div style="font-size:12px;font-weight:800;color:#374151;margin-bottom:8px;">Add New Admin</div>
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          <div><label class="lbl">Name / Label</label><input id="s-new-admin-name" type="text" class="input-f" placeholder="e.g. Riya (Manager)"></div>
+          <div><label class="lbl">Email</label><input id="s-new-admin-email" type="email" class="input-f" placeholder="newadmin@example.com"></div>
+          <div><label class="lbl">Password</label><input id="s-new-admin-pw" type="password" class="input-f" placeholder="Min 6 characters"></div>
+        </div>
+        <button onclick="addNewAdmin()" id="s-add-admin-btn" class="btn" style="margin-top:10px;padding:9px 18px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Create Admin Account</button>
+      </div>
+    </div>
+
+    <!-- ── WEEKLY REPORT ── -->
+    <div class="stat-card" style="border-left:3px solid #7c3aed;">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;">📊 Orders Report</h3>
+      <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Download orders between any two dates as CSV or PDF.</p>
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><label class="lbl">From</label><input id="s-rep-from" type="date" class="input-f" onchange="updateReportPreview()"></div>
+          <div><label class="lbl">To</label><input id="s-rep-to" type="date" class="input-f" onchange="updateReportPreview()"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="setReportRange('thisweek')" class="btn" style="padding:5px 10px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">This Week</button>
+          <button onclick="setReportRange('lastweek')" class="btn" style="padding:5px 10px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">Last Week</button>
+          <button onclick="setReportRange('thismonth')" class="btn" style="padding:5px 10px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">This Month</button>
+          <button onclick="setReportRange('last7')" class="btn" style="padding:5px 10px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">Last 7 Days</button>
+        </div>
+        <div id="s-rep-preview" style="background:#f0fdf4;border-radius:8px;padding:8px 12px;font-size:12px;color:#374151;min-height:28px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="downloadReportCSV()" class="btn" style="flex:1;padding:9px;background:#7c3aed;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;min-width:120px;"><span class="material-symbols-outlined ms" style="font-size:15px;">download</span>CSV</button>
+          <button onclick="downloadReportPDF()" class="btn" style="flex:1;padding:9px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;min-width:120px;"><span class="material-symbols-outlined ms" style="font-size:15px;">picture_as_pdf</span>PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PACKING LIST (date-range) ── -->
+    <div class="stat-card" style="border-left:3px solid #c2410c;">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;">📦 Packing List</h3>
+      <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Aggregate item quantities across orders in a date range — for packing before Sunday delivery.</p>
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><label class="lbl">From</label><input id="s-pack-from" type="date" class="input-f" onchange="updatePackingPreview()"></div>
+          <div><label class="lbl">To</label><input id="s-pack-to" type="date" class="input-f" onchange="updatePackingPreview()"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="setPackingRange('today')" class="btn" style="padding:5px 10px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">Today</button>
+          <button onclick="setPackingRange('yesterday')" class="btn" style="padding:5px 10px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">Yesterday</button>
+          <button onclick="setPackingRange('thisweek')" class="btn" style="padding:5px 10px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">This Week</button>
+          <button onclick="setPackingRange('lastsat')" class="btn" style="padding:5px 10px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">Last Saturday</button>
+        </div>
+        <div id="s-pack-preview" style="background:#fff7ed;border-radius:8px;padding:8px 12px;font-size:12px;color:#374151;min-height:28px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="downloadPackingCSV()" class="btn" style="flex:1;padding:9px;background:#c2410c;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;min-width:120px;"><span class="material-symbols-outlined ms" style="font-size:15px;">download</span>CSV</button>
+          <button onclick="downloadPackingPDF()" class="btn" style="flex:1;padding:9px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;min-width:120px;"><span class="material-symbols-outlined ms" style="font-size:15px;">picture_as_pdf</span>PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NOTIFICATION PREFERENCES ── -->
+    <div class="stat-card" style="border-left:3px solid #0891b2;">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;">🔔 Notification Preferences</h3>
+      <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Control how you get alerted about new orders and activity.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <label style="display:flex;align-items:center;justify-content:space-between;background:#f9fafb;border-radius:9px;padding:10px 12px;cursor:pointer;">
+          <div><div style="font-size:12px;font-weight:700;color:#374151;">New Order Sound Alert</div><div style="font-size:11px;color:#9ca3af;">Play a beep when a new order arrives</div></div>
+          <input type="checkbox" id="s-notif-sound" checked style="width:36px;height:20px;accent-color:#0891b2;cursor:pointer;" onchange="saveNotifPrefs()">
+        </label>
+        <label style="display:flex;align-items:center;justify-content:space-between;background:#f9fafb;border-radius:9px;padding:10px 12px;cursor:pointer;">
+          <div><div style="font-size:12px;font-weight:700;color:#374151;">New Order Flash Banner</div><div style="font-size:11px;color:#9ca3af;">Show the green flash bar at the top</div></div>
+          <input type="checkbox" id="s-notif-banner" checked style="width:36px;height:20px;accent-color:#0891b2;cursor:pointer;" onchange="saveNotifPrefs()">
+        </label>
+        <label style="display:flex;align-items:center;justify-content:space-between;background:#f9fafb;border-radius:9px;padding:10px 12px;cursor:pointer;">
+          <div><div style="font-size:12px;font-weight:700;color:#374151;">Browser Notifications</div><div style="font-size:11px;color:#9ca3af;">Push notification even when tab is in background</div></div>
+          <input type="checkbox" id="s-notif-push" style="width:36px;height:20px;accent-color:#0891b2;cursor:pointer;" onchange="togglePushNotif(this.checked)">
+        </label>
+        <div id="s-notif-push-status" style="font-size:11px;color:#9ca3af;padding:0 2px;"></div>
+      </div>
+    </div>
+
+    <!-- ── DANGER ZONE ── -->
+    <div class="stat-card" id="s-danger-card" style="border-left:3px solid #dc2626;">
+      <h3 style="font-size:14px;font-weight:700;color:#dc2626;margin-bottom:3px;">⚠️ Danger Zone</h3>
+      <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Irreversible actions — use with caution.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="border:1px solid #fecaca;border-radius:10px;padding:12px;background:#fff5f5;">
+          <div style="font-size:12px;font-weight:800;color:#991b1b;margin-bottom:4px;">Mark All Pending Orders — Accepted</div>
+          <p style="font-size:11px;color:#b91c1c;margin-bottom:8px;">Bulk-accepts every currently Pending order. Cannot be undone.</p>
+          <button onclick="bulkAcceptPendingOrders()" class="btn" style="padding:8px 14px;background:#dc2626;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Bulk Accept Pending</button>
+        </div>
+        <div style="border:1px solid #fecaca;border-radius:10px;padding:12px;background:#fff5f5;">
+          <div style="font-size:12px;font-weight:800;color:#991b1b;margin-bottom:4px;">Export All Orders Data</div>
+          <p style="font-size:11px;color:#b91c1c;margin-bottom:8px;">Full raw export of every order ever — for backup or migration.</p>
+          <button onclick="exportAllOrdersCSV()" class="btn" style="padding:8px 14px;background:#7f1d1d;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Export All Orders (CSV)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- kept: Store Pickup hidden card shells so initRoomDeliveryCard() doesn't crash -->
+    <div style="display:none;" id="settings-homebg-card"><input id="s-hbg-url" type="hidden"><input id="s-hbg-ov" type="hidden" value="45"><span id="s-hbg-ov-val"></span><div id="s-hbg-preview"></div></div>
+    <div style="display:none;" id="settings-upi-card"><input id="s-upi-url" type="hidden"><img id="s-upi-preview" style="display:none;"><span id="s-upi-ph"></span></div>
+    <div style="display:none;" id="settings-store-card"><input id="s-store-name" type="hidden"><input id="s-delivery-time" type="hidden"><input id="s-phone" type="hidden"></div>
+    <div style="display:none;" id="settings-index-card"></div>
+    <div style="display:none;">
+      <select id="rd-branch-select" onchange="onRoomDeliveryBranchChange()"></select>
+      <div id="rd-branch-selector-wrap"></div>
+      <div id="rd-no-hostels-msg"></div>
+      <div id="rd-fields-wrap">
+        <div id="rd-effective-status"></div>
+        <input type="checkbox" id="s-room-delivery-enabled" checked>
+        <input id="s-room-delivery-offtime" type="time">
+        <input id="s-pickup-location" type="text">
+        <button id="save-room-delivery-btn" onclick="saveRoomDeliverySettings()"></button>
+        <div id="reception-assignment-list"></div>
+        <div id="reception-assignment-empty"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1124,6 +1225,33 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     </div>
   </div>
 </div>
+<!-- ===== PACKING LIST QUICK MODAL (from Orders page button) ===== -->
+<div class="modal-bd" id="packing-modal" onclick="closeModal('packing-modal')">
+  <div class="modal-box" style="max-width:420px;padding:20px;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div><h2 style="font-size:15px;font-weight:800;">📦 Packing List</h2><p style="font-size:11px;color:#9ca3af;">Select date range then download</p></div>
+      <button onclick="closeModal('packing-modal')" class="btn" style="width:28px;height:28px;min-height:0;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms" style="font-size:16px;color:#6b7280;">close</span></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label class="lbl">From</label><input id="pm-pack-from" type="date" class="input-f" onchange="updatePackingModalPreview()"></div>
+        <div><label class="lbl">To</label><input id="pm-pack-to" type="date" class="input-f" onchange="updatePackingModalPreview()"></div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button onclick="setPackingModalRange('today')" class="btn" style="padding:4px 9px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">Today</button>
+        <button onclick="setPackingModalRange('yesterday')" class="btn" style="padding:4px 9px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">Yesterday</button>
+        <button onclick="setPackingModalRange('thisweek')" class="btn" style="padding:4px 9px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">This Week</button>
+        <button onclick="setPackingModalRange('lastsat')" class="btn" style="padding:4px 9px;border:1px solid #e5e7eb;background:white;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">Last Sat</button>
+      </div>
+      <div id="pm-pack-preview" style="background:#fff7ed;border-radius:8px;padding:8px 10px;font-size:12px;color:#374151;min-height:26px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="downloadPackingCSVFromModal()" class="btn" style="flex:1;padding:10px;background:#c2410c;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;"><span class="material-symbols-outlined ms" style="font-size:15px;">download</span>CSV</button>
+        <button onclick="downloadPackingPDFFromModal()" class="btn" style="flex:1;padding:10px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;"><span class="material-symbols-outlined ms" style="font-size:15px;">picture_as_pdf</span>PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─── STATE ───
 let allOrders=[], allProducts=[], allPurchases=[], allWorkers=[], allCustomers=[];
@@ -2583,57 +2711,435 @@ async function saveCmsCollection(name,items){
   catch(e){showToast('Error saving to Firestore');}
 }
 
-// ─── SETTINGS ───
-function updateUpiQrUI(){
-  const img=document.getElementById('s-upi-preview');const ph=document.getElementById('s-upi-ph');if(!img||!ph)return;
-  if(upiQrUrl){img.src=upiQrUrl;img.style.display='block';ph.style.display='none';}else{img.style.display='none';ph.style.display='block';}
-}
-
-async function saveUpiQr(){
-  const url=document.getElementById('s-upi-url').value.trim();if(!url){showToast('Please enter a URL');return;}
-  try{const{db,doc,setDoc}=window._fb;await setDoc(doc(db,'settings','payment'),{upiQrUrl:url},{merge:true});upiQrUrl=url;updateUpiQrUI();showToast('UPI QR saved!');}
-  catch(e){showToast('Error saving');}
-}
-
-// ─── HOMEPAGE BACKGROUND ───
+// ─── SETTINGS (stubs kept so existing code that calls these doesn't crash) ───
+function updateUpiQrUI(){}
+async function saveUpiQr(){showToast('UPI QR setting removed — not in use');}
 function homeBgValidUrl(u){return /^https?:\/\//i.test(u)||/^data:image\//i.test(u);}
-function homeBgCss(url,ov){
-  const o=Math.min(Math.max(Number(ov),0),90);const a=(isNaN(o)?45:o)/100;
-  const safe=url.replace(/["'()\\\s]/g,c=>encodeURIComponent(c));
-  return `linear-gradient(rgba(255,255,255,${a}),rgba(255,255,255,${a})), url("${safe}") center/cover no-repeat, linear-gradient(135deg,#fff5ed 0%,#fff9f5 50%,#f9f9ff 100%)`;
-}
-function previewHomeBg(){
-  const box=document.getElementById('s-hbg-preview');if(!box)return;
-  const url=(document.getElementById('s-hbg-url').value||'').trim();
-  const ov=document.getElementById('s-hbg-ov').value;
-  document.getElementById('s-hbg-ov-val').textContent=ov;
-  if(url&&homeBgValidUrl(url)){box.style.background=homeBgCss(url,ov);box.textContent='';}
-  else{box.style.background='#f9fafb';box.textContent=url?'Enter a valid https:// image link':'No background set';}
-}
-async function saveHomeBg(){
-  const url=(document.getElementById('s-hbg-url').value||'').trim();
-  if(!url){showToast('Please enter an image URL');return;}
-  if(!homeBgValidUrl(url)){showToast('URL must start with https://');return;}
-  const overlay=Number(document.getElementById('s-hbg-ov').value);
-  try{const{db,doc,setDoc}=window._fb;await setDoc(doc(db,'settings','homepage'),{bgUrl:url,overlay},{merge:true});previewHomeBg();showToast('Homepage background saved!');}
-  catch(e){showToast('Error saving');}
-}
-async function removeHomeBg(){
-  try{const{db,doc,setDoc}=window._fb;await setDoc(doc(db,'settings','homepage'),{bgUrl:''},{merge:true});document.getElementById('s-hbg-url').value='';previewHomeBg();showToast('Background removed');}
-  catch(e){showToast('Error');}
+function homeBgCss(url,ov){const o=Math.min(Math.max(Number(ov),0),90);const a=(isNaN(o)?45:o)/100;const safe=url.replace(/["'()\\\s]/g,c=>encodeURIComponent(c));return `linear-gradient(rgba(255,255,255,${a}),rgba(255,255,255,${a})), url("${safe}") center/cover no-repeat`;}
+function previewHomeBg(){}
+async function saveHomeBg(){}
+async function removeHomeBg(){}
+async function removeUpiQr(){showToast('UPI QR setting removed — not in use');}
+async function saveStoreSettings(){showToast('Store settings removed — not in use');}
+
+// ─── MY ACCOUNT ───
+async function changeMyPassword(){
+  const cur=document.getElementById('s-cur-pw')?.value||'';
+  const nw=document.getElementById('s-new-pw')?.value||'';
+  const cnf=document.getElementById('s-cnf-pw')?.value||'';
+  if(!cur||!nw||!cnf){showToast('Fill in all three password fields');return;}
+  if(nw!==cnf){showToast('New passwords do not match');return;}
+  if(nw.length<6){showToast('New password must be at least 6 characters');return;}
+  const user=window._adminUser;
+  if(!user){showToast('Not signed in');return;}
+  try{
+    const{auth,EmailAuthProvider,reauthenticateWithCredential,updatePassword}=window._fb;
+    const cred=EmailAuthProvider.credential(user.email,cur);
+    await reauthenticateWithCredential(user,cred);
+    await updatePassword(user,nw);
+    document.getElementById('s-cur-pw').value='';
+    document.getElementById('s-new-pw').value='';
+    document.getElementById('s-cnf-pw').value='';
+    showToast('✅ Password updated successfully');
+  }catch(e){
+    const m={'auth/wrong-password':'Current password is incorrect','auth/invalid-credential':'Current password is incorrect','auth/too-many-requests':'Too many attempts, try later','auth/requires-recent-login':'Please sign out and sign back in first'};
+    showToast(m[e.code]||('Error: '+(e.message||e.code)));
+  }
 }
 
-async function removeUpiQr(){
-  try{const{db,doc,setDoc}=window._fb;await setDoc(doc(db,'settings','payment'),{upiQrUrl:''},{merge:true});upiQrUrl='';document.getElementById('s-upi-url').value='';updateUpiQrUI();showToast('QR removed');}
-  catch(e){showToast('Error');}
+async function sendMyPasswordReset(){
+  const user=window._adminUser;
+  if(!user?.email){showToast('Not signed in');return;}
+  try{
+    const{auth,sendPasswordResetEmail}=window._fb;
+    await sendPasswordResetEmail(auth,user.email);
+    showToast('✅ Reset email sent to '+user.email);
+  }catch(e){showToast('Error: '+(e.message||e.code));}
 }
 
-async function saveStoreSettings(){
-  const name=document.getElementById('s-store-name').value.trim();
-  const dt=document.getElementById('s-delivery-time').value;
-  const ph=document.getElementById('s-phone').value.trim();
-  try{const{db,doc,setDoc}=window._fb;await setDoc(doc(db,'settings','store'),{name,deliveryTime:dt,phone:ph},{merge:true});showToast('Settings saved!');}
-  catch(e){showToast('Error saving');}
+// ─── ADMIN ACCOUNTS ───
+async function loadAdminList(){
+  const el=document.getElementById('s-admin-list');
+  if(!el||scopedHostel)return;
+  el.innerHTML='<div style="font-size:12px;color:#9ca3af;">Loading...</div>';
+  try{
+    const{db,collection,getDocs}=window._fb;
+    const snap=await getDocs(collection(db,'admin'));
+    if(!snap.docs.length){el.innerHTML='<div style="font-size:12px;color:#9ca3af;">No admin records found in Firestore.</div>';return;}
+    el.innerHTML=snap.docs.map(d=>{
+      const data=d.data();
+      const isMe=d.id===window._adminUser?.uid;
+      return`<div style="display:flex;align-items:center;justify-content:space-between;background:#f9fafb;border-radius:9px;padding:9px 11px;gap:8px;">
+        <div style="min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${data.name||data.email||d.id}</div>
+          <div style="font-size:10px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${data.email||''}</div>
+        </div>
+        <div style="display:flex;gap:5px;flex-shrink:0;">
+          ${isMe?'<span style="font-size:10px;font-weight:700;color:#2d8a45;background:#dcfce7;padding:2px 8px;border-radius:999px;">You</span>':''}
+          ${!isMe?`<button onclick="sendAdminPasswordReset('${data.email||''}')" class="btn" style="padding:4px 8px;border:1px solid #e5e7eb;background:white;border-radius:6px;font-size:10px;font-weight:700;color:#374151;">Reset PW</button>`:''}
+          ${!isMe?`<button onclick="removeAdminAccess('${d.id}','${(data.name||data.email||'').replace(/'/g,'')}')" class="btn" style="padding:4px 8px;background:#fee2e2;border:none;border-radius:6px;font-size:10px;font-weight:700;color:#dc2626;">Remove</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div style="font-size:11px;color:#dc2626;">Error loading admin list: '+(e.message||e.code)+'</div>';}
+}
+
+async function addNewAdmin(){
+  const name=(document.getElementById('s-new-admin-name')?.value||'').trim();
+  const email=(document.getElementById('s-new-admin-email')?.value||'').trim();
+  const pw=(document.getElementById('s-new-admin-pw')?.value||'');
+  if(!email){showToast('Enter an email address');return;}
+  if(pw.length<6){showToast('Password must be at least 6 characters');return;}
+  const btn=document.getElementById('s-add-admin-btn');
+  btn.textContent='Creating...';btn.disabled=true;
+  try{
+    const{workerCreateAuth,createUserWithEmailAndPassword,db,doc,setDoc}=window._fb;
+    // Create Firebase Auth account on isolated instance so our session is unaffected
+    const cred=await createUserWithEmailAndPassword(workerCreateAuth,email,pw);
+    const uid=cred.user.uid;
+    // Write to `admin` collection — this is what verifyAdminAndEnter() checks
+    await setDoc(doc(db,'admin',uid),{email,name:name||email,createdAt:new Date().toISOString(),createdBy:window._adminUser?.uid||''});
+    document.getElementById('s-new-admin-name').value='';
+    document.getElementById('s-new-admin-email').value='';
+    document.getElementById('s-new-admin-pw').value='';
+    showToast('✅ Admin account created for '+email);
+    loadAdminList();
+  }catch(e){
+    const m={'auth/email-already-in-use':'That email is already registered','auth/invalid-email':'Invalid email address','auth/weak-password':'Password is too weak (min 6 chars)'};
+    showToast(m[e.code]||('Error: '+(e.message||e.code)));
+  }
+  btn.textContent='Create Admin Account';btn.disabled=false;
+}
+
+async function sendAdminPasswordReset(email){
+  if(!email){showToast('No email on record for this admin');return;}
+  try{
+    const{auth,sendPasswordResetEmail}=window._fb;
+    await sendPasswordResetEmail(auth,email);
+    showToast('✅ Reset email sent to '+email);
+  }catch(e){showToast('Error: '+(e.message||e.code));}
+}
+
+async function removeAdminAccess(uid,label){
+  if(!confirm('Remove admin access for "'+label+'"?\n\nThis deletes their admin record but does NOT delete their Firebase Auth account.')){return;}
+  try{
+    const{db,doc,deleteDoc}=window._fb;
+    await deleteDoc(doc(db,'admin',uid));
+    showToast('✅ Admin access removed for '+label);
+    loadAdminList();
+  }catch(e){showToast('Error: '+(e.message||e.code));}
+}
+
+// ─── DATE HELPERS ───
+function _isoDate(d){return d.toISOString().slice(0,10);}
+function _weekMon(d){const dow=d.getDay();const m=new Date(d);m.setDate(d.getDate()-(dow===0?6:dow-1));m.setHours(0,0,0,0);return m;}
+function _prevSaturday(d){const dow=d.getDay();const back=dow===6?0:(dow+1);const s=new Date(d);s.setDate(d.getDate()-back);s.setHours(0,0,0,0);return s;}
+function _parseLocalDate(str){const[y,m,dd]=str.split('-').map(Number);const d=new Date(y,m-1,dd);d.setHours(0,0,0,0);return d;}
+function _parseLocalDateEnd(str){const d=_parseLocalDate(str);d.setHours(23,59,59,999);return d;}
+
+function _ordersInRange(fromStr,toStr){
+  if(!fromStr||!toStr)return[];
+  const from=_parseLocalDate(fromStr),to=_parseLocalDateEnd(toStr);
+  return allOrders.filter(o=>o.dateObj>=from&&o.dateObj<=to);
+}
+
+// ─── REPORT (Orders) ───
+function setReportRange(preset){
+  const today=new Date();
+  let from,to=today;
+  if(preset==='thisweek'){from=_weekMon(today);}
+  else if(preset==='lastweek'){const lm=new Date(_weekMon(today));lm.setDate(lm.getDate()-7);from=lm;to=new Date(lm);to.setDate(lm.getDate()+5);}
+  else if(preset==='thismonth'){from=new Date(today.getFullYear(),today.getMonth(),1);}
+  else if(preset==='last7'){from=new Date(today);from.setDate(today.getDate()-6);}
+  document.getElementById('s-rep-from').value=_isoDate(from);
+  document.getElementById('s-rep-to').value=_isoDate(to);
+  updateReportPreview();
+}
+
+function updateReportPreview(){
+  const f=document.getElementById('s-rep-from')?.value,t=document.getElementById('s-rep-to')?.value;
+  const el=document.getElementById('s-rep-preview');if(!el)return;
+  if(!f||!t){el.innerHTML='';return;}
+  const rows=_ordersInRange(f,t).filter(o=>o.status!=='Cancelled');
+  const rev=rows.reduce((s,o)=>s+(o.total||0),0);
+  el.innerHTML=`<b>${rows.length}</b> orders &nbsp;·&nbsp; ₹<b>${rev.toFixed(2)}</b> revenue`;
+}
+
+function _buildReportCSV(fromStr,toStr){
+  const rows=_ordersInRange(fromStr,toStr);
+  const esc=v=>{const s=String(v??'').replace(/"/g,'""');return /[,"\n\r]/.test(s)?`"${s}"`:s;};
+  const header=['Order ID','Date','Time','Day','Customer','Phone','Payment','Status','Items','Revenue (₹)','Pickup Location'];
+  const lines=[header.join(',')];
+  rows.forEach(o=>{
+    const day=o.dateObj.toLocaleDateString('en-IN',{weekday:'long'});
+    const items=(o.items||[]).map(i=>`${i.name} x${i.qty}`).join('; ');
+    lines.push([esc(o.orderId||o.firestoreId?.slice(0,8)||''),esc(o.date||''),esc(o.time||''),esc(day),esc(o.name||''),esc(o.phone||''),esc(o.payment||''),esc(o.status||''),esc(items),esc((o.total||0).toFixed(2)),esc(o.pickupLocation||'Store Counter')].join(','));
+  });
+  const non=rows.filter(o=>o.status!=='Cancelled');
+  const rev=non.reduce((s,o)=>s+(o.total||0),0);
+  lines.push('','SUMMARY','Total Orders (excl. cancelled),'+non.length,'Total Revenue (₹),'+rev.toFixed(2));
+  lines.push('','DAY-WISE,Orders,Revenue (₹)');
+  ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].forEach(day=>{const dr=non.filter(o=>o.dateObj.toLocaleDateString('en-IN',{weekday:'long'})===day);lines.push(`${day},${dr.length},${dr.reduce((s,o)=>s+(o.total||0),0).toFixed(2)}`);});
+  return lines.join('\r\n');
+}
+
+function downloadReportCSV(){
+  const f=document.getElementById('s-rep-from')?.value,t=document.getElementById('s-rep-to')?.value;
+  if(!f||!t){showToast('Select a date range');return;}
+  const csv=_buildReportCSV(f,t);
+  _downloadBlob(csv,'text/csv',`orders-report-${f}-to-${t}.csv`);
+  showToast('Downloaded orders report');
+}
+
+function downloadReportPDF(){
+  const f=document.getElementById('s-rep-from')?.value,t=document.getElementById('s-rep-to')?.value;
+  if(!f||!t){showToast('Select a date range');return;}
+  _printReportPDF(f,t,'report');
+}
+
+// ─── PACKING LIST ───
+function setPackingRange(preset,fromId,toId){
+  const fi=fromId||'s-pack-from',ti=toId||'s-pack-to';
+  const today=new Date();
+  let from,to=today;
+  if(preset==='today'){from=today;}
+  else if(preset==='yesterday'){from=new Date(today);from.setDate(today.getDate()-1);to=new Date(from);}
+  else if(preset==='thisweek'){from=_weekMon(today);}
+  else if(preset==='lastsat'){from=_prevSaturday(today);to=new Date(from);}
+  document.getElementById(fi).value=_isoDate(from);
+  document.getElementById(ti).value=_isoDate(to);
+  if(fi==='s-pack-from')updatePackingPreview();else updatePackingModalPreview();
+}
+
+function updatePackingPreview(){
+  const f=document.getElementById('s-pack-from')?.value,t=document.getElementById('s-pack-to')?.value;
+  const el=document.getElementById('s-pack-preview');if(!el)return;
+  if(!f||!t){el.innerHTML='';return;}
+  _packingPreviewInto(f,t,el);
+}
+function updatePackingModalPreview(){
+  const f=document.getElementById('pm-pack-from')?.value,t=document.getElementById('pm-pack-to')?.value;
+  const el=document.getElementById('pm-pack-preview');if(!el)return;
+  _packingPreviewInto(f,t,el);
+}
+function _packingPreviewInto(f,t,el){
+  const rows=_ordersInRange(f,t).filter(o=>o.status!=='Cancelled');
+  const itemMap={};rows.forEach(o=>(o.items||[]).forEach(i=>{const k=i.id||i.name;if(!itemMap[k])itemMap[k]={name:i.name,qty:0};itemMap[k].qty+=(i.qty||1);}));
+  const uq=Object.keys(itemMap).length;
+  el.innerHTML=`<b>${rows.length}</b> orders &nbsp;·&nbsp; <b>${uq}</b> unique items`;
+}
+
+function _buildPackingCSV(fromStr,toStr){
+  const rows=_ordersInRange(fromStr,toStr).filter(o=>o.status!=='Cancelled');
+  const esc=v=>{const s=String(v??'').replace(/"/g,'""');return /[,"\n\r]/.test(s)?`"${s}"`:s;};
+  const fmtDate=s=>s?new Date(s+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):s;
+  const lines=[`PACKING LIST — ${fmtDate(fromStr)} to ${fmtDate(toStr)}`,'Generated: '+new Date().toLocaleString('en-IN'),'Total Orders: '+rows.length,''];
+  lines.push('=== ITEM QUANTITIES ===','S.No,Item,Category,Total Qty,In Orders');
+  const itemMap={};rows.forEach(o=>(o.items||[]).forEach(i=>{const k=i.id||i.name;if(!itemMap[k])itemMap[k]={name:i.name,cat:i.category||'',qty:0,cnt:0};itemMap[k].qty+=(i.qty||1);itemMap[k].cnt++;}));
+  Object.values(itemMap).sort((a,b)=>b.qty-a.qty).forEach((it,i)=>lines.push([i+1,esc(it.name),esc(it.cat),it.qty,it.cnt].join(',')));
+  lines.push('','=== ORDER BREAKDOWN ===','Order ID,Customer,Phone,Payment,Status,Pickup,Items');
+  rows.forEach(o=>lines.push([esc(o.orderId||o.firestoreId?.slice(0,8)||''),esc(o.name||''),esc(o.phone||''),esc(o.payment||''),esc(o.status||''),esc(o.pickupLocation||'Store Counter'),esc((o.items||[]).map(i=>`${i.name} x${i.qty}`).join('; '))].join(',')));
+  return lines.join('\r\n');
+}
+
+function downloadPackingCSV(){
+  const f=document.getElementById('s-pack-from')?.value,t=document.getElementById('s-pack-to')?.value;
+  if(!f||!t){showToast('Select a date range');return;}
+  _downloadBlob(_buildPackingCSV(f,t),'text/csv',`packing-list-${f}-to-${t}.csv`);
+  showToast('Packing list downloaded');
+}
+function downloadPackingPDF(){
+  const f=document.getElementById('s-pack-from')?.value,t=document.getElementById('s-pack-to')?.value;
+  if(!f||!t){showToast('Select a date range');return;}
+  _printPackingPDF(f,t);
+}
+
+// ─── PACKING LIST MODAL (from Orders page) ───
+function openOrdersPackingModal(){
+  const today=new Date();
+  const ls=_prevSaturday(today);
+  document.getElementById('pm-pack-from').value=_isoDate(ls);
+  document.getElementById('pm-pack-to').value=_isoDate(ls);
+  updatePackingModalPreview();
+  document.getElementById('packing-modal').classList.add('open');
+}
+function setPackingModalRange(preset){setPackingRange(preset,'pm-pack-from','pm-pack-to');}
+function downloadPackingCSVFromModal(){
+  const f=document.getElementById('pm-pack-from')?.value,t=document.getElementById('pm-pack-to')?.value;
+  if(!f||!t){showToast('Select a date range');return;}
+  _downloadBlob(_buildPackingCSV(f,t),'text/csv',`packing-list-${f}-to-${t}.csv`);
+  showToast('Packing list downloaded');
+  closeModal('packing-modal');
+}
+function downloadPackingPDFFromModal(){
+  const f=document.getElementById('pm-pack-from')?.value,t=document.getElementById('pm-pack-to')?.value;
+  if(!f||!t){showToast('Select a date range');return;}
+  _printPackingPDF(f,t);
+  closeModal('packing-modal');
+}
+
+// ─── PDF PRINT ENGINE ───
+function _printReportPDF(fromStr,toStr,type){
+  const rows=_ordersInRange(fromStr,toStr);
+  const fmtDate=s=>s?new Date(s+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):s;
+  const non=rows.filter(o=>o.status!=='Cancelled');
+  const rev=non.reduce((s,o)=>s+(o.total||0),0);
+  const tableRows=rows.map((o,i)=>`<tr>
+    <td>${i+1}</td><td>${o.orderId||o.firestoreId?.slice(0,8)||''}</td>
+    <td>${o.date||''}</td><td>${o.name||''}</td><td>${o.phone||''}</td>
+    <td>${o.payment||''}</td><td class="r">${o.status||''}</td>
+    <td class="r">₹${(o.total||0).toFixed(2)}</td>
+  </tr>`).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Orders Report</title><style>
+  *{font-family:sans-serif;box-sizing:border-box;}body{margin:0;padding:12mm;background:#fff;color:#111;}
+  h1{font-size:18px;font-weight:800;margin:0 0 2px;}p{margin:0 0 10px;font-size:12px;color:#666;}
+  .meta{display:flex;gap:24px;background:#f9fafb;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;}
+  .meta b{font-size:16px;display:block;color:#1a5c2a;}
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  th{background:#1a5c2a;color:#fff;padding:7px 8px;text-align:left;}th.r{text-align:right;}
+  td{padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}td.r{text-align:right;}
+  tr:nth-child(even) td{background:#f9fafb;}
+  .footer{margin-top:16px;font-size:10px;color:#9ca3af;text-align:center;}
+  @page{size:A4;margin:0;}@media print{body{padding:10mm;}}</style></head><body>
+  <h1>📊 Orders Report</h1>
+  <p>${fmtDate(fromStr)} → ${fmtDate(toStr)} &nbsp;·&nbsp; Generated ${new Date().toLocaleString('en-IN')}</p>
+  <div class="meta">
+    <div><b>${non.length}</b>Total Orders</div>
+    <div><b>₹${rev.toFixed(2)}</b>Total Revenue</div>
+    <div><b>${rows.filter(o=>o.status==='Cancelled').length}</b>Cancelled</div>
+    <div><b>${rows.filter(o=>o.status==='Pending').length}</b>Pending</div>
+  </div>
+  <table><thead><tr><th>#</th><th>Order ID</th><th>Date</th><th>Customer</th><th>Phone</th><th>Payment</th><th class="r">Status</th><th class="r">Amount</th></tr></thead>
+  <tbody>${tableRows}</tbody></table>
+  <div class="footer">Santhom Stores Admin · ${rows.length} orders total</div>
+  </body></html>`;
+  _openPrintWindow(html,`orders-report-${fromStr}-to-${toStr}.pdf`);
+}
+
+function _printPackingPDF(fromStr,toStr){
+  const rows=_ordersInRange(fromStr,toStr).filter(o=>o.status!=='Cancelled');
+  const fmtDate=s=>s?new Date(s+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):s;
+  const itemMap={};rows.forEach(o=>(o.items||[]).forEach(i=>{const k=i.id||i.name;if(!itemMap[k])itemMap[k]={name:i.name,cat:i.category||'',qty:0,cnt:0};itemMap[k].qty+=(i.qty||1);itemMap[k].cnt++;}));
+  const sorted=Object.values(itemMap).sort((a,b)=>b.qty-a.qty);
+  const itemRows=sorted.map((it,i)=>`<tr><td>${i+1}</td><td><b>${it.name}</b></td><td>${it.cat}</td><td class="c big">${it.qty}</td><td class="c">${it.cnt}</td><td class="check"></td></tr>`).join('');
+  const orderRows=rows.map((o,i)=>`<tr><td>${i+1}</td><td>${o.orderId||o.firestoreId?.slice(0,8)||''}</td><td>${o.name||''}</td><td>${o.phone||''}</td><td>${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</td><td class="c">${o.pickupLocation||'Counter'}</td></tr>`).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Packing List</title><style>
+  *{font-family:sans-serif;box-sizing:border-box;}body{margin:0;padding:12mm;background:#fff;color:#111;}
+  h1{font-size:18px;font-weight:800;margin:0 0 2px;}h2{font-size:13px;font-weight:800;margin:16px 0 8px;color:#1a5c2a;border-bottom:2px solid #1a5c2a;padding-bottom:3px;}
+  p{margin:0 0 10px;font-size:12px;color:#666;}
+  .meta{display:flex;gap:24px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;}
+  .meta b{font-size:16px;display:block;color:#c2410c;}
+  table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:4px;}
+  th{background:#c2410c;color:#fff;padding:7px 8px;text-align:left;}th.c{text-align:center;}
+  td{padding:7px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}td.c{text-align:center;}td.big{font-size:16px;font-weight:900;color:#c2410c;}
+  td.check{width:28px;height:28px;border:2px solid #374151;border-radius:4px;}
+  tr:nth-child(even) td{background:#fafafa;}
+  .footer{margin-top:16px;font-size:10px;color:#9ca3af;text-align:center;}
+  @page{size:A4;margin:0;}@media print{body{padding:10mm;}}</style></head><body>
+  <h1>📦 Packing List</h1>
+  <p>${fmtDate(fromStr)} → ${fmtDate(toStr)} &nbsp;·&nbsp; Generated ${new Date().toLocaleString('en-IN')}</p>
+  <div class="meta">
+    <div><b>${rows.length}</b>Orders</div>
+    <div><b>${sorted.length}</b>Unique Items</div>
+    <div><b>${sorted.reduce((s,i)=>s+i.qty,0)}</b>Total Units</div>
+  </div>
+  <h2>Item Quantities to Pack</h2>
+  <table><thead><tr><th>#</th><th>Item</th><th>Category</th><th class="c">Qty</th><th class="c">Orders</th><th class="c">✓</th></tr></thead>
+  <tbody>${itemRows}</tbody></table>
+  <h2>Order-wise Breakdown</h2>
+  <table><thead><tr><th>#</th><th>Order ID</th><th>Customer</th><th>Phone</th><th>Items</th><th class="c">Pickup</th></tr></thead>
+  <tbody>${orderRows}</tbody></table>
+  <div class="footer">Santhom Stores Admin · Packing list for ${rows.length} orders</div>
+  </body></html>`;
+  _openPrintWindow(html,`packing-list-${fromStr}-to-${toStr}.pdf`);
+}
+
+function _openPrintWindow(html,filename){
+  const w=window.open('','_blank','width=900,height=700');
+  if(!w){showToast('Allow pop-ups to open the PDF preview');return;}
+  w.document.write(html);w.document.close();
+  w.onload=()=>{w.focus();w.print();};
+  if(w.document.readyState==='complete'){w.focus();w.print();}
+}
+
+// ─── DOWNLOAD HELPER ───
+function _downloadBlob(content,type,filename){
+  const blob=new Blob([content],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+// ─── NOTIFICATION PREFERENCES ───
+function loadNotifPrefs(){
+  try{
+    const p=JSON.parse(localStorage.getItem('santhomart_notif_prefs')||'{}');
+    const sound=document.getElementById('s-notif-sound');
+    const banner=document.getElementById('s-notif-banner');
+    if(sound)sound.checked=p.sound!==false;
+    if(banner)banner.checked=p.banner!==false;
+    updatePushNotifStatus();
+  }catch(e){}
+}
+function saveNotifPrefs(){
+  const prefs={
+    sound:document.getElementById('s-notif-sound')?.checked!==false,
+    banner:document.getElementById('s-notif-banner')?.checked!==false,
+  };
+  localStorage.setItem('santhomart_notif_prefs',JSON.stringify(prefs));
+  showToast('Notification preferences saved');
+}
+function updatePushNotifStatus(){
+  const el=document.getElementById('s-notif-push-status');if(!el)return;
+  if(!('Notification' in window)){el.textContent='Browser notifications not supported in this browser.';return;}
+  el.textContent='Current status: '+Notification.permission;
+  const cb=document.getElementById('s-notif-push');
+  if(cb)cb.checked=Notification.permission==='granted';
+}
+async function togglePushNotif(enable){
+  if(!('Notification' in window)){showToast('Browser notifications not supported');return;}
+  if(enable){
+    const result=await Notification.requestPermission();
+    if(result==='granted'){showToast('✅ Browser notifications enabled');new Notification('Santhom Stores Admin',{body:'You will now get order alerts here.',icon:''});}
+    else{showToast('Permission denied — enable in browser settings');document.getElementById('s-notif-push').checked=false;}
+  }else{showToast('To fully disable, revoke permissions in browser settings');}
+  updatePushNotifStatus();
+}
+// Hook new order notification into existing order subscription flash
+const _origNewOrderFlash=(()=>{
+  const origSub=window.subscribeOrders;
+  return ()=>{
+    try{
+      const p=JSON.parse(localStorage.getItem('santhomart_notif_prefs')||'{}');
+      if(p.sound!==false){try{const ac=new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator();const g=ac.createGain();o.connect(g);g.connect(ac.destination);o.frequency.value=880;g.gain.setValueAtTime(0.3,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.01,ac.currentTime+0.4);o.start();o.stop(ac.currentTime+0.4);}catch(e){}}
+      if(Notification.permission==='granted'){new Notification('New Order!',{body:'A new order arrived on Santhom Stores.',tag:'santhom-new-order'});}
+    }catch(e){}
+  };
+})();
+
+// ─── DANGER ZONE ───
+async function bulkAcceptPendingOrders(){
+  const pending=allOrders.filter(o=>o.status==='Pending');
+  if(!pending.length){showToast('No pending orders');return;}
+  if(!confirm(`Accept all ${pending.length} pending orders now?`))return;
+  const{db,doc,updateDoc}=window._fb;
+  let done=0;
+  for(const o of pending){
+    try{await updateDoc(doc(db,'orders',o.firestoreId),{status:'Accepted'});done++;}catch(e){}
+  }
+  showToast(`✅ Accepted ${done} orders`);
+}
+
+function exportAllOrdersCSV(){
+  if(!allOrders.length){showToast('No orders loaded yet');return;}
+  const esc=v=>{const s=String(v??'').replace(/"/g,'""');return /[,"\n\r]/.test(s)?`"${s}"`:s;};
+  const header=['Order ID','Date','Time','Customer','Phone','Email','Payment','Status','Items','Revenue','Pickup Location','Source'];
+  const lines=[header.join(',')];
+  allOrders.forEach(o=>{
+    lines.push([esc(o.orderId||o.firestoreId?.slice(0,8)||''),esc(o.date||''),esc(o.time||''),esc(o.name||''),esc(o.phone||''),esc(o.email||''),esc(o.payment||''),esc(o.status||''),esc((o.items||[]).map(i=>`${i.name} x${i.qty}`).join('; ')),esc((o.total||0).toFixed(2)),esc(o.pickupLocation||'Store Counter'),esc(o.source||'app')].join(','));
+  });
+  _downloadBlob(lines.join('\r\n'),'text/csv',`all-orders-export-${new Date().toISOString().slice(0,10)}.csv`);
+  showToast(`Exported ${allOrders.length} orders`);
 }
 
 async function saveRoomDeliverySettings(){
@@ -3769,12 +4275,23 @@ function navAdmin(page){
   if(page==='cms'){renderBanners();renderFaqs();renderBlogs();}
   if(page==='settings'){
     initRoomDeliveryCard();
-    // Branch admin only manages Room Delivery for their own branch — the
-    // other Settings cards (UPI, Store identity, Firestore index) are
-    // deliberately global/super-admin-only.
-    ['settings-homebg-card','settings-upi-card','settings-store-card','settings-index-card'].forEach(id=>{
-      const el=document.getElementById(id); if(el)el.style.display=scopedHostel?'none':'';
-    });
+    // Populate account email
+    const myEmailEl=document.getElementById('s-my-email');
+    if(myEmailEl)myEmailEl.textContent=window._adminUser?.email||'—';
+    // Admin accounts card: only super-admin sees it
+    const adminCard=document.getElementById('s-admin-accounts-card');
+    if(adminCard)adminCard.style.display=scopedHostel?'none':'';
+    const dangerCard=document.getElementById('s-danger-card');
+    if(dangerCard)dangerCard.style.display=scopedHostel?'none':'';
+    loadAdminList();
+    // Set default date ranges
+    const today=new Date().toISOString().slice(0,10);
+    const mon=_weekMon(new Date());
+    if(!document.getElementById('s-rep-from').value){document.getElementById('s-rep-from').value=mon.toISOString().slice(0,10);document.getElementById('s-rep-to').value=today;}
+    if(!document.getElementById('s-pack-from').value){const ls=_prevSaturday(new Date());document.getElementById('s-pack-from').value=ls.toISOString().slice(0,10);document.getElementById('s-pack-to').value=ls.toISOString().slice(0,10);}
+    updateReportPreview();updatePackingPreview();
+    loadNotifPrefs();
+    updatePushNotifStatus();
   }
   document.getElementById('sidebar').classList.remove('mobile-open');
 }
