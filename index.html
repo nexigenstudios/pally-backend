@@ -950,6 +950,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
         <label class="lbl">Sort Order (optional)</label>
         <input id="cat-order" type="number" class="input-f" placeholder="0 = first" min="0" value="0">
       </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;"><input type="checkbox" id="cat-visible" checked style="width:16px;height:16px;accent-color:#2d8a45;"> Show this category (and its products) to customers</label>
       <div style="display:flex;gap:8px;margin-top:4px;">
         <button onclick="closeModal('category-modal')" class="btn" style="flex:1;padding:11px;background:#f3f4f6;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#374151;">Cancel</button>
         <button onclick="saveCategory()" class="btn" style="flex:1;padding:11px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Save Category</button>
@@ -980,6 +981,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
         <div><label class="lbl">Badge</label><input id="p-badge" type="text" class="input-f" placeholder="Trending / New"></div>
       </div>
     </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;"><input type="checkbox" id="p-visible" checked style="width:16px;height:16px;accent-color:#2d8a45;"> Show this product to customers</label>
     <input type="hidden" id="p-edit-id">
     <button onclick="saveProduct()" id="save-product-btn" class="btn" style="width:100%;margin-top:16px;padding:12px;background:#2d8a45;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;">Add Product</button>
   </div>
@@ -2150,8 +2152,10 @@ function renderProductsAdmin(){
     const src=p.imageUrl||catFb(p.category);
     const margin=p.costPrice>0?((p.price-p.costPrice)/p.price*100).toFixed(1):null;
     const mc=!margin?'#9ca3af':parseFloat(margin)>25?'#16a34a':parseFloat(margin)>10?'#d97706':'#dc2626';
-    return`<tr>
-      <td><div style="display:flex;align-items:center;gap:10px;"><img src="${src}" style="width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.src='${catFb(p.category)}'"><div><div style="font-weight:700;font-size:13px;">${p.name}</div><div style="font-size:11px;color:#9ca3af;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.desc||''}</div></div></div></td>
+    const catHid=isCategoryHidden(p.category);
+    const hidBadge=p.hidden?'<span class="badge" style="background:#f3f4f6;color:#6b7280;margin-left:6px;">Hidden</span>':(catHid?'<span class="badge" style="background:#fef3c7;color:#92400e;margin-left:6px;">Hidden (category)</span>':'');
+    return`<tr style="${(p.hidden||catHid)?'opacity:.6;':''}">
+      <td><div style="display:flex;align-items:center;gap:10px;"><img src="${src}" style="width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.src='${catFb(p.category)}'"><div><div style="font-weight:700;font-size:13px;">${p.name}${hidBadge}</div><div style="font-size:11px;color:#9ca3af;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.desc||''}</div></div></div></td>
       <td>${p.hostelId?`<span class="badge" style="background:#eff6ff;color:#2563eb;">${p.hostelName||'Assigned'}</span>`:'<span class="badge" style="background:#fee2e2;color:#dc2626;">⚠ No branch</span>'}</td>
       <td><span class="badge" style="background:#fff5ed;color:#c2410c;">${p.category||''}</span></td>
       <td style="font-weight:800;color:#2d8a45;">₹${p.price}</td>
@@ -2159,7 +2163,7 @@ function renderProductsAdmin(){
       <td style="font-weight:700;color:${mc};">${margin?margin+'%':'<span style="color:#9ca3af">—</span>'}</td>
       <td style="font-weight:700;color:${(p.stock||0)<10?'#dc2626':'#374151'};">${p.stock||0}</td>
       <td style="font-size:12px;"><span class="material-symbols-outlined ms-fill" style="font-size:12px;color:#f59e0b;vertical-align:middle;">star</span> ${p.rating||4.5}</td>
-      <td style="text-align:right;"><div style="display:flex;justify-content:flex-end;gap:5px;"><button onclick="openEditProduct('${p.id}')" class="btn" style="padding:5px 10px;background:#eff6ff;color:#2563eb;border:none;border-radius:7px;font-size:11px;font-weight:700;">Edit</button><button onclick="deleteProduct('${p.id}')" class="btn" style="padding:5px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:11px;font-weight:700;">Del</button></div></td>
+      <td style="text-align:right;"><div style="display:flex;justify-content:flex-end;gap:5px;"><button onclick="toggleProductHidden('${p.id}')" class="btn" style="padding:5px 10px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;font-size:11px;font-weight:700;">${p.hidden?'Show':'Hide'}</button><button onclick="openEditProduct('${p.id}')" class="btn" style="padding:5px 10px;background:#eff6ff;color:#2563eb;border:none;border-radius:7px;font-size:11px;font-weight:700;">Edit</button><button onclick="deleteProduct('${p.id}')" class="btn" style="padding:5px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:11px;font-weight:700;">Del</button></div></td>
     </tr>`;
   }).join('');
 }
@@ -2242,6 +2246,7 @@ function openAddProduct(){
   ['p-name','p-price','p-cost','p-stock','p-image','p-desc','p-rating','p-badge','p-edit-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('p-category').value='Chips';
   document.getElementById('p-rating').value='4.5';
+  document.getElementById('p-visible').checked=true;
   document.getElementById('p-img-preview').style.display='none';
   populateProductHostelBranchSelect();
   document.getElementById('product-modal').classList.add('open');
@@ -2261,6 +2266,7 @@ function openEditProduct(id){
   document.getElementById('p-rating').value=p.rating||4.5;
   document.getElementById('p-badge').value=p.badge||'';
   document.getElementById('p-edit-id').value=id;
+  document.getElementById('p-visible').checked=!p.hidden;
   const pr=document.getElementById('p-img-preview');if(p.imageUrl){pr.src=p.imageUrl;pr.style.display='block';}else{pr.style.display='none';}
   populateProductHostelBranchSelect();
   if(!scopedHostel){const sel=document.getElementById('p-hostelbranch');if(sel)sel.value=p.hostelId||'';}
@@ -2286,7 +2292,7 @@ async function saveProduct(){
     showToast('Please select which branch this product belongs to');return;
   }
   const btn=document.getElementById('save-product-btn');btn.textContent='Saving...';btn.disabled=true;
-  const data={name,category,price,costPrice,stock,hostelId:hostelId||'',hostelName:hostelName||'',imageUrl:document.getElementById('p-image').value.trim(),desc:document.getElementById('p-desc').value.trim(),rating:parseFloat(document.getElementById('p-rating').value)||4.5,badge:document.getElementById('p-badge').value.trim(),updatedAt:new Date().toISOString()};
+  const data={name,category,price,costPrice,stock,hostelId:hostelId||'',hostelName:hostelName||'',imageUrl:document.getElementById('p-image').value.trim(),desc:document.getElementById('p-desc').value.trim(),rating:parseFloat(document.getElementById('p-rating').value)||4.5,badge:document.getElementById('p-badge').value.trim(),hidden:!document.getElementById('p-visible').checked,updatedAt:new Date().toISOString()};
   try{
     const{db,collection,addDoc,doc,updateDoc,serverTimestamp}=window._fb;
     if(editId){await updateDoc(doc(db,'products',editId),data);showToast('Product updated!');}
@@ -2294,6 +2300,13 @@ async function saveProduct(){
     closeModal('product-modal');
   }catch(e){showToast('Error: '+(e.message||'unknown'));}
   btn.textContent=editId?'Save Changes':'Add Product';btn.disabled=false;
+}
+
+async function toggleProductHidden(id){
+  const p=allProducts.find(x=>x.id===id);if(!p)return;
+  const hide=!p.hidden;
+  try{const{db,doc,updateDoc}=window._fb;await updateDoc(doc(db,'products',id),{hidden:hide,updatedAt:new Date().toISOString()});showToast(hide?'Product hidden from customers':'Product is now visible');}
+  catch(e){showToast('Error: '+(e.message||'unknown'));}
 }
 
 async function deleteProduct(id){
@@ -4451,6 +4464,20 @@ async function loadCategories(){
   refreshCategorySelect();
 }
 
+function isCategoryHidden(name){
+  const c=(allCategories||[]).find(c=>c.name===name);
+  return !!(c&&c.hidden);
+}
+
+async function toggleCategoryHidden(id){
+  const c=allCategories.find(c=>c.id===id);if(!c)return;
+  c.hidden=!c.hidden;
+  await persistCategories();
+  renderCategoriesAdmin();
+  if(typeof renderProductsAdmin==='function')renderProductsAdmin();
+  showToast(c.hidden?'Category hidden — its products are hidden from customers too':'Category is now visible');
+}
+
 function renderCategoriesAdmin(){
   const grid=document.getElementById('categories-grid');
   const empty=document.getElementById('categories-empty');
@@ -4459,7 +4486,7 @@ function renderCategoriesAdmin(){
   if(!sorted.length){grid.innerHTML='';empty.style.display='';return;}
   empty.style.display='none';
   grid.innerHTML=sorted.map(cat=>`
-    <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;position:relative;">
+    <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;position:relative;${cat.hidden?'opacity:.65;':''}">
       <div style="width:100%;height:110px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;overflow:hidden;">
         ${cat.imageUrl
           ?`<img src="${cat.imageUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
@@ -4469,9 +4496,10 @@ function renderCategoriesAdmin(){
         </div>
       </div>
       <div style="padding:10px 12px 12px;">
-        <div style="font-size:13px;font-weight:800;color:#111827;margin-bottom:2px;">${cat.name}</div>
+        <div style="font-size:13px;font-weight:800;color:#111827;margin-bottom:2px;">${cat.name}${cat.hidden?' <span class="badge" style="background:#f3f4f6;color:#6b7280;margin-left:4px;">Hidden</span>':''}</div>
         <div style="font-size:11px;color:#9ca3af;">Order: ${cat.sortOrder??0}</div>
         <div style="display:flex;gap:6px;margin-top:8px;">
+          <button onclick="toggleCategoryHidden('${cat.id}')" class="btn" style="flex:1;padding:6px;background:#f3f4f6;border:none;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">${cat.hidden?'👁 Show':'🚫 Hide'}</button>
           <button onclick="openEditCategory('${cat.id}')" class="btn" style="flex:1;padding:6px;background:#f3f4f6;border:none;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">✏ Edit</button>
           <button onclick="deleteCategory('${cat.id}')" class="btn" style="flex:1;padding:6px;background:#fee2e2;border:none;border-radius:7px;font-size:11px;font-weight:700;color:#dc2626;">🗑 Delete</button>
         </div>
@@ -4494,6 +4522,7 @@ function openAddCategory(){
   document.getElementById('cat-name').value='';
   document.getElementById('cat-image').value='';
   document.getElementById('cat-order').value='0';
+  document.getElementById('cat-visible').checked=true;
   document.getElementById('cat-img-preview-wrap').style.display='none';
   document.getElementById('category-modal').classList.add('open');
 }
@@ -4506,6 +4535,7 @@ function openEditCategory(id){
   document.getElementById('cat-name').value=cat.name||'';
   document.getElementById('cat-image').value=cat.imageUrl||'';
   document.getElementById('cat-order').value=cat.sortOrder??0;
+  document.getElementById('cat-visible').checked=!cat.hidden;
   previewCatImage();
   document.getElementById('category-modal').classList.add('open');
 }
@@ -4524,14 +4554,16 @@ async function saveCategory(){
   const imageUrl=document.getElementById('cat-image').value.trim();
   const sortOrder=parseInt(document.getElementById('cat-order').value)||0;
   const editId=document.getElementById('cat-edit-id').value;
+  const hidden=!document.getElementById('cat-visible').checked;
   if(editId){
     const idx=allCategories.findIndex(c=>c.id===editId);
-    if(idx>-1)allCategories[idx]={...allCategories[idx],name,imageUrl,sortOrder};
+    if(idx>-1)allCategories[idx]={...allCategories[idx],name,imageUrl,sortOrder,hidden};
   } else {
-    allCategories.push({id:'cat-'+Date.now(),name,imageUrl,sortOrder});
+    allCategories.push({id:'cat-'+Date.now(),name,imageUrl,sortOrder,hidden});
   }
   await persistCategories();
   renderCategoriesAdmin();
+  if(typeof renderProductsAdmin==='function')renderProductsAdmin();
   refreshCategorySelect();
   closeModal('category-modal');
   showToast(editId?'Category updated!':'Category added!');
