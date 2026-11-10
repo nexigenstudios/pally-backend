@@ -5274,29 +5274,18 @@ async function whatsappOrderBill(){
   const o=_obm.order; if(!o)return;
   showToast('Generating bill image…');
 
-  // 1. Build thermal HTML in a hidden iframe, wait for it to load
+  // ── STEP 1: render thermal bill into a hidden off-screen iframe ──────────────
   const html=buildThermalBillHtml(o,getThermalWidth());
   const iframe=document.createElement('iframe');
-  iframe.style.cssText='position:fixed;left:-9999px;top:0;width:384px;height:1px;border:none;visibility:hidden;';
+  iframe.style.cssText='position:fixed;left:-9999px;top:0;width:400px;height:1px;border:none;visibility:hidden;';
   document.body.appendChild(iframe);
 
-  await new Promise(res=>{
-    iframe.onload=()=>res();
-    iframe.srcdoc=html;
-    setTimeout(res,1200);
-  });
+  await new Promise(res=>{ iframe.onload=()=>res(); iframe.srcdoc=html; setTimeout(res,1400); });
+  await new Promise(res=>setTimeout(res,350));
+  try{ const ch=iframe.contentDocument.body.scrollHeight||1000; iframe.style.height=ch+'px'; }catch(e){}
+  await new Promise(res=>setTimeout(res,120));
 
-  // Let content paint
-  await new Promise(res=>setTimeout(res,300));
-
-  // Auto-size iframe height to full content
-  try{
-    const ch=iframe.contentDocument.body.scrollHeight||900;
-    iframe.style.height=ch+'px';
-  }catch(e){}
-  await new Promise(res=>setTimeout(res,100));
-
-  // 2. Load html2canvas dynamically if not already present
+  // ── STEP 2: load html2canvas on demand ──────────────────────────────────────
   if(!window.html2canvas){
     await new Promise((res,rej)=>{
       const s=document.createElement('script');
@@ -5306,55 +5295,89 @@ async function whatsappOrderBill(){
     });
   }
 
-  // 3. Render to canvas
+  // ── STEP 3: paint iframe → canvas → blob ────────────────────────────────────
   let blob;
   try{
-    const target=iframe.contentDocument.body;
-    const canvas=await window.html2canvas(target,{
-      scale:2,
-      useCORS:true,
-      backgroundColor:'#ffffff',
-      scrollX:0,scrollY:0,
-      windowWidth:384
+    const canvas=await window.html2canvas(iframe.contentDocument.body,{
+      scale:2, useCORS:true, backgroundColor:'#ffffff',
+      scrollX:0, scrollY:0, windowWidth:400
     });
     blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
   }catch(e){
     document.body.removeChild(iframe);
-    showToast('Could not generate image — sending text bill');
-    _whatsappOrderBillText(o);
-    return;
+    showToast('Image failed — sending text bill');
+    _whatsappOrderBillText(o); return;
   }
   document.body.removeChild(iframe);
 
   const d=getOrderBillData(o);
   const fname=`bill-${(d.billNo||'order').replace(/[^a-z0-9]/gi,'-')}.png`;
+  const file=new File([blob],fname,{type:'image/png'});
 
-  // 4. Mobile: use Web Share API to send image directly
-  if(navigator.canShare&&navigator.canShare({files:[new File([blob],fname,{type:'image/png'})]})){
-    let p=String(d.phone||'').replace(/\D/g,'');
-    if(p.length===10)p='91'+p;
+  // phone number (with country code)
+  let ph=String(d.phone||'').replace(/\D/g,'');
+  if(ph.length===10) ph='91'+ph;
+  const hasPhone=ph.length>=11;
+
+  // ── STEP 4: Android + phone known → clipboard copy + WhatsApp direct chat ───
+  // Android intent URL opens WhatsApp straight to the contact; clipboard holds
+  // the image so the user just long-presses the message box and pastes.
+  const isAndroid=/android/i.test(navigator.userAgent);
+  if(isAndroid && hasPhone){
+    // Try to copy image to clipboard (Android Chrome 84+)
+    let copied=false;
     try{
-      await navigator.share({
-        files:[new File([blob],fname,{type:'image/png'})],
-        title:'Bill – '+d.store.name,
-        text:''
-      });
+      if(navigator.clipboard&&window.ClipboardItem){
+        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+        copied=true;
+      }
+    }catch(e){}
+
+    // Open WhatsApp directly in the customer's chat
+    // intent:// scheme is the only reliable way to deep-link to a specific chat on Android
+    const intentUrl=`intent://send/${ph}#Intent;scheme=whatsapp;package=com.whatsapp;end`;
+    window.location.href=intentUrl;
+
+    // Show tip after a short delay (by the time this fires WhatsApp is open)
+    setTimeout(()=>{
+      showToast(copied
+        ? 'Bill copied — long-press the message box and Paste to send'
+        : 'Bill opened — tap the 📎 icon to attach the image');
+    }, 1800);
+    return;
+  }
+
+  // ── STEP 5: iOS / Android without phone → native Web Share with image file ──
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({ files:[file], title:'Bill – '+d.store.name, text:'' });
       return;
     }catch(e){ if(e.name==='AbortError')return; }
   }
 
-  // 5. Desktop fallback: download PNG + open WhatsApp Web
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=fname; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  // ── STEP 6: Desktop → clipboard copy + open WhatsApp Web direct chat ────────
+  let copied=false;
+  try{
+    if(navigator.clipboard&&window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+      copied=true;
+    }
+  }catch(e){}
 
-  let p=String(d.phone||'').replace(/\D/g,'');
-  if(p.length===10)p='91'+p;
+  if(!copied){
+    // Last resort: download the PNG so the user can attach it manually
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=fname; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }
+
+  const waUrl='https://web.whatsapp.com/'+(hasPhone?`send?phone=${ph}`:'');
+  window.open(waUrl,'_blank');
   setTimeout(()=>{
-    window.open('https://wa.me/'+(p.length>=11?p:''),'_blank');
-    showToast('Bill downloaded — attach it in WhatsApp');
-  },800);
+    showToast(copied
+      ? 'Bill copied — press Ctrl+V (or ⌘V) in WhatsApp to paste'
+      : 'Bill downloaded — attach it in WhatsApp');
+  }, 900);
 }
 
 function _whatsappOrderBillText(o){
