@@ -1343,6 +1343,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       <button class="obm-btn" style="background:#111827;color:#fff;flex:1;min-width:150px;" onclick="printOrderBillThermal()"><span class="material-symbols-outlined ms" style="font-size:18px;">receipt_long</span>Thermal Print</button>
       <button class="obm-btn" style="background:#f3f4f6;color:#374151;flex:1;min-width:150px;" onclick="openPrinterSetup()"><span class="material-symbols-outlined ms" style="font-size:18px;">settings</span>Printer Setup</button>
       <button class="obm-btn" style="background:#25d366;color:#fff;flex:1;min-width:150px;" onclick="whatsappOrderBill()"><span class="material-symbols-outlined ms" style="font-size:18px;">send</span>Send on WhatsApp</button>
+      <button class="obm-btn" id="obm-copy-btn" style="background:#0f766e;color:#fff;flex:1;min-width:150px;" onclick="copyOrderBillImage()"><span class="material-symbols-outlined ms" style="font-size:18px;">content_copy</span><span id="obm-copy-label">Copy Bill</span></button>
     </div>
   </div>
 </div>
@@ -5270,129 +5271,103 @@ function printOrderBill(){
   }
 }
 
-async function whatsappOrderBill(){
+// ─── COPY BILL: thermal receipt as a PNG image on the clipboard ───────────────
+function _loadHtml2Canvas(){
+  if(window.html2canvas)return Promise.resolve(window.html2canvas);
+  return new Promise((res,rej)=>{
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    sc.onload=()=>window.html2canvas?res(window.html2canvas):rej(new Error('html2canvas missing'));
+    sc.onerror=()=>rej(new Error('Could not load image library (check internet)'));
+    document.head.appendChild(sc);
+  });
+}
+// Renders the thermal bill (always thermal layout, whatever tab is open) to a PNG blob
+async function _thermalBillBlob(o){
+  const h2c=await _loadHtml2Canvas();
+  const fr=document.createElement('iframe');
+  fr.setAttribute('aria-hidden','true');
+  fr.style.cssText='position:fixed;left:-9999px;top:0;width:480px;height:1400px;border:0;visibility:hidden;';
+  document.body.appendChild(fr);
+  try{
+    await new Promise(r=>{fr.onload=r;fr.srcdoc=buildThermalBillHtml(o,getThermalWidth(),false);setTimeout(r,1500);});
+    const doc=fr.contentDocument;
+    if(doc.fonts&&doc.fonts.ready)await doc.fonts.ready;
+    const paper=doc.querySelector('.paper');
+    if(!paper)throw new Error('Bill not ready');
+    paper.style.margin='0';
+    const canvas=await h2c(paper,{backgroundColor:'#ffffff',scale:3,useCORS:true,logging:false});
+    return await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('Image failed')),'image/png'));
+  }finally{fr.remove();}
+}
+async function copyOrderBillImage(){
   const o=_obm.order; if(!o)return;
-  showToast('Generating bill image…');
-
-  // ── STEP 1: render thermal bill into a hidden off-screen iframe ──────────────
-  const html=buildThermalBillHtml(o,getThermalWidth());
-  const iframe=document.createElement('iframe');
-  iframe.style.cssText='position:fixed;left:-9999px;top:0;width:400px;height:1px;border:none;visibility:hidden;';
-  document.body.appendChild(iframe);
-
-  await new Promise(res=>{ iframe.onload=()=>res(); iframe.srcdoc=html; setTimeout(res,1400); });
-  await new Promise(res=>setTimeout(res,350));
-  try{ const ch=iframe.contentDocument.body.scrollHeight||1000; iframe.style.height=ch+'px'; }catch(e){}
-  await new Promise(res=>setTimeout(res,120));
-
-  // ── STEP 2: load html2canvas on demand ──────────────────────────────────────
-  if(!window.html2canvas){
-    await new Promise((res,rej)=>{
-      const s=document.createElement('script');
-      s.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
-      s.onload=res; s.onerror=rej;
-      document.head.appendChild(s);
-    });
-  }
-
-  // ── STEP 3: paint iframe → canvas → blob ────────────────────────────────────
-  let blob;
+  const btn=document.getElementById('obm-copy-btn'),lbl=document.getElementById('obm-copy-label');
+  if(btn.disabled)return;
+  const setL=t=>{if(lbl)lbl.textContent=t;};
+  btn.disabled=true;setL('Copying…');
+  const name='bill-'+String(o.orderId||o.firestoreId||'order').replace(/[^\w-]+/g,'')+'.png';
   try{
-    const canvas=await window.html2canvas(iframe.contentDocument.body,{
-      scale:2, useCORS:true, backgroundColor:'#ffffff',
-      scrollX:0, scrollY:0, windowWidth:400
-    });
-    blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
-  }catch(e){
-    document.body.removeChild(iframe);
-    showToast('Image failed — sending text bill');
-    _whatsappOrderBillText(o); return;
-  }
-  document.body.removeChild(iframe);
-
-  const d=getOrderBillData(o);
-  const fname=`bill-${(d.billNo||'order').replace(/[^a-z0-9]/gi,'-')}.png`;
-  const file=new File([blob],fname,{type:'image/png'});
-
-  // phone number (with country code)
-  let ph=String(d.phone||'').replace(/\D/g,'');
-  if(ph.length===10) ph='91'+ph;
-  const hasPhone=ph.length>=11;
-
-  // ── STEP 4: Android + phone known → clipboard copy + WhatsApp direct chat ───
-  // Android intent URL opens WhatsApp straight to the contact; clipboard holds
-  // the image so the user just long-presses the message box and pastes.
-  const isAndroid=/android/i.test(navigator.userAgent);
-  if(isAndroid && hasPhone){
-    // Try to copy image to clipboard (Android Chrome 84+)
-    let copied=false;
-    try{
-      if(navigator.clipboard&&window.ClipboardItem){
-        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-        copied=true;
-      }
-    }catch(e){}
-
-    // Open WhatsApp directly in the customer's chat
-    // intent:// scheme is the only reliable way to deep-link to a specific chat on Android
-    const intentUrl=`intent://send/${ph}#Intent;scheme=whatsapp;package=com.whatsapp;end`;
-    window.location.href=intentUrl;
-
-    // Show tip after a short delay (by the time this fires WhatsApp is open)
-    setTimeout(()=>{
-      showToast(copied
-        ? 'Bill copied — long-press the message box and Paste to send'
-        : 'Bill opened — tap the 📎 icon to attach the image');
-    }, 1800);
-    return;
-  }
-
-  // ── STEP 5: iOS / Android without phone → native Web Share with image file ──
-  if(navigator.canShare&&navigator.canShare({files:[file]})){
-    try{
-      await navigator.share({ files:[file], title:'Bill – '+d.store.name, text:'' });
-      return;
-    }catch(e){ if(e.name==='AbortError')return; }
-  }
-
-  // ── STEP 6: Desktop → clipboard copy + open WhatsApp Web direct chat ────────
-  let copied=false;
-  try{
+    const blobP=_thermalBillBlob(o);
     if(navigator.clipboard&&window.ClipboardItem){
-      await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-      copied=true;
+      // promise passed directly so Safari keeps the click's permission while the image renders
+      await navigator.clipboard.write([new ClipboardItem({'image/png':blobP})]);
+      showToast('Bill image copied – paste it in WhatsApp');
+      setL('Copied ✓');
+    }else{
+      const blob=await blobP;
+      const file=new File([blob],name,{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:name});
+      }else{
+        const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+        document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+        showToast('Copy not supported here – bill image downloaded');
+      }
+      setL('Copy Bill');
     }
-  }catch(e){}
-
-  if(!copied){
-    // Last resort: download the PNG so the user can attach it manually
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download=fname; a.click();
-    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){
+    if(e&&e.name==='AbortError'){setL('Copy Bill');}
+    else{
+      // clipboard blocked: fall back to downloading the image
+      try{
+        const blob=await _thermalBillBlob(o);
+        const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+        document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+        showToast('Could not copy – bill image downloaded instead');
+      }catch(e2){showToast('Could not create bill image: '+(e2.message||e2));}
+      setL('Copy Bill');
+    }
+  }finally{
+    btn.disabled=false;
+    setTimeout(()=>setL('Copy Bill'),2000);
   }
-
-  const waUrl='https://web.whatsapp.com/'+(hasPhone?`send?phone=${ph}`:'');
-  window.open(waUrl,'_blank');
-  setTimeout(()=>{
-    showToast(copied
-      ? 'Bill copied — press Ctrl+V (or ⌘V) in WhatsApp to paste'
-      : 'Bill downloaded — attach it in WhatsApp');
-  }, 900);
 }
 
-function _whatsappOrderBillText(o){
+function whatsappOrderBill(){
+  const o=_obm.order; if(!o)return;
   const d=getOrderBillData(o);
   const lines=[
-    `*${d.store.name}*`,`Bill: ${d.billNo}`,`Date: ${d.date} ${d.time}`,`Customer: ${d.name}`,'------------------------',
+    `*${d.store.name}*`,
+    `Bill: ${d.billNo}`,
+    `Date: ${d.date} ${d.time}`,
+    `Customer: ${d.name}`,
+    '------------------------',
     ...d.items.map((i,n)=>`${n+1}. ${i.name} x${i.qty} — ₹${(i.qty*i.price).toFixed(2)}`),
-    '------------------------',`Subtotal: ₹${d.subtotal.toFixed(2)}`,
+    '------------------------',
+    `Subtotal: ₹${d.subtotal.toFixed(2)}`,
     ...(d.discount>0?[`Discount: -₹${d.discount.toFixed(2)}`]:[]),
-    ...(d.gst>0?[`GST: ₹${d.gst.toFixed(2)}`]:[]),
-    `*Total: ₹${d.total.toFixed(2)}*`,'','Thank you for shopping with us!'
+    ...(d.gst>0?[`GST${d.gstPct?' ('+d.gstPct+'%)':''}: ₹${d.gst.toFixed(2)}`]:[]),
+    ...(Math.abs(d.other)>=0.01?[`${d.other>0?'Other charges':'Adjustment'}: ${d.other<0?'-':''}₹${Math.abs(d.other).toFixed(2)}`]:[]),
+    `*Total: ₹${d.total.toFixed(2)}*`,
+    ...(d.payment?[`Payment: ${d.payment}`]:[]),
+    '',
+    'Thank you for shopping with us!'
   ];
-  let p=String(d.phone||'').replace(/\D/g,'');
-  if(p.length===10)p='91'+p;
-  window.open('https://wa.me/'+(p.length>=11?p:'')+'?text='+encodeURIComponent(lines.join('\n')),'_blank');
+  let p=String(d.phone).replace(/\D/g,'');
+  if(p.length===10)p='91'+p;           // Indian mobile without country code
+  const url='https://wa.me/'+(p.length>=11?p:'')+'?text='+encodeURIComponent(lines.join('\n'));
+  window.open(url,'_blank');
 }
 
 // ─── MOBILE: label table cells so rows can render as cards ────────────────────
