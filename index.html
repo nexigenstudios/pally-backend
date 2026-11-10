@@ -4699,10 +4699,22 @@ const _poEsc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':
 const _poWinLabel=id=>{const t=Number(String(id).slice(1));return t?new Date(t).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'(no window)';};
 function _poToLocalInput(ms){const d=new Date(ms-new Date(ms).getTimezoneOffset()*60000);return d.toISOString().slice(0,16);}
 async function loadPreorderAdmin(){
+  const wasOpen=poState.open;
   try{const{db,doc,getDoc}=window._fb;const sn=await getDoc(doc(db,'settings','preorder'));
     if(sn.exists()){const d=sn.data();poState={open:!!d.open,closesAt:Number(d.closesAt)||0,windowId:d.windowId||'',categories:d.categories||['Fruits']};}
   }catch(e){console.error('loadPreorderAdmin:',e);showToast('Could not load pre-order settings');}
   const inp=document.getElementById('po-closes');if(inp&&poState.closesAt)inp.value=_poToLocalInput(poState.closesAt);
+  // If the window was open but the closing time has now passed (natural expiry),
+  // mark it closed in Firestore and auto-record purchases
+  if(poState.open&&poState.closesAt&&Date.now()>=poState.closesAt){
+    try{
+      const{db,doc,setDoc}=window._fb;
+      await setDoc(doc(db,'settings','preorder'),{open:false},{merge:true});
+      poState.open=false;
+      showToast('Pre-order window expired – recording purchases…');
+      await poAutoRecordPurchases(poState.windowId);
+    }catch(e){console.error('Auto-close on expiry failed:',e);}
+  }
   renderPreorderAdmin();
 }
 function renderPreorderAdmin(){
@@ -4742,10 +4754,80 @@ async function poSave(newWindow){
   catch(e){console.error(e);showToast('Could not save: '+(e.message||e));}
 }
 async function poCloseNow(){
-  if(!confirm('Close ordering now? Fruits will be hidden from customers.'))return;
+  if(!confirm('Close ordering now? Fruits will be hidden from customers.\n\nPurchase records will be auto-created in Purchases for each fruit ordered.'))return;
   const{db,doc,setDoc}=window._fb;
-  try{await setDoc(doc(db,'settings','preorder'),{open:false},{merge:true});poState.open=false;showToast('Pre-ordering closed');renderPreorderAdmin();}
-  catch(e){showToast('Could not save: '+(e.message||e));}
+  try{
+    await setDoc(doc(db,'settings','preorder'),{open:false},{merge:true});
+    poState.open=false;
+    showToast('Pre-ordering closed');
+    renderPreorderAdmin();
+    // Auto-record purchases for the window that just closed
+    await poAutoRecordPurchases(poState.windowId);
+  }catch(e){showToast('Could not save: '+(e.message||e));}
+}
+
+// Auto-create one Purchase record per pre-order fruit when a window closes.
+// Skips fruits that already have a purchase recorded for this window (safe to call twice).
+async function poAutoRecordPurchases(wid){
+  if(!wid){showToast('No window ID – purchases not recorded');return;}
+  const{db,collection,addDoc,doc,updateDoc,serverTimestamp,getDocs,query,where}=window._fb;
+
+  // Build aggregated list for this window (same logic as renderPreorderAdmin)
+  const pre=allOrders.filter(o=>o.preorder&&o.preorderWindowId===wid&&o.status!=='Cancelled');
+  if(!pre.length){showToast('No pre-orders found for this window – nothing to record');return;}
+
+  const agg={};
+  pre.forEach(o=>(o.items||[]).filter(i=>i.preorder).forEach(i=>{
+    const k=(i.id||'')+'|'+(i.name||'');
+    if(!agg[k])agg[k]={productId:i.id||'',name:i.name||'',unit:i.unit||'',qty:0};
+    agg[k].qty+=Number(i.qty)||0;
+  }));
+  const items=Object.values(agg).filter(r=>r.qty>0);
+  if(!items.length){showToast('No items to record');return;}
+
+  // Check which products already have a purchase for this window (avoid duplicates)
+  let already=new Set();
+  try{
+    const snap=await getDocs(query(collection(db,'purchases'),where('preorderWindowId','==',wid)));
+    snap.forEach(d=>already.add(d.data().productId));
+  }catch(e){console.warn('Could not check existing purchases:',e);}
+
+  const today=new Date().toISOString().split('T')[0];
+  let created=0,skipped=0;
+
+  for(const r of items){
+    if(already.has(r.productId)){skipped++;continue;}
+    const product=allProducts.find(p=>p.id===r.productId);
+    if(!product){skipped++;continue;}
+    const unitCost=product.costPrice||0;
+    const totalCost=unitCost*r.qty;
+    const purData={
+      productId:r.productId,
+      productName:product.name||r.name,
+      hostelId:product.hostelId||'',
+      hostelName:product.hostelName||'',
+      supplier:'',
+      qty:r.qty,
+      unitCost,
+      totalCost,
+      date:today,
+      notes:'Auto-recorded from pre-order window '+_poWinLabel(wid),
+      updatedSellPrice:null,
+      preorderWindowId:wid,
+      createdAt:serverTimestamp()
+    };
+    try{
+      await addDoc(collection(db,'purchases'),purData);
+      // Keep product cost price in sync (re-affirm it)
+      if(unitCost>0)await updateDoc(doc(db,'products',r.productId),{costPrice:unitCost});
+      created++;
+    }catch(e){console.error('Auto-purchase record failed for',r.name,e);}
+  }
+
+  await loadPurchases();
+  if(created>0)showToast(created+' purchase record'+(created>1?'s':'')+' auto-created in Purchases'+(skipped?' ('+skipped+' skipped)':''));
+  else if(skipped>0)showToast('All purchase records already exist for this window');
+  else showToast('No purchase records created (products may have no cost price set)');
 }
 function _poText(){const l=window._poList||[];return 'Fruit order list – '+_poWinLabel(window._poWid)+'\n'+l.map(r=>`${r.name}${r.unit?' ('+r.unit+')':''}: ${r.qty}`).join('\n');}
 function poCopy(){if(!(window._poList||[]).length){showToast('Nothing to copy');return;}navigator.clipboard.writeText(_poText()).then(()=>showToast('Copied – paste into WhatsApp'),()=>showToast('Copy failed'));}
