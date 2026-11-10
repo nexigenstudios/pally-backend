@@ -370,6 +370,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       <div class="nav-item" onclick="navAdmin('orders')" id="nav-orders" data-page="orders"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">receipt_long</span><span class="nav-label">Orders</span><span class="badge-count nav-label" id="pending-badge" style="margin-left:auto;background:#2d8a45;color:white;font-size:10px;border-radius:999px;padding:1px 7px;display:none;">0</span></div>
       <div class="nav-item" onclick="navAdmin('products')" id="nav-products" data-page="products"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">inventory_2</span><span class="nav-label">Products</span></div>
       <div class="nav-item" onclick="navAdmin('categories')" id="nav-categories" data-page="categories"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">category</span><span class="nav-label">Categories</span></div>
+      <div class="nav-item" onclick="navAdmin('preorder')" id="nav-preorder" data-page="preorder"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">nutrition</span><span class="nav-label">Fruit Pre-order</span></div>
       <div class="nav-item" onclick="navAdmin('purchases')" id="nav-purchases" data-page="purchases"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">shopping_cart</span><span class="nav-label">Purchases</span></div>
       <div class="nav-item" onclick="navAdmin('billing')" id="nav-billing" data-page="billing"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">point_of_sale</span><span class="nav-label">Billing</span></div>
       <div class="nav-item" onclick="navAdmin('customers')" id="nav-customers" data-page="customers"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">group</span><span class="nav-label">Customers</span></div>
@@ -474,6 +475,33 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
   <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
     <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Product</th><th>Branch</th><th>Category</th><th>Sell Price</th><th>Cost Price</th><th>Margin</th><th>Stock</th><th>Rating</th><th style="text-align:right">Actions</th></tr></thead><tbody id="products-tbody"></tbody></table></div>
     <div id="products-empty" style="text-align:center;padding:40px;color:#9ca3af;display:none;"><span class="material-symbols-outlined ms" style="font-size:36px;display:block;margin-bottom:6px;">inventory_2</span><div style="font-weight:700;">No products yet</div></div>
+  </div>
+</div>
+
+<!-- FRUIT PRE-ORDER PAGE -->
+<div class="page-content" id="page-preorder">
+  <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;"><div style="font-size:15px;font-weight:800;">Ordering window</div><span id="po-status" class="badge"></span></div>
+    <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Fruits are visible to customers only while the window is open, with no stock limit. After the closing time they are hidden automatically.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div><label class="lbl">Customers can order until</label><input id="po-closes" type="datetime-local" class="input-f"></div>
+      <button onclick="poSave(true)" class="btn" id="po-open-btn" style="padding:10px 16px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Open new window</button>
+      <button onclick="poSave(false)" class="btn" id="po-update-btn" style="padding:10px 16px;background:#e2f0e6;color:#1a5c2a;border:none;border-radius:8px;font-size:13px;font-weight:700;">Update closing time</button>
+      <button onclick="poCloseNow()" class="btn" id="po-close-btn" style="padding:10px 16px;background:#fee2e2;color:#b91c1c;border:none;border-radius:8px;font-size:13px;font-weight:700;">Close now</button>
+    </div>
+  </div>
+  <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:15px;font-weight:800;">Supplier list</div><select id="po-window-sel" class="input-f" onchange="renderPreorderAdmin()" style="width:auto;padding:6px 10px;"></select></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="poCopy()" class="btn" style="padding:8px 14px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Copy for supplier</button>
+        <button onclick="poPrint()" class="btn" style="padding:8px 14px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:12px;font-weight:700;">Print</button>
+      </div>
+    </div>
+    <div id="po-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
+    <div id="po-list"></div>
+    <div style="font-size:13px;font-weight:800;margin:18px 0 6px;">Orders in this window</div>
+    <div id="po-orders"></div>
   </div>
 </div>
 
@@ -1488,6 +1516,7 @@ function subscribeOrders(){
     refreshDashboard();
     if(currentPage==='orders')renderOrdersTable();
     if(currentPage==='analytics')renderAnalytics();
+    if(currentPage==='preorder')renderPreorderAdmin();
     updatePendingBadge();
   },e=>console.error('Orders listener:',e));
 }
@@ -1993,7 +2022,7 @@ async function updateOrderStatus(fid,status){
       if(wasCancelled===nowCancelled){txn.update(orderRef,{status});return;}
       // Online orders and walk-in bills both deduct stock when placed. Skip free-text bill lines.
       const qtyById={};
-      (o.items||[]).forEach(i=>{if(i.id&&i.isProduct!==false)qtyById[i.id]=(qtyById[i.id]||0)+(Number(i.qty)||0);});
+      (o.items||[]).forEach(i=>{if(i.id&&i.isProduct!==false&&!i.preorder)qtyById[i.id]=(qtyById[i.id]||0)+(Number(i.qty)||0);});
       const ids=Object.keys(qtyById);
       const refs=ids.map(id=>doc(db,'products',id));
       const snaps=await Promise.all(refs.map(r=>txn.get(r)));
@@ -4585,6 +4614,67 @@ async function persistCategories(){
 }
 // ─── END CATEGORIES ───────────────────────────────────────────────────────────
 
+// ───────── FRUIT PRE-ORDER ─────────
+let poState={open:false,closesAt:0,windowId:'',categories:['Fruits']};
+const _poOpen=()=>!!poState.open&&(!poState.closesAt||Date.now()<poState.closesAt);
+const _poEsc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const _poWinLabel=id=>{const t=Number(String(id).slice(1));return t?new Date(t).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'(no window)';};
+function _poToLocalInput(ms){const d=new Date(ms-new Date(ms).getTimezoneOffset()*60000);return d.toISOString().slice(0,16);}
+async function loadPreorderAdmin(){
+  try{const{db,doc,getDoc}=window._fb;const sn=await getDoc(doc(db,'settings','preorder'));
+    if(sn.exists()){const d=sn.data();poState={open:!!d.open,closesAt:Number(d.closesAt)||0,windowId:d.windowId||'',categories:d.categories||['Fruits']};}
+  }catch(e){console.error('loadPreorderAdmin:',e);showToast('Could not load pre-order settings');}
+  const inp=document.getElementById('po-closes');if(inp&&poState.closesAt)inp.value=_poToLocalInput(poState.closesAt);
+  renderPreorderAdmin();
+}
+function renderPreorderAdmin(){
+  const st=document.getElementById('po-status');if(!st)return;
+  const open=_poOpen();
+  st.textContent=open?'OPEN':'CLOSED';st.style.background=open?'#dcfce7':'#f3f4f6';st.style.color=open?'#166534':'#6b7280';
+  document.getElementById('po-close-btn').style.display=open?'':'none';
+  document.getElementById('po-update-btn').style.display=open?'':'none';
+  const pre=allOrders.filter(o=>o.preorder&&o.preorderWindowId);
+  const ids=[...new Set([poState.windowId,...pre.map(o=>o.preorderWindowId)].filter(Boolean))].sort().reverse();
+  const sel=document.getElementById('po-window-sel');const keep=sel.value;
+  sel.innerHTML=ids.length?ids.map(id=>`<option value="${id}">${_poWinLabel(id)}${id===poState.windowId?(open?' (current, open)':' (latest)'):''}</option>`).join(''):'<option value="">No pre-orders yet</option>';
+  sel.value=ids.includes(keep)?keep:(ids[0]||'');
+  const wid=sel.value;
+  const rows=pre.filter(o=>o.preorderWindowId===wid&&o.status!=='Cancelled');
+  const agg={};
+  rows.forEach(o=>(o.items||[]).filter(i=>i.preorder).forEach(i=>{const k=(i.name||'')+'|'+(i.unit||'');const a=(agg[k]=agg[k]||{name:i.name,unit:i.unit||'',qty:0,orders:0,rev:0,cost:0,nocost:false});const q=Number(i.qty)||0,pr=allProducts.find(x=>x.id===i.id);a.qty+=q;a.orders++;a.rev+=(Number(i.price)||0)*q;a.cost+=(pr?.costPrice||0)*q;if(!pr?.costPrice)a.nocost=true;}));
+  const T=list0=>list0.reduce((t,r)=>({rev:t.rev+r.rev,cost:t.cost+r.cost,nocost:t.nocost||r.nocost}),{rev:0,cost:0,nocost:false});
+  const list=Object.values(agg).sort((a,b)=>a.name.localeCompare(b.name));
+  window._poList=list;window._poWid=wid;
+  const tt=T(list),profit=tt.rev-tt.cost,mg=tt.rev>0?(profit/tt.rev*100):0;
+  const card=(l,v,c)=>`<div style="flex:1;min-width:110px;background:#f9fafb;border-radius:10px;padding:10px 12px;"><div style="font-size:11px;color:#6b7280;font-weight:600;">${l}</div><div style="font-size:18px;font-weight:800;color:${c||'#111827'};">${v}</div></div>`;
+  document.getElementById('po-summary').innerHTML=card('Orders',rows.length)+card('Revenue','₹'+Math.round(tt.rev))+card('Purchase cost','₹'+Math.round(tt.cost))+card('Profit','₹'+Math.round(profit)+' · '+mg.toFixed(0)+'%',profit>=0?'#16a34a':'#dc2626')+(tt.nocost?'<div style="width:100%;font-size:11px;color:#b45309;">Some fruits have no Cost Price set in Products, so purchase cost and profit are understated.</div>':'');
+  document.getElementById('po-list').innerHTML=list.length
+    ?`<table style="width:100%;border-collapse:collapse;font-size:13px;"><tr style="text-align:left;color:#6b7280;font-size:11px;"><th style="padding:6px 4px;">Fruit</th><th>Unit</th><th style="text-align:right;">Total qty</th><th style="text-align:right;">Revenue</th><th style="text-align:right;">Cost</th><th style="text-align:right;">Orders</th></tr>${list.map(r=>`<tr style="border-top:1px solid #f3f4f6;"><td style="padding:8px 4px;font-weight:700;">${_poEsc(r.name)}</td><td>${_poEsc(r.unit)}</td><td style="text-align:right;font-weight:800;">${r.qty}</td><td style="text-align:right;">₹${Math.round(r.rev)}</td><td style="text-align:right;">${r.nocost?'—':'₹'+Math.round(r.cost)}</td><td style="text-align:right;">${r.orders}</td></tr>`).join('')}</table><div style="font-size:11px;color:#6b7280;margin-top:8px;">${rows.length} order(s) · cancelled orders excluded</div>`
+    :'<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;">No pre-orders in this window yet</div>';
+  document.getElementById('po-orders').innerHTML=rows.length?rows.map(o=>`<div style="padding:8px 0;border-top:1px solid #f3f4f6;font-size:12px;"><b>${_poEsc(o.name)}</b> · ${_poEsc(o.phone)} · ${_poEsc(o.status)}<br><span style="color:#6b7280;">${(o.items||[]).filter(i=>i.preorder).map(i=>_poEsc(i.name)+' × '+i.qty).join(', ')}</span></div>`).join(''):'';
+}
+async function poSave(newWindow){
+  const v=document.getElementById('po-closes').value;
+  const ms=v?new Date(v).getTime():0;
+  if(!ms||ms<=Date.now()){showToast('Pick a closing time in the future');return;}
+  const{db,doc,setDoc}=window._fb;
+  const data={open:true,closesAt:ms,categories:poState.categories||['Fruits']};
+  if(newWindow||!poState.windowId)data.windowId='w'+Date.now();
+  try{await setDoc(doc(db,'settings','preorder'),data,{merge:true});poState={...poState,...data};showToast(newWindow?'New pre-order window opened':'Closing time updated');renderPreorderAdmin();}
+  catch(e){console.error(e);showToast('Could not save: '+(e.message||e));}
+}
+async function poCloseNow(){
+  if(!confirm('Close ordering now? Fruits will be hidden from customers.'))return;
+  const{db,doc,setDoc}=window._fb;
+  try{await setDoc(doc(db,'settings','preorder'),{open:false},{merge:true});poState.open=false;showToast('Pre-ordering closed');renderPreorderAdmin();}
+  catch(e){showToast('Could not save: '+(e.message||e));}
+}
+function _poText(){const l=window._poList||[];return 'Fruit order list – '+_poWinLabel(window._poWid)+'\n'+l.map(r=>`${r.name}${r.unit?' ('+r.unit+')':''}: ${r.qty}`).join('\n');}
+function poCopy(){if(!(window._poList||[]).length){showToast('Nothing to copy');return;}navigator.clipboard.writeText(_poText()).then(()=>showToast('Copied – paste into WhatsApp'),()=>showToast('Copy failed'));}
+function poPrint(){const l=window._poList||[];if(!l.length){showToast('Nothing to print');return;}
+  const w=window.open('','_blank');if(!w){showToast('Allow pop-ups to print');return;}
+  w.document.write(`<html><head><title>Fruit order list</title><style>body{font-family:sans-serif;padding:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style></head><body><h2>Fruit order list – ${_poWinLabel(window._poWid)}</h2><table><tr><th>Fruit</th><th>Unit</th><th>Total qty</th></tr>${l.map(r=>`<tr><td>${_poEsc(r.name)}</td><td>${_poEsc(r.unit)}</td><td>${r.qty}</td></tr>`).join('')}</table></body></html>`);w.document.close();w.print();}
+
 function navAdmin(page){
   currentPage=page;
   if(page==='chats'&&typeof chatMobileShow==='function')chatMobileShow('list');
@@ -4592,7 +4682,7 @@ function navAdmin(page){
   document.querySelectorAll('.page-content').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
-  const titles={dashboard:'Dashboard',orders:'Order Management',products:'Products',categories:'Categories',purchases:'Purchase Records',billing:'Billing',workers:'Workers',hostels:'Hostel Management',pickuppoints:'Pickup Points',customers:'Customers',analytics:'Analytics',promos:'Promo Codes',chats:'Support Chats',cms:'Content Management',settings:'Settings'};
+  const titles={dashboard:'Dashboard',orders:'Order Management',products:'Products',categories:'Categories',preorder:'Fruit Pre-order',purchases:'Purchase Records',billing:'Billing',workers:'Workers',hostels:'Hostel Management',pickuppoints:'Pickup Points',customers:'Customers',analytics:'Analytics',promos:'Promo Codes',chats:'Support Chats',cms:'Content Management',settings:'Settings'};
   document.getElementById('page-title').textContent=titles[page]||page;
   if(page==='orders'){renderOrdersTable();renderOrderChips();}
   if(page==='products')renderProductsAdmin();
@@ -4607,6 +4697,7 @@ function navAdmin(page){
   if(page==='chats')loadChats();
   if(page==='billing')initBillingPage();
   if(page==='categories')renderCategoriesAdmin();
+  if(page==='preorder')loadPreorderAdmin();
   if(page==='cms'){renderBanners();renderFaqs();renderBlogs();}
   if(page==='settings'){
     initRoomDeliveryCard();
