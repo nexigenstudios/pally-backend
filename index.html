@@ -352,6 +352,55 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
   #quick-room-delivery-label{max-width:64px !important;}
   .tab-btn{padding:9px 10px;font-size:12px;}
 }
+
+/* ===== MOBILE FINAL PASS v5 — compact orders, billing fix, sign-out ===== */
+@media(max-width:768px){
+  /* ORDERS: hide low-value columns, compact each card */
+  #orders-tbody td[data-label="Mode"],
+  #orders-tbody td[data-label="Date"],
+  #orders-tbody td[data-label="Pickup Location"]{display:none !important;}
+  #orders-tbody tr{padding:6px 10px !important;margin:6px 0 !important;}
+  #orders-tbody td{padding:5px 0 !important;min-height:0 !important;}
+  #orders-tbody td[data-label="Action"] .tdv{display:flex !important;gap:6px !important;justify-content:flex-end !important;}
+  #orders-tbody td[data-label="Status"] select{width:100% !important;font-size:12px !important;}
+
+  /* BILLING: right cart panel must NOT be sticky on mobile */
+  #bill-grid > div[style*="position:sticky"],
+  #bill-grid > div:last-child{position:static !important;top:auto !important;}
+
+  /* BILLING: 3-col discount row → 2-col */
+  #page-billing .stat-card > div[style*="grid-template-columns:1fr 1fr 1fr"]{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+  /* BILLING: invoice manual line-item row (4-col) → stacked */
+  #bill-invoice-panel div[style*="grid-template-columns:2fr 1fr 1fr auto"]{
+    grid-template-columns:1fr 1fr !important;
+  }
+  #bill-invoice-panel div[style*="grid-template-columns:2fr 1fr 1fr auto"] > div:first-child{
+    grid-column:1/-1 !important;
+  }
+  #bill-invoice-panel div[style*="grid-template-columns:2fr 1fr 1fr auto"] > button{
+    grid-column:1/-1 !important;width:100% !important;
+  }
+
+  /* BILLING: tab bar wraps properly */
+  #page-billing > div:first-child{flex-wrap:wrap !important;}
+  .bill-actions{flex-wrap:wrap !important;gap:6px !important;width:100% !important;margin-left:0 !important;}
+  .bill-actions button{flex:1 1 auto !important;}
+
+  /* ORDER BILL MODAL: fit in screen */
+  #order-bill-modal #order-bill-frame{height:44vh !important;height:44dvh !important;}
+  #order-bill-modal > .modal-box > div:last-child{flex-wrap:wrap !important;}
+  #order-bill-modal .obm-btn{flex:1 1 calc(50% - 6px) !important;min-width:0 !important;padding:10px 6px !important;font-size:12px !important;}
+
+  /* SIGN OUT: ensure tap area is big and unobstructed */
+  button[onclick*="adminLogout"]{min-height:48px !important;position:relative;z-index:2;}
+
+  /* ALL CARDS: global compact */
+  table.data-table tr{margin:6px 0 !important;padding:2px 10px !important;}
+  table.data-table td{padding:6px 0 !important;min-height:0 !important;}
+}
 </style>
 </head>
 <body class="bg-gray-100 overflow-hidden">
