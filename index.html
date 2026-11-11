@@ -18,7 +18,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, deleteUser } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-  import { getFirestore, initializeFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, setDoc, getDoc, where, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { getFirestore, initializeFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, setDoc, getDoc, where, runTransaction, writeBatch, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyAGHeGsr0eX730MHycJEIh0sqGhOpBJqeU",
@@ -48,6 +48,7 @@
   window._fb = { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged,
     collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot,
     query, orderBy, serverTimestamp, setDoc, getDoc, where, runTransaction,
+    writeBatch, increment,
     workerCreateAuth, createUserWithEmailAndPassword,
     updatePassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, deleteUser };
   onAuthStateChanged(auth, user => { window._adminUser = user; if (window._onAdminAuth) window._onAdminAuth(user); });
@@ -503,6 +504,8 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Gross Profit</p><h3 style="font-size:26px;font-weight:800;" id="s-profit">₹0</h3><p style="font-size:11px;margin-top:2px;" id="s-margin">0% margin</p></div><div style="width:38px;height:38px;background:#eff6ff;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#2563eb;font-size:20px;">trending_up</span></div></div></div>
     <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Pending</p><h3 style="font-size:26px;font-weight:800;" id="s-pending">0</h3><p style="font-size:11px;color:#d97706;margin-top:2px;">Need action</p></div><div style="width:38px;height:38px;background:#fffbeb;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#d97706;font-size:20px;">pending_actions</span></div></div></div>
     <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Avg Order</p><h3 style="font-size:26px;font-weight:800;" id="s-avg">₹0</h3><p style="font-size:11px;color:#9ca3af;margin-top:2px;">Per order</p></div><div style="width:38px;height:38px;background:#faf5ff;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#7c3aed;font-size:20px;">receipt</span></div></div></div>
+    <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Total Stock</p><h3 style="font-size:26px;font-weight:800;" id="s-total-stock">0</h3><p style="font-size:11px;color:#9ca3af;margin-top:2px;" id="s-total-stock-sub">units across products</p></div><div style="width:38px;height:38px;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#16a34a;font-size:20px;">inventory_2</span></div></div></div>
+    <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Stock Value</p><h3 style="font-size:26px;font-weight:800;" id="s-stock-value">₹0</h3><p style="font-size:11px;color:#9ca3af;margin-top:2px;">At purchase cost</p></div><div style="width:38px;height:38px;background:#fff5ed;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#ea580c;font-size:20px;">warehouse</span></div></div></div>
   </div>
   <div id="dash-grid" style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:16px;">
     <div class="stat-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">Order Status</h3><div id="status-breakdown"></div></div>
@@ -601,16 +604,32 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 
 <div class="page-content" id="page-purchases">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-    <div><h2 style="font-size:15px;font-weight:700;">Purchase Records</h2><p style="font-size:12px;color:#6b7280;margin-top:2px;">Track supplier purchases — drives profit calculations in dashboard</p></div>
-    <button onclick="openAddPurchase()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 16px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:18px;">add</span>Record Purchase</button>
+    <div><h2 style="font-size:15px;font-weight:700;">Purchase Records &amp; Inventory</h2><p style="font-size:12px;color:#6b7280;margin-top:2px;">Batch-wise FIFO inventory — purchase cost locked per batch, selling price set separately</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="openSetSellingPrice()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 14px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:17px;">sell</span>Set Selling Price</button>
+      <button onclick="openAddPurchase()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 16px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:18px;">add</span>Record Purchase</button>
+    </div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;">
     <div class="stat-card"><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Total Invested</p><h3 style="font-size:22px;font-weight:800;margin-top:4px;" id="pur-total">₹0</h3></div>
     <div class="stat-card"><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">This Month</p><h3 style="font-size:22px;font-weight:800;margin-top:4px;" id="pur-month">₹0</h3></div>
     <div class="stat-card"><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Total Entries</p><h3 style="font-size:22px;font-weight:800;margin-top:4px;" id="pur-count">0</h3></div>
+    <div class="stat-card"><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Current Stock</p><h3 style="font-size:22px;font-weight:800;margin-top:4px;" id="pur-stock-units">0 units</h3></div>
+    <div class="stat-card"><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Stock Value</p><h3 style="font-size:22px;font-weight:800;margin-top:4px;" id="pur-stock-value">₹0</h3></div>
+    <div class="stat-card"><p style="font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.06em;">Low Stock</p><h3 style="font-size:22px;font-weight:800;margin-top:4px;color:#dc2626;" id="pur-low-stock">0</h3><p style="font-size:10px;color:#9ca3af;">products &lt;10 units</p></div>
   </div>
+  <!-- Inventory Batches Panel -->
+  <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #f3f4f6;">
+      <h3 style="font-size:14px;font-weight:700;">Active Inventory Batches (FIFO)</h3>
+      <span style="font-size:11px;color:#9ca3af;font-weight:600;">Oldest batch used first when selling</span>
+    </div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Product</th><th>Batch Date</th><th>Supplier</th><th>Bought Qty</th><th>Remaining</th><th>Purchase Cost</th><th>Batch Value</th><th>Current Sell Price</th><th>Batch Margin</th></tr></thead><tbody id="batches-tbody"><tr><td colspan="9" style="text-align:center;padding:24px;color:#9ca3af;">Loading batches...</td></tr></tbody></table></div>
+  </div>
+  <!-- Purchase History -->
   <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
-    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>Product</th><th>Supplier</th><th>Qty</th><th>Unit Cost</th><th>Total Cost</th><th>Sell Price</th><th>Actions</th></tr></thead><tbody id="purchases-tbody"></tbody></table></div>
+    <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6;"><h3 style="font-size:14px;font-weight:700;">Purchase History</h3></div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>Product</th><th>Supplier</th><th>Qty</th><th>Unit Cost</th><th>Total Cost</th><th>Sell Price at Time</th><th>Actions</th></tr></thead><tbody id="purchases-tbody"></tbody></table></div>
     <div id="purchases-empty" style="text-align:center;padding:40px;color:#9ca3af;display:none;"><span class="material-symbols-outlined ms" style="font-size:36px;display:block;margin-bottom:6px;">shopping_cart</span><div style="font-weight:700;">No purchases recorded yet</div><div style="font-size:12px;margin-top:4px;">Record purchases to enable profit calculations</div></div>
   </div>
 </div>
@@ -1109,13 +1128,32 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div><label class="lbl">Purchase Date *</label><input id="pur-date" type="date" class="input-f"></div>
-        <div><label class="lbl">Update Sell Price (₹)</label><input id="pur-sell-price" type="number" step="0.01" class="input-f" placeholder="Leave blank to keep current"></div>
+        <div><label class="lbl">Notes</label><input id="pur-notes" type="text" class="input-f" placeholder="Optional notes..."></div>
       </div>
-      <div><label class="lbl">Notes</label><input id="pur-notes" type="text" class="input-f" placeholder="Optional notes..."></div>
-      <div style="background:#eff6ff;border-radius:8px;padding:10px;font-size:11px;color:#2563eb;font-weight:600;"><span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">info</span> Recording a purchase automatically updates this product's Cost Price in the Products list and affects all profit calculations.</div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:10px;font-size:11px;color:#166534;font-weight:600;"><span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">info</span> This creates a new inventory batch. Purchase cost is locked to this batch and never overwritten. FIFO: oldest batch stock is used first. To change the selling price, use the "Set Selling Price" button.</div>
     </div>
     <input type="hidden" id="pur-edit-id">
     <button onclick="savePurchase()" id="save-pur-btn" class="btn" style="width:100%;margin-top:16px;padding:12px;background:#2d8a45;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;">Record Purchase</button>
+  </div>
+</div>
+
+<!-- Set Selling Price Modal -->
+<div class="modal-bd" id="selling-price-modal" onclick="closeModal('selling-price-modal')">
+  <div class="modal-box" style="max-width:440px;padding:24px;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h2 style="font-size:16px;font-weight:800;">Set Selling Price</h2><button onclick="closeModal('selling-price-modal')" class="btn" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms" style="font-size:16px;color:#6b7280;">close</span></button></div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div><label class="lbl">Product *</label><select id="sp-product" class="input-f" onchange="onSellingPriceProductChange()"><option value="">Select product...</option></select></div>
+      <div style="background:#f9fafb;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px;" id="sp-current-info" style="display:none;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#6b7280;font-weight:600;">Current Selling Price</span><span style="font-weight:800;color:#374151;" id="sp-current-price">—</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#6b7280;font-weight:600;">Current Stock</span><span style="font-weight:800;color:#374151;" id="sp-current-stock">—</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#6b7280;font-weight:600;">Active Batches</span><span style="font-weight:800;color:#374151;" id="sp-batch-count">—</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#6b7280;font-weight:600;">Oldest Batch Cost</span><span style="font-weight:800;color:#d97706;" id="sp-oldest-cost">—</span></div>
+      </div>
+      <div><label class="lbl">New Selling Price (₹) *</label><input id="sp-new-price" type="number" step="0.01" class="input-f" placeholder="e.g. 55.00" oninput="calcSellingPricePreview()"></div>
+      <div id="sp-margin-preview" style="background:#eff6ff;border-radius:8px;padding:10px;font-size:12px;color:#1e40af;font-weight:600;display:none;"></div>
+      <div style="background:#fef9c3;border-radius:8px;padding:10px;font-size:11px;color:#854d0e;font-weight:600;"><span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">warning</span> This updates the selling price for ALL remaining stock of this product. Profit for each batch will still be calculated using that batch's own purchase cost.</div>
+    </div>
+    <button onclick="saveSellingPrice()" id="save-sp-btn" class="btn" style="width:100%;margin-top:16px;padding:12px;background:#2563eb;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;">Update Selling Price</button>
   </div>
 </div>
 
@@ -1568,7 +1606,7 @@ function toggleLoginPwd(){
 // ─── INIT ───
 function initData(){
   subscribeOrders();subscribeProducts();
-  loadPurchases();loadWorkers();loadCustomers();loadSettings();loadCmsData();loadChats();loadPickupPoints();loadHostels();loadCategories();
+  loadPurchases();loadWorkers();loadCustomers();loadSettings();loadCmsData();loadChats();loadPickupPoints();loadHostels();loadCategories();loadAllBatches();
   setDateFilter('today',document.querySelectorAll('.date-chip')[0]);
 }
 
@@ -1925,7 +1963,7 @@ async function loadCmsData(){
   }catch(e){console.error('loadCmsData:',e);}
 }
 
-function refreshAll(){loadPurchases();loadWorkers();loadCustomers();loadSettings();loadCmsData();showToast('Refreshed!');}
+function refreshAll(){loadPurchases();loadAllBatches();loadWorkers();loadCustomers();loadSettings();loadCmsData();showToast('Refreshed!');}
 
 // ─── DATE FILTER ───
 function setDateFilter(mode,btn){
@@ -1955,20 +1993,39 @@ function getFilteredOrders(){
   return allOrders.filter(o=>o.dateObj>=r.start&&o.dateObj<=r.end);
 }
 
-// ─── PROFIT ENGINE ───
+// ─── PROFIT ENGINE (FIFO-aware) ───
+// Returns the best available purchase cost for a product item.
+// Priority: 1) FIFO batch cost (oldest active batch for that product)
+//           2) product.costPrice fallback for legacy items with no batch data
+function getBestCostForItem(item){
+  if(!item.id)return item.costPrice||0;
+  // Use oldest batch with remaining stock (FIFO)
+  const batches=allBatches
+    .filter(b=>b.productDocId===item.id&&(b.remaining||0)>0)
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if(batches.length>0)return batches[0].purchaseCost||batches[0].unitCost||0;
+  // If all batches exhausted but we still have purchases, use the most recent batch cost
+  const anyBatch=allBatches
+    .filter(b=>b.productDocId===item.id)
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(anyBatch.length>0)return anyBatch[0].purchaseCost||anyBatch[0].unitCost||0;
+  // Final fallback: product.costPrice (pre-batch legacy)
+  const p=allProducts.find(x=>x.id===item.id);
+  return p?.costPrice||0;
+}
+
 function calcStats(orders){
   const valid=orders.filter(o=>o.status!=='Cancelled');
   const revenue=valid.reduce((s,o)=>s+(o.total||0),0);
   let cost=0;
-  valid.forEach(o=>(o.items||[]).forEach(i=>{const p=allProducts.find(x=>x.id===i.id);cost+=(p?.costPrice||0)*i.qty;}));
+  valid.forEach(o=>(o.items||[]).forEach(i=>{cost+=getBestCostForItem(i)*i.qty;}));
   const profit=revenue-cost;
   const margin=revenue>0?(profit/revenue*100):0;
   return{revenue,cost,profit,margin,total:orders.length,cancelled:orders.filter(o=>o.status==='Cancelled').length,pending:orders.filter(o=>o.status==='Pending').length,avg:valid.length>0?revenue/valid.length:0};
 }
 
 function itemProfit(item){
-  const p=allProducts.find(x=>x.id===item.id);
-  return(item.price-(p?.costPrice||0))*item.qty;
+  return(item.price-getBestCostForItem(item))*item.qty;
 }
 
 // ─── DASHBOARD ───
@@ -2087,20 +2144,20 @@ function renderOrdersTable(){
 
 async function updateOrderStatus(fid,status){
   const{db,doc,runTransaction}=window._fb;
+  let qtyByIdForBatch={},wasActuallyCancelled=false,nowActuallyCancelled=false;
   try{
     const orderRef=doc(db,'orders',fid);
     let msg='Status → '+status;
-    // One transaction: re-reads the live order (so two people can never restock twice),
-    // returns stock when an order becomes Cancelled, takes it again if it is re-opened.
     await runTransaction(db,async(txn)=>{
       const oSnap=await txn.get(orderRef);
       if(!oSnap.exists())throw new Error('Order no longer exists');
       const o=oSnap.data();
       const wasCancelled=o.status==='Cancelled',nowCancelled=status==='Cancelled';
+      wasActuallyCancelled=wasCancelled;nowActuallyCancelled=nowCancelled;
       if(wasCancelled===nowCancelled){txn.update(orderRef,{status});return;}
-      // Online orders and walk-in bills both deduct stock when placed. Skip free-text bill lines.
       const qtyById={};
       (o.items||[]).forEach(i=>{if(i.id&&i.isProduct!==false&&!i.preorder)qtyById[i.id]=(qtyById[i.id]||0)+(Number(i.qty)||0);});
+      qtyByIdForBatch=qtyById;
       const ids=Object.keys(qtyById);
       const refs=ids.map(id=>doc(db,'products',id));
       const snaps=await Promise.all(refs.map(r=>txn.get(r)));
@@ -2119,7 +2176,46 @@ async function updateOrderStatus(fid,status){
       if(ids.length)msg+=nowCancelled?' · stock returned':' · stock deducted';
     });
     showToast(msg);
+    // After transaction: FIFO batch deduction (best-effort, non-blocking)
+    if(Object.keys(qtyByIdForBatch).length && wasActuallyCancelled!==nowActuallyCancelled){
+      applyFifoBatchDeduction(qtyByIdForBatch,nowActuallyCancelled).catch(e=>console.warn('Batch FIFO:',e));
+    }
   }catch(e){showToast(e.message&&/stock|exist/.test(e.message)?e.message:'Error updating status');}
+}
+
+// ─── FIFO BATCH DEDUCTION ───
+async function applyFifoBatchDeduction(qtyById,nowCancelled){
+  const{db,collection,getDocs,query,orderBy,updateDoc,doc}=window._fb;
+  for(const [productId,totalQty] of Object.entries(qtyById)){
+    if(!totalQty)continue;
+    try{
+      const snap=await getDocs(query(collection(db,'products',productId,'batches'),orderBy('date','asc')));
+      const batches=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(nowCancelled){
+        let toRestore=totalQty;
+        const desc=[...batches].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+        for(const b of desc){
+          if(toRestore<=0)break;
+          const canRestore=Math.min(toRestore,(b.qty||0)-(b.remaining||0));
+          if(canRestore>0){
+            await updateDoc(doc(db,'products',productId,'batches',b.id),{remaining:(b.remaining||0)+canRestore});
+            toRestore-=canRestore;
+          }
+        }
+      } else {
+        let toDeduct=totalQty;
+        for(const b of batches){
+          if(toDeduct<=0)break;
+          const avail=b.remaining||0;
+          if(avail<=0)continue;
+          const take=Math.min(avail,toDeduct);
+          await updateDoc(doc(db,'products',productId,'batches',b.id),{remaining:avail-take});
+          toDeduct-=take;
+        }
+      }
+    }catch(e){console.warn('FIFO batch update for '+productId+':',e);}
+  }
+  await loadAllBatches();
 }
 
 async function assignDeliveryBoy(fid,workerId){
@@ -2257,7 +2353,11 @@ function renderProductsAdmin(){
   empty.style.display='none';
   tbody.innerHTML=filtered.map(p=>{
     const src=p.imageUrl||catFb(p.category);
-    const margin=p.costPrice>0?((p.price-p.costPrice)/p.price*100).toFixed(1):null;
+    // Use oldest active batch cost for margin (FIFO); fallback to costPrice
+    const pBatches=allBatches.filter(b=>b.productDocId===p.id&&(b.remaining||0)>0).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const effectiveCost=pBatches.length>0?(pBatches[0].purchaseCost||pBatches[0].unitCost||0):(p.costPrice||0);
+    const activeBatchCount=pBatches.length;
+    const margin=effectiveCost>0?((p.price-effectiveCost)/p.price*100).toFixed(1):null;
     const mc=!margin?'#9ca3af':parseFloat(margin)>25?'#16a34a':parseFloat(margin)>10?'#d97706':'#dc2626';
     const catHid=isCategoryHidden(p.category);
     const hidBadge=p.hidden?'<span class="badge" style="background:#f3f4f6;color:#6b7280;margin-left:6px;">Hidden</span>':(catHid?'<span class="badge" style="background:#fef3c7;color:#92400e;margin-left:6px;">Hidden (category)</span>':'');
@@ -2266,7 +2366,7 @@ function renderProductsAdmin(){
       <td>${p.hostelId?`<span class="badge" style="background:#eff6ff;color:#2563eb;">${p.hostelName||'Assigned'}</span>`:'<span class="badge" style="background:#fee2e2;color:#dc2626;">⚠ No branch</span>'}</td>
       <td><span class="badge" style="background:#fff5ed;color:#c2410c;">${p.category||''}</span></td>
       <td style="font-weight:800;color:#2d8a45;">₹${p.price}</td>
-      <td style="font-weight:700;">${p.costPrice?'₹'+p.costPrice:'<span style="color:#9ca3af">—</span>'}</td>
+      <td style="font-weight:700;">${effectiveCost?'₹'+effectiveCost+(activeBatchCount?'<span style="font-size:9px;color:#2563eb;font-weight:700;margin-left:4px;">'+activeBatchCount+' batch'+( activeBatchCount>1?'es':'')+'</span>':''):'<span style="color:#9ca3af">—</span>'}</td>
       <td style="font-weight:700;color:${mc};">${margin?margin+'%':'<span style="color:#9ca3af">—</span>'}</td>
       <td style="font-weight:700;color:${(p.stock||0)<10?'#dc2626':'#374151'};">${p.stock||0}</td>
       <td style="font-size:12px;"><span class="material-symbols-outlined ms-fill" style="font-size:12px;color:#f59e0b;vertical-align:middle;">star</span> ${p.rating||4.5}</td>
@@ -2423,10 +2523,13 @@ async function deleteProduct(id){
 }
 
 // ─── PURCHASES ───
+// ─── INVENTORY / BATCH STATE ───
+let allBatches = []; // flat array of all batch docs across all products
+
 function populatePurchaseProductSelect(){
   const sel=document.getElementById('pur-product');if(!sel)return;
   const cur=sel.value;
-  sel.innerHTML='<option value="">Select product...</option>'+allProducts.map(p=>`<option value="${p.id}">${p.name} · Sell ₹${p.price}${p.costPrice?' · Cost ₹'+p.costPrice:''}</option>`).join('');
+  sel.innerHTML='<option value="">Select product...</option>'+allProducts.map(p=>`<option value="${p.id}">${p.name} · Sell ₹${p.price} · Stock: ${p.stock||0}</option>`).join('');
   if(cur)sel.value=cur;
 }
 
@@ -2444,42 +2547,80 @@ function refreshPurchaseSummary(){
   const e1=document.getElementById('pur-total');if(e1)e1.textContent='₹'+Math.round(total);
   const e2=document.getElementById('pur-month');if(e2)e2.textContent='₹'+Math.round(month);
   const e3=document.getElementById('pur-count');if(e3)e3.textContent=allPurchases.length;
+  // Inventory stats from products + batches
+  const totalUnits=allProducts.reduce((s,p)=>s+(p.stock||0),0);
+  const lowStockCount=allProducts.filter(p=>(p.stock||0)>0&&(p.stock||0)<10).length;
+  // Stock value: sum remaining qty × purchaseCost across all active batches
+  const stockValue=allBatches.filter(b=>(b.remaining||0)>0).reduce((s,b)=>s+(b.remaining||0)*(b.purchaseCost||b.unitCost||0),0);
+  const e4=document.getElementById('pur-stock-units');if(e4)e4.textContent=totalUnits+' units';
+  const e5=document.getElementById('pur-stock-value');if(e5)e5.textContent='₹'+Math.round(stockValue);
+  const e6=document.getElementById('pur-low-stock');if(e6)e6.textContent=lowStockCount;
+  // Dashboard inventory cards
+  const ds=document.getElementById('s-total-stock');if(ds)ds.textContent=totalUnits;
+  const dsub=document.getElementById('s-total-stock-sub');if(dsub)dsub.textContent=allProducts.length+' products';
+  const dsv=document.getElementById('s-stock-value');if(dsv)dsv.textContent='₹'+Math.round(stockValue);
 }
 
 function openAddPurchase(){
   populatePurchaseProductSelect();
-  document.getElementById('purchase-modal-title').textContent='Record Purchase';
+  document.getElementById('purchase-modal-title').textContent='Record Purchase (New Batch)';
   document.getElementById('save-pur-btn').textContent='Record Purchase';
-  ['pur-supplier','pur-qty','pur-unit-cost','pur-notes','pur-sell-price','pur-edit-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['pur-supplier','pur-qty','pur-unit-cost','pur-notes','pur-edit-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('pur-product').value='';
   document.getElementById('pur-date').value=new Date().toISOString().split('T')[0];
-  document.getElementById('pur-total-display').textContent='₹'+0.00;
+  document.getElementById('pur-total-display').textContent='₹0.00';
   document.getElementById('purchase-modal').classList.add('open');
 }
 
+// ─── SAVE PURCHASE: creates a batch doc, increments product.stock, does NOT overwrite costPrice ───
 async function savePurchase(){
   const productId=document.getElementById('pur-product').value;
   const qty=parseInt(document.getElementById('pur-qty').value)||0;
   const unitCost=parseFloat(document.getElementById('pur-unit-cost').value)||0;
   const date=document.getElementById('pur-date').value;
   if(!productId){showToast('Please select a product');return;}
-  if(!qty||!unitCost){showToast('Please enter quantity and cost per unit');return;}
+  if(!qty||qty<=0){showToast('Please enter a valid quantity');return;}
+  if(!unitCost||unitCost<=0){showToast('Please enter cost per unit');return;}
   if(!date){showToast('Please enter purchase date');return;}
   const product=allProducts.find(p=>p.id===productId);
   const totalCost=qty*unitCost;
-  const newSellPrice=parseFloat(document.getElementById('pur-sell-price').value)||0;
   const btn=document.getElementById('save-pur-btn');btn.textContent='Saving...';btn.disabled=true;
   try{
-    const{db,collection,addDoc,doc,updateDoc,serverTimestamp}=window._fb;
-    const purData={productId,productName:product?.name||'',hostelId:product?.hostelId||'',hostelName:product?.hostelName||'',supplier:document.getElementById('pur-supplier').value.trim(),qty,unitCost,totalCost,date,notes:document.getElementById('pur-notes').value.trim(),updatedSellPrice:newSellPrice||null,createdAt:serverTimestamp()};
-    await addDoc(collection(db,'purchases'),purData);
-    // Auto-update product cost price (and optionally sell price)
-    const updates={costPrice:unitCost};
-    if(newSellPrice>0)updates.price=newSellPrice;
-    await updateDoc(doc(db,'products',productId),updates);
-    showToast('Purchase recorded! Cost price updated to ₹'+unitCost);
+    const{db,collection,addDoc,doc,updateDoc,serverTimestamp,increment}=window._fb;
+    // 1. Record the purchase history entry (same as before, for backward compat)
+    const purData={
+      productId, productName:product?.name||'',
+      hostelId:product?.hostelId||'', hostelName:product?.hostelName||'',
+      supplier:document.getElementById('pur-supplier').value.trim(),
+      qty, unitCost, totalCost, date,
+      notes:document.getElementById('pur-notes').value.trim(),
+      sellPriceAtTime:product?.price||0,  // snapshot sell price at purchase time
+      updatedSellPrice:null,              // no longer used to change sell price
+      createdAt:serverTimestamp()
+    };
+    const purRef=await addDoc(collection(db,'purchases'),purData);
+    // 2. Create a batch document under products/{productId}/batches/{batchId}
+    const batchData={
+      purchaseId:purRef.id,
+      productId, productName:product?.name||'',
+      hostelId:product?.hostelId||'',
+      supplier:document.getElementById('pur-supplier').value.trim(),
+      date, qty,
+      purchaseCost:unitCost,   // LOCKED — never changed after creation
+      remaining:qty,           // decremented as stock is sold
+      totalCost, notes:document.getElementById('pur-notes').value.trim(),
+      createdAt:serverTimestamp()
+    };
+    await addDoc(collection(db,'products',productId,'batches'),batchData);
+    // 3. Increment product.stock only — do NOT touch costPrice (batch has the real cost)
+    await updateDoc(doc(db,'products',productId),{
+      stock:increment(qty),
+      updatedAt:new Date().toISOString()
+    });
+    showToast('Purchase recorded! Batch created with '+qty+' units @ ₹'+unitCost+' each.');
     closeModal('purchase-modal');
     await loadPurchases();
+    await loadAllBatches();
   }catch(e){showToast('Error: '+(e.message||'unknown'));}
   btn.textContent='Record Purchase';btn.disabled=false;
 }
@@ -2491,21 +2632,134 @@ function renderPurchases(){
   if(!allPurchases.length){tbody.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
   tbody.innerHTML=allPurchases.map(p=>`<tr>
-    <td style="font-size:12px;white-space:nowrap;">${p.date||''}</td>
-    <td><div style="font-weight:600;font-size:13px;">${p.productName||''}</div></td>
-    <td style="font-size:12px;color:#6b7280;">${p.supplier||'—'}</td>
-    <td style="font-weight:700;">${p.qty||0}</td>
-    <td style="font-weight:700;">₹${(p.unitCost||0).toFixed(2)}</td>
-    <td style="font-weight:800;color:#2d8a45;">₹${(p.totalCost||0).toFixed(2)}</td>
-    <td style="font-size:12px;color:#16a34a;font-weight:700;">${p.updatedSellPrice?'₹'+p.updatedSellPrice:'—'}</td>
-    <td><button onclick="deletePurchase('${p.id}')" class="btn" style="padding:4px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:11px;font-weight:700;">Del</button></td>
+    <td data-label="Date" style="font-size:12px;white-space:nowrap;">${p.date||''}</td>
+    <td data-label="Product"><div style="font-weight:600;font-size:13px;">${p.productName||''}</div></td>
+    <td data-label="Supplier" style="font-size:12px;color:#6b7280;">${p.supplier||'—'}</td>
+    <td data-label="Qty" style="font-weight:700;">${p.qty||0}</td>
+    <td data-label="Unit Cost" style="font-weight:700;">₹${(p.unitCost||0).toFixed(2)}</td>
+    <td data-label="Total Cost" style="font-weight:800;color:#2d8a45;">₹${(p.totalCost||0).toFixed(2)}</td>
+    <td data-label="Sell Price" style="font-size:12px;color:#16a34a;font-weight:700;">${p.sellPriceAtTime?'₹'+p.sellPriceAtTime:(p.updatedSellPrice?'₹'+p.updatedSellPrice:'—')}</td>
+    <td data-label=""><button onclick="deletePurchase('${p.id}')" class="btn" style="padding:4px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:11px;font-weight:700;">Del</button></td>
   </tr>`).join('');
 }
 
 async function deletePurchase(id){
-  if(!confirm('Delete this purchase record?'))return;
-  try{const{db,doc,deleteDoc}=window._fb;await deleteDoc(doc(db,'purchases',id));allPurchases=allPurchases.filter(p=>p.id!==id);renderPurchases();refreshPurchaseSummary();showToast('Deleted');}
+  if(!confirm('Delete this purchase record? Note: the inventory batch will remain unchanged.'))return;
+  try{const{db,doc,deleteDoc}=window._fb;await deleteDoc(doc(db,'purchases',id));allPurchases=allPurchases.filter(p=>p.id!==id);renderPurchases();refreshPurchaseSummary();showToast('Purchase record deleted');}
   catch(e){showToast('Error');}
+}
+
+// ─── LOAD ALL BATCHES across all products ───
+async function loadAllBatches(){
+  try{
+    const{db,collection,getDocs,query,where,orderBy}=window._fb;
+    // Load from collectionGroup so we get all batches in one query
+    // If collectionGroup isn't imported, fall back to per-product fetch
+    let batches=[];
+    // Fallback: iterate over loaded products and fetch their batches
+    const fetches=allProducts.map(async p=>{
+      const snap=await getDocs(query(collection(db,'products',p.id,'batches'),orderBy('date','asc')));
+      return snap.docs.map(d=>({id:d.id,productDocId:p.id,...d.data()}));
+    });
+    const results=await Promise.all(fetches);
+    batches=results.flat();
+    allBatches=batches;
+    renderBatchTable();
+    refreshPurchaseSummary();
+  }catch(e){console.error('loadAllBatches:',e);}
+}
+
+function renderBatchTable(){
+  const tbody=document.getElementById('batches-tbody');if(!tbody)return;
+  const active=allBatches.filter(b=>(b.remaining||0)>0);
+  // Sort: by product name, then date ascending (FIFO — oldest first)
+  active.sort((a,b)=>{
+    const pa=a.productName||'',pb=b.productName||'';
+    if(pa!==pb)return pa.localeCompare(pb);
+    return (a.date||'').localeCompare(b.date||'');
+  });
+  if(!active.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:#9ca3af;">No active inventory batches</td></tr>';return;}
+  tbody.innerHTML=active.map((b,idx)=>{
+    const prod=allProducts.find(p=>p.id===b.productDocId);
+    const sellPrice=prod?.price||0;
+    const purchaseCost=b.purchaseCost||b.unitCost||0;
+    const batchValue=(b.remaining||0)*purchaseCost;
+    const margin=sellPrice>0&&purchaseCost>0?((sellPrice-purchaseCost)/sellPrice*100).toFixed(1):null;
+    const marginColor=margin>=0?'#16a34a':'#dc2626';
+    // Is this the NEXT batch to be used (first remaining batch for this product)?
+    const isNext=active.findIndex(x=>x.productDocId===b.productDocId)===idx;
+    return`<tr>
+      <td data-label="Product"><div style="font-weight:700;font-size:13px;">${b.productName||''}</div>${isNext?'<div style="font-size:10px;color:#2d8a45;font-weight:700;margin-top:2px;">▶ Next to sell</div>':''}</td>
+      <td data-label="Batch Date" style="font-size:12px;white-space:nowrap;">${b.date||''}</td>
+      <td data-label="Supplier" style="font-size:12px;color:#6b7280;">${b.supplier||'—'}</td>
+      <td data-label="Bought Qty" style="font-weight:700;">${b.qty||0}</td>
+      <td data-label="Remaining" style="font-weight:800;color:${(b.remaining||0)<10?'#dc2626':'#374151'};">${b.remaining||0}</td>
+      <td data-label="Purchase Cost" style="font-weight:700;color:#d97706;">₹${purchaseCost.toFixed(2)}</td>
+      <td data-label="Batch Value" style="font-weight:700;">₹${batchValue.toFixed(2)}</td>
+      <td data-label="Sell Price" style="font-weight:700;color:#2d8a45;">₹${sellPrice.toFixed(2)}</td>
+      <td data-label="Batch Margin" style="font-weight:800;color:${marginColor};">${margin!==null?margin+'%':'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── SELLING PRICE MANAGEMENT ───
+function openSetSellingPrice(){
+  const sel=document.getElementById('sp-product');if(!sel)return;
+  sel.innerHTML='<option value="">Select product...</option>'+allProducts.map(p=>`<option value="${p.id}">${p.name} · Current ₹${p.price}</option>`).join('');
+  document.getElementById('sp-new-price').value='';
+  document.getElementById('sp-margin-preview').style.display='none';
+  const info=document.getElementById('sp-current-info');if(info)info.style.display='none';
+  document.getElementById('selling-price-modal').classList.add('open');
+}
+
+function onSellingPriceProductChange(){
+  const productId=document.getElementById('sp-product').value;
+  const info=document.getElementById('sp-current-info');
+  if(!productId){if(info)info.style.display='none';return;}
+  const prod=allProducts.find(p=>p.id===productId);
+  if(!prod){if(info)info.style.display='none';return;}
+  if(info)info.style.display='flex';
+  document.getElementById('sp-current-price').textContent='₹'+(prod.price||0);
+  document.getElementById('sp-current-stock').textContent=(prod.stock||0)+' units';
+  const batches=allBatches.filter(b=>b.productDocId===productId&&(b.remaining||0)>0);
+  document.getElementById('sp-batch-count').textContent=batches.length+' active';
+  // Oldest batch = FIFO next
+  const oldest=batches.sort((a,b)=>(a.date||'').localeCompare(b.date||''))[0];
+  document.getElementById('sp-oldest-cost').textContent=oldest?'₹'+(oldest.purchaseCost||oldest.unitCost||0).toFixed(2):'—';
+  calcSellingPricePreview();
+}
+
+function calcSellingPricePreview(){
+  const productId=document.getElementById('sp-product').value;
+  const newPrice=parseFloat(document.getElementById('sp-new-price').value)||0;
+  const preview=document.getElementById('sp-margin-preview');
+  if(!productId||!newPrice){if(preview)preview.style.display='none';return;}
+  const batches=allBatches.filter(b=>b.productDocId===productId&&(b.remaining||0)>0).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if(!batches.length){if(preview)preview.style.display='none';return;}
+  const lines=batches.map(b=>{
+    const cost=b.purchaseCost||b.unitCost||0;
+    const margin=cost>0?((newPrice-cost)/newPrice*100).toFixed(1):null;
+    return`Batch ${b.date}: ₹${cost} cost → ${margin!==null?margin+'% margin':'no cost on record'}`;
+  }).join(' | ');
+  if(preview){preview.style.display='block';preview.textContent='Preview: '+lines;}
+}
+
+async function saveSellingPrice(){
+  const productId=document.getElementById('sp-product').value;
+  const newPrice=parseFloat(document.getElementById('sp-new-price').value)||0;
+  if(!productId){showToast('Please select a product');return;}
+  if(!newPrice||newPrice<=0){showToast('Please enter a valid selling price');return;}
+  const btn=document.getElementById('save-sp-btn');btn.textContent='Saving...';btn.disabled=true;
+  try{
+    const{db,doc,updateDoc}=window._fb;
+    await updateDoc(doc(db,'products',productId),{price:newPrice,updatedAt:new Date().toISOString()});
+    showToast('Selling price updated to ₹'+newPrice+' — applies to all remaining stock');
+    closeModal('selling-price-modal');
+    // batches' purchaseCost stays unchanged — only product.price changed
+    renderBatchTable();
+    refreshPurchaseSummary();
+  }catch(e){showToast('Error: '+(e.message||'unknown'));}
+  btn.textContent='Update Selling Price';btn.disabled=false;
 }
 
 // ─── WORKERS ───
@@ -2772,7 +3026,7 @@ function renderCustomers(){
 function renderAnalytics(){
   const valid=allOrders.filter(o=>o.status!=='Cancelled');
   const revenue=valid.reduce((s,o)=>s+(o.total||0),0);
-  let cost=0;valid.forEach(o=>(o.items||[]).forEach(i=>{const p=allProducts.find(x=>x.id===i.id);cost+=(p?.costPrice||0)*i.qty;}));
+  let cost=0;valid.forEach(o=>(o.items||[]).forEach(i=>{cost+=getBestCostForItem(i)*i.qty;}));
   renderBar('an-rev-profit',[{label:'Revenue',value:Math.round(revenue)},{label:'Cost',value:Math.round(cost)},{label:'Profit',value:Math.round(revenue-cost)}],'₹');
   const catMap={};valid.forEach(o=>(o.items||[]).forEach(i=>{catMap[i.category||'Other']=(catMap[i.category||'Other']||0)+i.qty;}));
   renderBar('an-categories',Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([l,v])=>({label:l,value:v})),'',null,'#1a5c2a');
@@ -2782,7 +3036,13 @@ function renderAnalytics(){
   renderBar('an-payments',Object.entries(payMap).map(([l,v])=>({label:l,value:v})),'',null,'#2563eb');
   const hosMap={};allOrders.forEach(o=>{if(o.items&&o.items.length>0){const cat=o.items[0].category||"Other";hosMap[cat]=(hosMap[cat]||0)+1;}});
   renderBar('an-hostels',Object.entries(hosMap).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,value:v})),'',null,'#7c3aed');
-  const marginData=allProducts.filter(p=>p.costPrice>0&&p.price>0).map(p=>({label:p.name,value:parseFloat(((p.price-p.costPrice)/p.price*100).toFixed(1))})).sort((a,b)=>b.value-a.value).slice(0,8);
+  // Use FIFO batch cost (oldest active batch) for margin; fallback to costPrice
+  const marginData=allProducts.filter(p=>p.price>0).map(p=>{
+    const batches=allBatches.filter(b=>b.productDocId===p.id&&(b.remaining||0)>0).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const cost=batches.length>0?(batches[0].purchaseCost||batches[0].unitCost||0):(p.costPrice||0);
+    if(!cost)return null;
+    return{label:p.name,value:parseFloat(((p.price-cost)/p.price*100).toFixed(1))};
+  }).filter(Boolean).sort((a,b)=>b.value-a.value).slice(0,8);
   renderBar('an-margins',marginData,'%',null,'#16a34a');
 }
 
@@ -4362,6 +4622,10 @@ async function saveBill(){
     const res=await commitBill(id);
     if(!res)return;
     _usedBillNos.add(id);
+    // FIFO batch deduction for walk-in bill stock items
+    const billQtyById={};
+    billCart.filter(i=>i.isProduct&&i.id).forEach(i=>{billQtyById[i.id]=(billQtyById[i.id]||0)+(Number(i.qty)||0);});
+    if(Object.keys(billQtyById).length)applyFifoBatchDeduction(billQtyById,false).catch(e=>console.warn('Bill FIFO:',e));
     resetBill();
     showToast('Bill '+id+' saved · stock, orders & revenue updated');
   }finally{ setBillBusy(false); }
@@ -4409,6 +4673,10 @@ async function printBill(){
     }
     else if(win){ win.document.write(html); win.document.close(); }
     else openSavedBillPreview(res);
+    // FIFO batch deduction for walk-in bill stock items
+    const pBillQtyById={};
+    billCart.filter(i=>i.isProduct&&i.id).forEach(i=>{pBillQtyById[i.id]=(pBillQtyById[i.id]||0)+(Number(i.qty)||0);});
+    if(Object.keys(pBillQtyById).length)applyFifoBatchDeduction(pBillQtyById,false).catch(e=>console.warn('PrintBill FIFO:',e));
     resetBill();
     showToast('Bill '+id+' saved · stock, orders & revenue updated');
   }finally{ setBillBusy(false); }
@@ -4846,7 +5114,7 @@ function navAdmin(page){
   document.getElementById('page-title').textContent=titles[page]||page;
   if(page==='orders'){renderOrdersTable();renderOrderChips();}
   if(page==='products')renderProductsAdmin();
-  if(page==='purchases'){renderPurchases();refreshPurchaseSummary();}
+  if(page==='purchases'){renderPurchases();refreshPurchaseSummary();loadAllBatches();}
   if(page==='workers'){renderWorkers();renderWorkerRoleChips();}
   if(page==='hostels')loadHostels();
   if(page==='pickuppoints'){loadWorkers();loadPickupPoints();}
