@@ -925,6 +925,10 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       <!-- POS: product search -->
       <div id="bill-pos-panel" class="stat-card">
         <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;">Search & Add Products</h3>
+        <div style="margin-bottom:10px;">
+          <label class="lbl">Customer Name <span style="font-weight:400;color:#9ca3af;text-transform:none;letter-spacing:0;">(optional)</span></label>
+          <input id="pos-cust-name" type="text" class="input-f" placeholder="Leave blank for Walk-in Customer">
+        </div>
         <input id="bill-search" type="text" class="input-f" placeholder="Search by name or category…" oninput="renderBillSearch()" style="margin-bottom:10px;">
         <div id="bill-search-results" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
       </div>
@@ -3006,7 +3010,22 @@ function filterCustomers(){renderCustomers();}
 
 function renderCustomers(){
   const search=(document.getElementById('customer-search')?.value||'').toLowerCase();
-  const filtered=allCustomers.filter(c=>(c.displayName||'').toLowerCase().includes(search)||(c.email||'').toLowerCase().includes(search));
+  // Deduplicate: if the same email appears more than once (e.g. Google + email re-auth),
+  // keep only the entry with the most recent lastSeen timestamp.
+  const seenEmails=new Map();
+  allCustomers.forEach(c=>{
+    const key=(c.email||c.uid||'').toLowerCase();
+    if(!key)return;
+    const existing=seenEmails.get(key);
+    if(!existing)seenEmails.set(key,c);
+    else{
+      const t1=c.lastSeen?.toDate?.()?.getTime()||0;
+      const t2=existing.lastSeen?.toDate?.()?.getTime()||0;
+      if(t1>t2)seenEmails.set(key,c);
+    }
+  });
+  const deduped=[...seenEmails.values()];
+  const filtered=deduped.filter(c=>(c.displayName||'').toLowerCase().includes(search)||(c.email||'').toLowerCase().includes(search));
   const ordersByUser={},spentByUser={};
   allOrders.forEach(o=>{if(!o.userId)return;ordersByUser[o.userId]=(ordersByUser[o.userId]||0)+1;if(o.status!=='Cancelled')spentByUser[o.userId]=(spentByUser[o.userId]||0)+(o.total||0);});
   const tbody=document.getElementById('customers-tbody');
@@ -4547,7 +4566,7 @@ function prepareBillId(){
 function resetBill(){
   billCart=[];
   ['bill-discount'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='0';});
-  ['bill-notes','bill-search','bill-search-inv','inv-cust-name','inv-cust-phone','inv-cust-email','inv-address','inv-gst','inv-due','inv-item-name','inv-item-price'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['bill-notes','bill-search','bill-search-inv','pos-cust-name','inv-cust-name','inv-cust-phone','inv-cust-email','inv-address','inv-gst','inv-due','inv-item-name','inv-item-price'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const q=document.getElementById('inv-item-qty');if(q)q.value='1';
   initBillingPage(); // fresh invoice no./date, re-renders product list (live stock) and empty bill
 }
@@ -4575,7 +4594,7 @@ async function commitBill(orderId){
   const orderRef=doc(collection(db,'orders'));
   const order={
     orderId,source:'billing',billType:inv?'invoice':'pos',
-    name:(inv?g('inv-cust-name'):'')||'Walk-in Customer',
+    name:(inv?g('inv-cust-name'):g('pos-cust-name'))||'Walk-in Customer',
     phone:inv?g('inv-cust-phone'):'',
     email:inv?g('inv-cust-email'):'',
     address:inv?g('inv-address'):'',
