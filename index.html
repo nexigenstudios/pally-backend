@@ -1134,10 +1134,13 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
         <div><label class="lbl">Purchase Date *</label><input id="pur-date" type="date" class="input-f"></div>
         <div><label class="lbl">Notes</label><input id="pur-notes" type="text" class="input-f" placeholder="Optional notes..."></div>
       </div>
-      <div style="background:#f0fdf4;border-radius:8px;padding:10px;font-size:11px;color:#166534;font-weight:600;"><span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">info</span> This creates a new inventory batch. Purchase cost is locked to this batch and never overwritten. FIFO: oldest batch stock is used first. To change the selling price, use the "Set Selling Price" button.</div>
+      <div id="pur-new-info" style="background:#f0fdf4;border-radius:8px;padding:10px;font-size:11px;color:#166534;font-weight:600;"><span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">info</span> This creates a new inventory batch. Purchase cost is locked to this batch. FIFO: oldest batch stock is used first. To change the selling price, use the "Set Selling Price" button.</div>
+      <div id="pur-edit-info" style="display:none;background:#fffbeb;border-radius:8px;padding:10px;font-size:11px;color:#92400e;font-weight:600;"><span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">warning</span> Editing updates the purchase record and its linked batch. Qty changes adjust product stock and batch remaining proportionally. Cost changes update the batch purchase cost.</div>
     </div>
     <input type="hidden" id="pur-edit-id">
-    <button onclick="savePurchase()" id="save-pur-btn" class="btn" style="width:100%;margin-top:16px;padding:12px;background:#2d8a45;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;">Record Purchase</button>
+    <input type="hidden" id="pur-batch-id">
+    <div id="pur-delete-row" style="display:none;margin-top:12px;"><button onclick="deletePurchasePermanent()" class="btn" style="width:100%;padding:10px;background:#fee2e2;color:#dc2626;border:none;border-radius:10px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:15px;vertical-align:middle;">delete_forever</span> Delete Purchase &amp; Batch Permanently</button></div>
+    <button onclick="savePurchase()" id="save-pur-btn" class="btn" style="width:100%;margin-top:10px;padding:12px;background:#2d8a45;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;">Record Purchase</button>
   </div>
 </div>
 
@@ -2569,15 +2572,45 @@ function openAddPurchase(){
   populatePurchaseProductSelect();
   document.getElementById('purchase-modal-title').textContent='Record Purchase (New Batch)';
   document.getElementById('save-pur-btn').textContent='Record Purchase';
-  ['pur-supplier','pur-qty','pur-unit-cost','pur-notes','pur-edit-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['pur-supplier','pur-qty','pur-unit-cost','pur-notes','pur-edit-id','pur-batch-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('pur-product').value='';
+  document.getElementById('pur-product').disabled=false;
   document.getElementById('pur-date').value=new Date().toISOString().split('T')[0];
   document.getElementById('pur-total-display').textContent='₹0.00';
+  document.getElementById('pur-new-info').style.display='';
+  document.getElementById('pur-edit-info').style.display='none';
+  document.getElementById('pur-delete-row').style.display='none';
   document.getElementById('purchase-modal').classList.add('open');
 }
 
-// ─── SAVE PURCHASE: creates a batch doc, increments product.stock, does NOT overwrite costPrice ───
+function openEditPurchase(id){
+  const p=allPurchases.find(x=>x.id===id);
+  if(!p){showToast('Purchase not found');return;}
+  populatePurchaseProductSelect();
+  document.getElementById('purchase-modal-title').textContent='Edit Purchase';
+  document.getElementById('save-pur-btn').textContent='Save Changes';
+  document.getElementById('pur-edit-id').value=id;
+  // find linked batch id
+  const batch=allBatches.find(b=>b.purchaseId===id);
+  document.getElementById('pur-batch-id').value=batch?batch.id:'';
+  document.getElementById('pur-product').value=p.productId||'';
+  document.getElementById('pur-product').disabled=true; // product cannot change
+  document.getElementById('pur-supplier').value=p.supplier||'';
+  document.getElementById('pur-qty').value=p.qty||'';
+  document.getElementById('pur-unit-cost').value=p.unitCost||'';
+  document.getElementById('pur-date').value=p.date||'';
+  document.getElementById('pur-notes').value=p.notes||'';
+  document.getElementById('pur-new-info').style.display='none';
+  document.getElementById('pur-edit-info').style.display='';
+  document.getElementById('pur-delete-row').style.display='';
+  calcPurchaseTotal();
+  document.getElementById('purchase-modal').classList.add('open');
+}
+
+// ─── SAVE PURCHASE: creates a batch doc, or updates existing purchase+batch ───
 async function savePurchase(){
+  const editId=document.getElementById('pur-edit-id').value;
+  const batchId=document.getElementById('pur-batch-id').value;
   const productId=document.getElementById('pur-product').value;
   const qty=parseInt(document.getElementById('pur-qty').value)||0;
   const unitCost=parseFloat(document.getElementById('pur-unit-cost').value)||0;
@@ -2591,42 +2624,63 @@ async function savePurchase(){
   const btn=document.getElementById('save-pur-btn');btn.textContent='Saving...';btn.disabled=true;
   try{
     const{db,collection,addDoc,doc,updateDoc,serverTimestamp,increment}=window._fb;
-    // 1. Record the purchase history entry (same as before, for backward compat)
-    const purData={
-      productId, productName:product?.name||'',
-      hostelId:product?.hostelId||'', hostelName:product?.hostelName||'',
-      supplier:document.getElementById('pur-supplier').value.trim(),
-      qty, unitCost, totalCost, date,
-      notes:document.getElementById('pur-notes').value.trim(),
-      sellPriceAtTime:product?.price||0,  // snapshot sell price at purchase time
-      updatedSellPrice:null,              // no longer used to change sell price
-      createdAt:serverTimestamp()
-    };
-    const purRef=await addDoc(collection(db,'purchases'),purData);
-    // 2. Create a batch document under products/{productId}/batches/{batchId}
-    const batchData={
-      purchaseId:purRef.id,
-      productId, productName:product?.name||'',
-      hostelId:product?.hostelId||'',
-      supplier:document.getElementById('pur-supplier').value.trim(),
-      date, qty,
-      purchaseCost:unitCost,   // LOCKED — never changed after creation
-      remaining:qty,           // decremented as stock is sold
-      totalCost, notes:document.getElementById('pur-notes').value.trim(),
-      createdAt:serverTimestamp()
-    };
-    await addDoc(collection(db,'products',productId,'batches'),batchData);
-    // 3. Increment product.stock only — do NOT touch costPrice (batch has the real cost)
-    await updateDoc(doc(db,'products',productId),{
-      stock:increment(qty),
-      updatedAt:new Date().toISOString()
-    });
-    showToast('Purchase recorded! Batch created with '+qty+' units @ ₹'+unitCost+' each.');
+    if(editId){
+      // ── EDIT mode ──
+      const oldPur=allPurchases.find(x=>x.id===editId);
+      const oldQty=oldPur?.qty||0;
+      const qtyDiff=qty-oldQty; // positive = more stock added, negative = stock reduced
+      const supplier=document.getElementById('pur-supplier').value.trim();
+      const notes=document.getElementById('pur-notes').value.trim();
+      // Update purchase record
+      await updateDoc(doc(db,'purchases',editId),{supplier,qty,unitCost,totalCost,date,notes,updatedAt:new Date().toISOString()});
+      // Update linked batch if found
+      if(batchId){
+        const oldBatch=allBatches.find(b=>b.id===batchId);
+        const oldRemaining=oldBatch?.remaining||0;
+        // remaining adjusts by same delta as qty
+        const newRemaining=Math.max(0,oldRemaining+qtyDiff);
+        await updateDoc(doc(db,'products',productId,'batches',batchId),{
+          supplier,qty,purchaseCost:unitCost,remaining:newRemaining,totalCost,date,notes,updatedAt:new Date().toISOString()
+        });
+      }
+      // Adjust product stock by the qty difference
+      if(qtyDiff!==0){
+        await updateDoc(doc(db,'products',productId),{stock:increment(qtyDiff),updatedAt:new Date().toISOString()});
+      }
+      showToast('Purchase updated!');
+    }else{
+      // ── CREATE mode ──
+      const purData={
+        productId, productName:product?.name||'',
+        hostelId:product?.hostelId||'', hostelName:product?.hostelName||'',
+        supplier:document.getElementById('pur-supplier').value.trim(),
+        qty, unitCost, totalCost, date,
+        notes:document.getElementById('pur-notes').value.trim(),
+        sellPriceAtTime:product?.price||0,
+        updatedSellPrice:null,
+        createdAt:serverTimestamp()
+      };
+      const purRef=await addDoc(collection(db,'purchases'),purData);
+      const batchData={
+        purchaseId:purRef.id,
+        productId, productName:product?.name||'',
+        hostelId:product?.hostelId||'',
+        supplier:document.getElementById('pur-supplier').value.trim(),
+        date, qty,
+        purchaseCost:unitCost,
+        remaining:qty,
+        totalCost, notes:document.getElementById('pur-notes').value.trim(),
+        createdAt:serverTimestamp()
+      };
+      await addDoc(collection(db,'products',productId,'batches'),batchData);
+      await updateDoc(doc(db,'products',productId),{stock:increment(qty),updatedAt:new Date().toISOString()});
+      showToast('Purchase recorded! Batch created with '+qty+' units @ ₹'+unitCost+' each.');
+    }
     closeModal('purchase-modal');
     await loadPurchases();
     await loadAllBatches();
   }catch(e){showToast('Error: '+(e.message||'unknown'));}
-  btn.textContent='Record Purchase';btn.disabled=false;
+  btn.textContent=document.getElementById('pur-edit-id').value?'Save Changes':'Record Purchase';btn.disabled=false;
 }
 
 function renderPurchases(){
@@ -2643,14 +2697,42 @@ function renderPurchases(){
     <td data-label="Unit Cost" style="font-weight:700;">₹${(p.unitCost||0).toFixed(2)}</td>
     <td data-label="Total Cost" style="font-weight:800;color:#2d8a45;">₹${(p.totalCost||0).toFixed(2)}</td>
     <td data-label="Sell Price" style="font-size:12px;color:#16a34a;font-weight:700;">${p.sellPriceAtTime?'₹'+p.sellPriceAtTime:(p.updatedSellPrice?'₹'+p.updatedSellPrice:'—')}</td>
-    <td data-label=""><button onclick="deletePurchase('${p.id}')" class="btn" style="padding:4px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:11px;font-weight:700;">Del</button></td>
+    <td data-label="" style="white-space:nowrap;"><button onclick="openEditPurchase('${p.id}')" class="btn" style="padding:4px 8px;background:#e0f2fe;color:#0369a1;border:none;border-radius:6px;font-size:11px;font-weight:700;margin-right:4px;">Edit</button><button onclick="deletePurchase('${p.id}')" class="btn" style="padding:4px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:11px;font-weight:700;">Del</button></td>
   </tr>`).join('');
 }
 
 async function deletePurchase(id){
-  if(!confirm('Delete this purchase record? Note: the inventory batch will remain unchanged.'))return;
-  try{const{db,doc,deleteDoc}=window._fb;await deleteDoc(doc(db,'purchases',id));allPurchases=allPurchases.filter(p=>p.id!==id);renderPurchases();refreshPurchaseSummary();showToast('Purchase record deleted');}
-  catch(e){showToast('Error');}
+  // Quick row-level delete — opens the edit modal with the delete button visible
+  openEditPurchase(id);
+}
+
+async function deletePurchasePermanent(){
+  const id=document.getElementById('pur-edit-id').value;
+  const batchId=document.getElementById('pur-batch-id').value;
+  if(!id)return;
+  const p=allPurchases.find(x=>x.id===id);
+  if(!confirm('Permanently delete this purchase AND its inventory batch?\n\nThis will also reduce product stock by '+( p?.qty||0)+' units.\n\nThis cannot be undone.'))return;
+  try{
+    const{db,doc,deleteDoc,updateDoc,increment}=window._fb;
+    const productId=p?.productId;
+    const qty=p?.qty||0;
+    // 1. Delete purchase record
+    await deleteDoc(doc(db,'purchases',id));
+    // 2. Delete linked batch
+    if(batchId&&productId){
+      await deleteDoc(doc(db,'products',productId,'batches',batchId));
+    }
+    // 3. Reduce product stock
+    if(productId&&qty>0){
+      await updateDoc(doc(db,'products',productId),{stock:increment(-qty),updatedAt:new Date().toISOString()});
+    }
+    allPurchases=allPurchases.filter(x=>x.id!==id);
+    closeModal('purchase-modal');
+    renderPurchases();
+    refreshPurchaseSummary();
+    await loadAllBatches();
+    showToast('Purchase and batch permanently deleted.');
+  }catch(e){showToast('Error: '+(e.message||'unknown'));}
 }
 
 // ─── LOAD ALL BATCHES across all products ───
