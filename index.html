@@ -2062,21 +2062,39 @@ function getFilteredOrders(){
 // Returns the best available purchase cost for a product item.
 // Priority: 1) FIFO batch cost (oldest active batch for that product)
 //           2) product.costPrice fallback for legacy items with no batch data
+function woptToGrams(s){
+  if(!s)return 0;
+  const kg=s.match(/^(\d+\.?\d*)\s*kg$/i);
+  if(kg)return parseFloat(kg[1])*1000;
+  const g=s.match(/^(\d+\.?\d*)\s*g$/i);
+  if(g)return parseFloat(g[1]);
+  return 0;
+}
 function getBestCostForItem(item){
   if(!item.id)return item.costPrice||0;
+  const p=allProducts.find(x=>x.id===item.id);
   // Use oldest batch with remaining stock (FIFO)
   const batches=allBatches
     .filter(b=>b.productDocId===item.id&&(b.remaining||0)>0)
     .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  if(batches.length>0)return batches[0].purchaseCost||batches[0].unitCost||0;
-  // If all batches exhausted but we still have purchases, use the most recent batch cost
-  const anyBatch=allBatches
-    .filter(b=>b.productDocId===item.id)
-    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  if(anyBatch.length>0)return anyBatch[0].purchaseCost||anyBatch[0].unitCost||0;
-  // Final fallback: product.costPrice (pre-batch legacy)
-  const p=allProducts.find(x=>x.id===item.id);
-  return p?.costPrice||0;
+  let baseCost=0;
+  if(batches.length>0){
+    baseCost=batches[0].purchaseCost||batches[0].unitCost||0;
+  } else {
+    // If all batches exhausted but we still have purchases, use the most recent batch cost
+    const anyBatch=allBatches
+      .filter(b=>b.productDocId===item.id)
+      .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    if(anyBatch.length>0)baseCost=anyBatch[0].purchaseCost||anyBatch[0].unitCost||0;
+    else baseCost=p?.costPrice||0;
+  }
+  // Scale cost proportionally for weight-based variants
+  if(p?.weightBased&&p.weightOptions&&p.weightOptions.length&&item.unit){
+    const baseG=woptToGrams(p.weightOptions[0]);
+    const orderedG=woptToGrams(item.unit);
+    if(baseG>0&&orderedG>0&&orderedG!==baseG)baseCost=baseCost*(orderedG/baseG);
+  }
+  return baseCost;
 }
 
 function calcStats(orders){
