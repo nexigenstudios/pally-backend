@@ -562,7 +562,30 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 <div class="page-content" id="page-preorder">
   <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;"><div style="font-size:15px;font-weight:800;">Ordering window</div><span id="po-status" class="badge"></span></div>
-    <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Fruits are visible to customers only while the window is open, with no stock limit. After the closing time they are hidden automatically.</div>
+    <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Selected products or categories are visible to customers only while the window is open, with no stock limit. After the closing time they are hidden automatically.</div>
+    <!-- Mode toggle -->
+    <div style="margin-bottom:14px;">
+      <label class="lbl" style="margin-bottom:6px;display:block;">Pre-order selection mode</label>
+      <div style="display:flex;gap:6px;">
+        <button class="tab-btn active" id="po-mode-products" onclick="switchPoMode('products')" style="flex:1;">🛒 By Products</button>
+        <button class="tab-btn" id="po-mode-categories" onclick="switchPoMode('categories')" style="flex:1;">📦 By Categories</button>
+      </div>
+    </div>
+    <!-- Product picker -->
+    <div id="po-picker-products" style="margin-bottom:14px;">
+      <label class="lbl" style="margin-bottom:6px;display:block;">Pre-order products</label>
+      <input id="po-prod-search" type="text" class="input-f" placeholder="Search products to add…" oninput="renderPoProductPicker()" style="margin-bottom:8px;font-size:12px;">
+      <div id="po-prod-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:0;"></div>
+      <div id="po-prod-list" style="max-height:180px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;"></div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:5px;">Selected products get unlimited stock while the window is open and are hidden when it closes.</div>
+    </div>
+    <!-- Category picker -->
+    <div id="po-picker-categories" style="display:none;margin-bottom:14px;">
+      <label class="lbl" style="margin-bottom:6px;display:block;">Pre-order categories</label>
+      <div id="po-cat-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:0;"></div>
+      <div id="po-cat-list" style="max-height:220px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;"></div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:5px;">All visible products in selected categories get unlimited stock while the window is open.</div>
+    </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
       <div><label class="lbl">Customers can order until</label><input id="po-closes" type="datetime-local" class="input-f"></div>
       <button onclick="poSave(true)" class="btn" id="po-open-btn" style="padding:10px 16px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Open new window</button>
@@ -1107,6 +1130,41 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div><label class="lbl">Rating (1-5)</label><input id="p-rating" type="number" step="0.1" min="1" max="5" class="input-f" placeholder="4.5"></div>
         <div><label class="lbl">Badge</label><input id="p-badge" type="text" class="input-f" placeholder="Trending / New"></div>
+      </div>
+    </div>
+    <!-- Weight-Based Pricing -->
+    <div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px;background:#f9fafb;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#1a5c2a;cursor:pointer;margin-bottom:10px;">
+        <input type="checkbox" id="p-weight-based" style="width:16px;height:16px;accent-color:#2d8a45;" onchange="toggleWeightBasedFields()">
+        Enable Weight-Based Pricing (e.g. Grapes, Rice)
+      </label>
+      <div id="p-weight-fields" style="display:none;flex-direction:column;gap:10px;">
+        <div><label class="lbl">Price per kg (₹) *</label><input id="p-price-per-kg" type="number" step="0.01" class="input-f" placeholder="e.g. 120 for ₹120/kg"></div>
+        <div>
+          <label class="lbl">Available Weight Options</label>
+          <!-- Tag pills showing current options -->
+          <div id="p-weight-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px;min-height:28px;"></div>
+          <!-- Quick-add presets -->
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+            <span style="font-size:11px;color:#9ca3af;align-self:center;margin-right:2px;">Quick add:</span>
+            <button type="button" class="p-wpreset btn" onclick="woptQuickAdd('100g')" style="padding:3px 10px;border:1px solid #d1d5db;border-radius:20px;font-size:11px;font-weight:700;background:#f9fafb;cursor:pointer;">100g</button>
+            <button type="button" class="p-wpreset btn" onclick="woptQuickAdd('250g')" style="padding:3px 10px;border:1px solid #d1d5db;border-radius:20px;font-size:11px;font-weight:700;background:#f9fafb;cursor:pointer;">250g</button>
+            <button type="button" class="p-wpreset btn" onclick="woptQuickAdd('500g')" style="padding:3px 10px;border:1px solid #d1d5db;border-radius:20px;font-size:11px;font-weight:700;background:#f9fafb;cursor:pointer;">500g</button>
+            <button type="button" class="p-wpreset btn" onclick="woptQuickAdd('750g')" style="padding:3px 10px;border:1px solid #d1d5db;border-radius:20px;font-size:11px;font-weight:700;background:#f9fafb;cursor:pointer;">750g</button>
+            <button type="button" class="p-wpreset btn" onclick="woptQuickAdd('1kg')" style="padding:3px 10px;border:1px solid #d1d5db;border-radius:20px;font-size:11px;font-weight:700;background:#f9fafb;cursor:pointer;">1kg</button>
+            <button type="button" class="p-wpreset btn" onclick="woptQuickAdd('2kg')" style="padding:3px 10px;border:1px solid #d1d5db;border-radius:20px;font-size:11px;font-weight:700;background:#f9fafb;cursor:pointer;">2kg</button>
+            <button type="button" class="p-wpreset btn" onclick="woptQuickAdd('5kg')" style="padding:3px 10px;border:1px solid #d1d5db;border-radius:20px;font-size:11px;font-weight:700;background:#f9fafb;cursor:pointer;">5kg</button>
+          </div>
+          <!-- Manual entry -->
+          <div style="display:flex;gap:6px;">
+            <input id="p-wopt-input" type="text" class="input-f" placeholder='Type custom e.g. 300g or 1.5kg' style="flex:1;padding:7px 10px;font-size:12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();woptAddFromInput();}">
+            <button type="button" onclick="woptAddFromInput()" class="btn" style="padding:7px 14px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;">+ Add</button>
+          </div>
+          <p style="font-size:10px;color:#9ca3af;margin-top:4px;">Enter any weight like <b>300g</b>, <b>1.5kg</b>, <b>200ml</b>. Press Enter or click + Add.</p>
+        </div>
+        <div style="background:#ecfdf5;border-radius:8px;padding:8px 10px;font-size:11px;color:#166534;">
+          <strong>Note:</strong> When weight-based pricing is enabled, the "Sell Price" field above is used as the base reference price. Set "Price per kg" to calculate the actual per-weight prices shown to customers.
+        </div>
       </div>
     </div>
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;"><input type="checkbox" id="p-visible" checked style="width:16px;height:16px;accent-color:#2d8a45;"> Show this product to customers</label>
@@ -2248,7 +2306,8 @@ function openOrderDetail(fid){
     const p=allProducts.find(x=>x.id===i.id);
     const cp=p?.costPrice||0;
     const ip=itemProfit(i);
-    return`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6;"><img src="${i.imageUrl||catFb(i.category)}" style="width:38px;height:38px;border-radius:7px;object-fit:cover;flex-shrink:0;" onerror="this.src='${catFb(i.category)}'"><div style="flex:1;"><div style="font-weight:600;font-size:13px;">${i.name}</div><div style="font-size:11px;color:#9ca3af;">Sell ₹${i.price} · Cost ₹${cp.toFixed(2)} · x${i.qty}</div></div><div style="text-align:right;"><div style="font-weight:700;color:#2d8a45;font-size:13px;">₹${(i.price*i.qty).toFixed(2)}</div><div style="font-size:11px;font-weight:700;color:${ip>=0?'#16a34a':'#dc2626'};">+₹${ip.toFixed(2)}</div></div></div>`;
+    const weightTag=i.selectedWeight?`<span style="font-size:10px;background:#ecfdf5;color:#166534;border-radius:4px;padding:1px 5px;font-weight:700;">${i.selectedWeight}</span> `:'';
+    return`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6;"><img src="${i.imageUrl||catFb(i.category)}" style="width:38px;height:38px;border-radius:7px;object-fit:cover;flex-shrink:0;" onerror="this.src='${catFb(i.category)}'"><div style="flex:1;"><div style="font-weight:600;font-size:13px;">${i.name}${i.selectedWeight?` <span style="font-size:11px;color:#166534;">(${i.selectedWeight})</span>`:''}</div><div style="font-size:11px;color:#9ca3af;">${weightTag}Sell ₹${i.price} · Cost ₹${cp.toFixed(2)} · x${i.qty}</div></div><div style="text-align:right;"><div style="font-weight:700;color:#2d8a45;font-size:13px;">₹${(i.price*i.qty).toFixed(2)}</div><div style="font-size:11px;font-weight:700;color:${ip>=0?'#16a34a':'#dc2626'};">+₹${ip.toFixed(2)}</div></div></div>`;
   }).join('');
   const totalProfit=(o.items||[]).reduce((s,i)=>s+itemProfit(i),0);
   document.getElementById('od-content').innerHTML=`
@@ -2454,13 +2513,81 @@ function populateWorkerHostelBranchSelect(){
   }
 }
 
+function toggleWeightBasedFields(){
+  const enabled=document.getElementById('p-weight-based').checked;
+  document.getElementById('p-weight-fields').style.display=enabled?'flex':'none';
+}
+
+// ─── Weight option tag management ───
+let _woptList = []; // current list of weight options in the form
+
+function woptRender(){
+  const container=document.getElementById('p-weight-tags'); if(!container)return;
+  if(_woptList.length===0){
+    container.innerHTML='<span style="font-size:11px;color:#9ca3af;font-style:italic;">No options added yet</span>';
+    return;
+  }
+  container.innerHTML=_woptList.map(w=>`
+    <span style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:#1a5c2a;">
+      ${w}
+      <button type="button" onclick="woptRemove('${w}')" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;color:#2d8a45;font-size:14px;margin-left:2px;" aria-label="Remove ${w}">×</button>
+    </span>`).join('');
+}
+
+function woptNormalise(raw){
+  // Accepts: 100g, 1kg, 1.5kg, 500 g, 1.5 KG, 200ml, etc.
+  // Returns normalised string like "100g", "1.5kg", "200ml" or null if unparseable
+  const s=raw.trim().toLowerCase().replace(/\s+/g,'');
+  if(!s)return null;
+  const m=s.match(/^(\d+\.?\d*)(g|kg|ml|l|lb|oz|piece|pc|pcs|pack|pkt)s?$/);
+  if(!m)return null;
+  const num=parseFloat(m[1]), unit=m[2];
+  if(isNaN(num)||num<=0)return null;
+  // Format: drop trailing .0
+  const numStr=Number.isInteger(num)?String(num):String(parseFloat(num.toFixed(3)));
+  return numStr+unit;
+}
+
+function woptAdd(val){
+  const norm=woptNormalise(val);
+  if(!norm){showToast('Invalid weight — try something like 300g or 1.5kg');return false;}
+  if(_woptList.includes(norm)){showToast(norm+' is already in the list');return false;}
+  _woptList.push(norm);
+  // Sort: grams first by numeric value, then kg, then others
+  _woptList.sort((a,b)=>{
+    const toG=v=>{const m=v.match(/^(\d+\.?\d*)(g|kg)/);if(!m)return 1e9;return parseFloat(m[1])*(m[2]==='kg'?1000:1);};
+    return toG(a)-toG(b);
+  });
+  woptRender();
+  return true;
+}
+
+function woptRemove(val){
+  _woptList=_woptList.filter(w=>w!==val);
+  woptRender();
+}
+
+function woptQuickAdd(val){
+  woptAdd(val); // shows toast if duplicate, silent if added
+}
+
+function woptAddFromInput(){
+  const inp=document.getElementById('p-wopt-input'); if(!inp)return;
+  if(woptAdd(inp.value)) inp.value='';
+  inp.focus();
+}
+
 function openAddProduct(){
   document.getElementById('product-modal-title').textContent='Add Product';
   document.getElementById('save-product-btn').textContent='Add Product';
-  ['p-name','p-price','p-cost','p-stock','p-image','p-desc','p-rating','p-badge','p-edit-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['p-name','p-price','p-cost','p-stock','p-image','p-desc','p-rating','p-badge','p-edit-id','p-price-per-kg'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('p-category').value='Chips';
   document.getElementById('p-rating').value='4.5';
   document.getElementById('p-visible').checked=true;
+  document.getElementById('p-weight-based').checked=false;
+  document.getElementById('p-weight-fields').style.display='none';
+  _woptList=['500g','1kg'];
+  woptRender();
   document.getElementById('p-img-preview').style.display='none';
   populateProductHostelBranchSelect();
   document.getElementById('product-modal').classList.add('open');
@@ -2481,6 +2608,13 @@ function openEditProduct(id){
   document.getElementById('p-badge').value=p.badge||'';
   document.getElementById('p-edit-id').value=id;
   document.getElementById('p-visible').checked=!p.hidden;
+  // Weight-based fields
+  const isWB=!!p.weightBased;
+  document.getElementById('p-weight-based').checked=isWB;
+  document.getElementById('p-weight-fields').style.display=isWB?'flex':'none';
+  document.getElementById('p-price-per-kg').value=p.pricePerKg||p.price||'';
+  _woptList=Array.isArray(p.weightOptions)&&p.weightOptions.length?[...p.weightOptions]:['500g','1kg'];
+  woptRender();
   const pr=document.getElementById('p-img-preview');if(p.imageUrl){pr.src=p.imageUrl;pr.style.display='block';}else{pr.style.display='none';}
   populateProductHostelBranchSelect();
   if(!scopedHostel){const sel=document.getElementById('p-hostelbranch');if(sel)sel.value=p.hostelId||'';}
@@ -2505,8 +2639,14 @@ async function saveProduct(){
   if((allHostels||[]).length>0 && !hostelId){
     showToast('Please select which branch this product belongs to');return;
   }
+  // Weight-based pricing
+  const weightBased=document.getElementById('p-weight-based').checked;
+  const pricePerKg=weightBased?parseFloat(document.getElementById('p-price-per-kg').value)||price:null;
+  if(weightBased&&(!pricePerKg||pricePerKg<=0)){showToast('Please enter a valid price per kg');return;}
+  const weightOptions=weightBased?[..._woptList]:[];
+  if(weightBased&&weightOptions.length===0){showToast('Add at least one weight option');return;}
   const btn=document.getElementById('save-product-btn');btn.textContent='Saving...';btn.disabled=true;
-  const data={name,category,price,costPrice,stock,hostelId:hostelId||'',hostelName:hostelName||'',imageUrl:document.getElementById('p-image').value.trim(),desc:document.getElementById('p-desc').value.trim(),rating:parseFloat(document.getElementById('p-rating').value)||4.5,badge:document.getElementById('p-badge').value.trim(),hidden:!document.getElementById('p-visible').checked,updatedAt:new Date().toISOString()};
+  const data={name,category,price,costPrice,stock,hostelId:hostelId||'',hostelName:hostelName||'',imageUrl:document.getElementById('p-image').value.trim(),desc:document.getElementById('p-desc').value.trim(),rating:parseFloat(document.getElementById('p-rating').value)||4.5,badge:document.getElementById('p-badge').value.trim(),hidden:!document.getElementById('p-visible').checked,weightBased,pricePerKg:pricePerKg||null,weightOptions:weightBased?weightOptions:[],updatedAt:new Date().toISOString()};
   try{
     const{db,collection,addDoc,doc,updateDoc,serverTimestamp}=window._fb;
     if(editId){await updateDoc(doc(db,'products',editId),data);showToast('Product updated!');}
@@ -3408,7 +3548,7 @@ function _buildReportCSV(fromStr,toStr){
   const lines=[header.join(',')];
   rows.forEach(o=>{
     const day=o.dateObj.toLocaleDateString('en-IN',{weekday:'long'});
-    const items=(o.items||[]).map(i=>`${i.name} x${i.qty}`).join('; ');
+    const items=(o.items||[]).map(i=>`${i.name}${i.selectedWeight?' ('+i.selectedWeight+')':''} x${i.qty}`).join('; ');
     lines.push([esc(o.orderId||o.firestoreId?.slice(0,8)||''),esc(o.date||''),esc(o.time||''),esc(day),esc(o.name||''),esc(o.phone||''),esc(o.payment||''),esc(o.status||''),esc(items),esc((o.total||0).toFixed(2)),esc(o.pickupLocation||'Store Counter')].join(','));
   });
   const non=rows.filter(o=>o.status!=='Cancelled');
@@ -3474,7 +3614,7 @@ function _buildPackingCSV(fromStr,toStr){
   const itemMap={};rows.forEach(o=>(o.items||[]).forEach(i=>{const k=i.id||i.name;if(!itemMap[k])itemMap[k]={name:i.name,cat:i.category||'',qty:0,cnt:0};itemMap[k].qty+=(i.qty||1);itemMap[k].cnt++;}));
   Object.values(itemMap).sort((a,b)=>b.qty-a.qty).forEach((it,i)=>lines.push([i+1,esc(it.name),esc(it.cat),it.qty,it.cnt].join(',')));
   lines.push('','=== ORDER BREAKDOWN ===','Order ID,Customer,Phone,Payment,Status,Pickup,Items');
-  rows.forEach(o=>lines.push([esc(o.orderId||o.firestoreId?.slice(0,8)||''),esc(o.name||''),esc(o.phone||''),esc(o.payment||''),esc(o.status||''),esc(o.pickupLocation||'Store Counter'),esc((o.items||[]).map(i=>`${i.name} x${i.qty}`).join('; '))].join(',')));
+  rows.forEach(o=>lines.push([esc(o.orderId||o.firestoreId?.slice(0,8)||''),esc(o.name||''),esc(o.phone||''),esc(o.payment||''),esc(o.status||''),esc(o.pickupLocation||'Store Counter'),esc((o.items||[]).map(i=>`${i.name}${i.selectedWeight?' ('+i.selectedWeight+')':''} x${i.qty}`).join('; '))].join(',')));
   return lines.join('\r\n');
 }
 
@@ -3766,7 +3906,7 @@ function _buildCustomersPDF(doc,rows,fromStr,toStr){
     doc.autoTable({
       startY:y+16,margin:{left:14,right:14,top:16,bottom:20},theme:'grid',
       head:[['#','Product','Qty','Rate (Rs.)','Amount (Rs.)']],
-      body:d.items.map((i,n)=>[n+1,_pdfT(i.name)||'Item',i.qty,_inr(i.price),_inr(i.qty*i.price)]),
+      body:d.items.map((i,n)=>[n+1,(_pdfT(i.name)||'Item')+(i.selectedWeight?' ('+i.selectedWeight+')':''),i.qty,_inr(i.price),_inr(i.qty*i.price)]),
       foot,showHead:'everyPage',showFoot:'lastPage',
       styles:{font:'helvetica',fontSize:9,cellPadding:{top:2.4,bottom:2.4,left:3,right:3},textColor:_PDF_DARK,lineColor:_PDF_LINE,lineWidth:.2,valign:'middle'},
       headStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:8,lineColor:_PDF_GREEN},
@@ -3901,7 +4041,7 @@ function exportAllOrdersCSV(){
   const header=['Order ID','Date','Time','Customer','Phone','Email','Payment','Status','Items','Revenue','Pickup Location','Source'];
   const lines=[header.join(',')];
   allOrders.forEach(o=>{
-    lines.push([esc(o.orderId||o.firestoreId?.slice(0,8)||''),esc(o.date||''),esc(o.time||''),esc(o.name||''),esc(o.phone||''),esc(o.email||''),esc(o.payment||''),esc(o.status||''),esc((o.items||[]).map(i=>`${i.name} x${i.qty}`).join('; ')),esc((o.total||0).toFixed(2)),esc(o.pickupLocation||'Store Counter'),esc(o.source||'app')].join(','));
+    lines.push([esc(o.orderId||o.firestoreId?.slice(0,8)||''),esc(o.date||''),esc(o.time||''),esc(o.name||''),esc(o.phone||''),esc(o.email||''),esc(o.payment||''),esc(o.status||''),esc((o.items||[]).map(i=>`${i.name}${i.selectedWeight?' ('+i.selectedWeight+')':''} x${i.qty}`).join('; ')),esc((o.total||0).toFixed(2)),esc(o.pickupLocation||'Store Counter'),esc(o.source||'app')].join(','));
   });
   _downloadBlob(lines.join('\r\n'),'text/csv',`all-orders-export-${new Date().toISOString().slice(0,10)}.csv`);
   showToast(`Exported ${allOrders.length} orders`);
@@ -4852,7 +4992,7 @@ function buildBillHtml(billNo){
 
   const itemsHtml=billCart.map((item,i)=>`
     <tr style="border-bottom:1px solid #f3f4f6;">
-      <td style="padding:8px 4px;font-size:13px;">${billMode==='invoice'?`<span style="color:#9ca3af;margin-right:6px;">${i+1}.</span>`:'' }${item.name}</td>
+      <td style="padding:8px 4px;font-size:13px;">${billMode==='invoice'?`<span style="color:#9ca3af;margin-right:6px;">${i+1}.</span>`:'' }${item.name}${item.selectedWeight?` <span style="font-size:11px;color:#6b7280;">(${item.selectedWeight})</span>`:''}</td>
       <td style="padding:8px 4px;text-align:center;font-size:13px;">${item.qty}</td>
       <td style="padding:8px 4px;text-align:right;font-size:13px;">₹${item.price.toFixed(2)}</td>
       <td style="padding:8px 4px;text-align:right;font-size:13px;font-weight:700;">₹${(item.price*item.qty).toFixed(2)}</td>
@@ -5070,7 +5210,7 @@ function _poToLocalInput(ms){const d=new Date(ms-new Date(ms).getTimezoneOffset(
 async function loadPreorderAdmin(){
   const wasOpen=poState.open;
   try{const{db,doc,getDoc}=window._fb;const sn=await getDoc(doc(db,'settings','preorder'));
-    if(sn.exists()){const d=sn.data();poState={open:!!d.open,closesAt:Number(d.closesAt)||0,windowId:d.windowId||'',categories:d.categories||['Fruits']};}
+    if(sn.exists()){const d=sn.data();poState={open:!!d.open,closesAt:Number(d.closesAt)||0,windowId:d.windowId||'',products:d.products||[],categories:d.categories||[],mode:d.mode||'products'};window._poSelectedIds=new Set(poState.products);window._poSelectedCatIds=new Set(poState.categories);window._poMode=poState.mode||'products';}
   }catch(e){console.error('loadPreorderAdmin:',e);showToast('Could not load pre-order settings');}
   const inp=document.getElementById('po-closes');if(inp&&poState.closesAt)inp.value=_poToLocalInput(poState.closesAt);
   // If the window was open but the closing time has now passed (natural expiry),
@@ -5086,8 +5226,112 @@ async function loadPreorderAdmin(){
   }
   renderPreorderAdmin();
 }
+function switchPoMode(mode){
+  window._poMode=mode;
+  document.getElementById('po-mode-products').classList.toggle('active',mode==='products');
+  document.getElementById('po-mode-categories').classList.toggle('active',mode==='categories');
+  document.getElementById('po-picker-products').style.display=mode==='products'?'':'none';
+  document.getElementById('po-picker-categories').style.display=mode==='categories'?'':'none';
+  if(mode==='categories') renderPoCategoryPicker();
+  else renderPoProductPicker();
+}
+
+function renderPoCategoryPicker(){
+  if(!window._poSelectedCatIds) window._poSelectedCatIds=new Set(poState.categories||[]);
+  const sel=document.getElementById('po-cat-selected');
+  const list=document.getElementById('po-cat-list');
+  if(!sel||!list) return;
+  const selCats=(allCategories||[]).filter(c=>window._poSelectedCatIds.has(c.id));
+  sel.style.display=selCats.length?'flex':'none';
+  sel.innerHTML=selCats.map(c=>`
+    <span style="display:inline-flex;align-items:center;gap:5px;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;color:#1e40af;">
+      📦 ${_poEsc(c.name)}
+      <button type="button" onclick="poToggleCategory('${c.id}')" style="background:none;border:none;cursor:pointer;color:#2563eb;font-size:15px;line-height:1;padding:0;" aria-label="Remove">×</button>
+    </span>`).join('');
+  const unselected=(allCategories||[]).filter(c=>!window._poSelectedCatIds.has(c.id));
+  if(!unselected.length && !(allCategories||[]).length){
+    list.innerHTML='<div style="padding:12px;font-size:12px;color:#9ca3af;text-align:center;">No categories found. Add categories first.</div>';
+    return;
+  }
+  if(!unselected.length){
+    list.innerHTML='<div style="padding:12px;font-size:12px;color:#9ca3af;text-align:center;">All categories selected</div>';
+    return;
+  }
+  list.innerHTML=unselected.map(c=>{
+    const count=(allProducts||[]).filter(p=>!p.hidden&&p.category===c.name).length;
+    return `<div onclick="poToggleCategory('${c.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #f3f4f6;cursor:pointer;font-size:13px;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">
+      <div>
+        <span style="font-weight:700;">📦 ${_poEsc(c.name)}</span>
+        <span style="color:#9ca3af;font-size:11px;margin-left:6px;">${count} product${count!==1?'s':''}</span>
+      </div>
+      <span style="color:#2563eb;font-size:18px;font-weight:700;">+</span>
+    </div>`;
+  }).join('');
+}
+
+function poToggleCategory(id){
+  if(!window._poSelectedCatIds) window._poSelectedCatIds=new Set();
+  if(window._poSelectedCatIds.has(id)) window._poSelectedCatIds.delete(id);
+  else window._poSelectedCatIds.add(id);
+  renderPoCategoryPicker();
+}
+
+function renderPoProductPicker(){
+  if(!window._poSelectedIds) window._poSelectedIds=new Set(poState.products||[]);
+  const sel=document.getElementById('po-prod-selected');
+  const list=document.getElementById('po-prod-list');
+  if(!sel||!list) return;
+
+  // Selected tags
+  const selProds=(allProducts||[]).filter(p=>window._poSelectedIds.has(p.id));
+  sel.style.display=selProds.length?'flex':'none';
+  sel.innerHTML=selProds.map(p=>`
+    <span style="display:inline-flex;align-items:center;gap:5px;background:#ecfdf5;border:1.5px solid #86efac;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;color:#166534;">
+      ${_poEsc(p.name)}
+      <button type="button" onclick="poToggleProduct('${p.id}')" style="background:none;border:none;cursor:pointer;color:#2d8a45;font-size:15px;line-height:1;padding:0;" aria-label="Remove">×</button>
+    </span>`).join('');
+
+  // Searchable product list
+  const q=(document.getElementById('po-prod-search')?.value||'').toLowerCase();
+  const unselected=(allProducts||[])
+    .filter(p=>!p.hidden && !window._poSelectedIds.has(p.id))
+    .filter(p=>!q||p.name.toLowerCase().includes(q)||(p.category||'').toLowerCase().includes(q));
+
+  if(!unselected.length && !q){
+    list.innerHTML='<div style="padding:12px;font-size:12px;color:#9ca3af;text-align:center;">All products already selected</div>';
+    return;
+  }
+  if(!unselected.length){
+    list.innerHTML='<div style="padding:12px;font-size:12px;color:#9ca3af;text-align:center;">No products match</div>';
+    return;
+  }
+  list.innerHTML=unselected.map(p=>`
+    <div onclick="poToggleProduct('${p.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #f3f4f6;cursor:pointer;font-size:13px;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">
+      <div>
+        <span style="font-weight:700;">${_poEsc(p.name)}</span>
+        <span style="color:#9ca3af;font-size:11px;margin-left:6px;">${_poEsc(p.category||'')}</span>
+      </div>
+      <span style="color:#2d8a45;font-size:18px;font-weight:700;">+</span>
+    </div>`).join('');
+}
+
+function poToggleProduct(id){
+  if(!window._poSelectedIds) window._poSelectedIds=new Set();
+  if(window._poSelectedIds.has(id)) window._poSelectedIds.delete(id);
+  else window._poSelectedIds.add(id);
+  renderPoProductPicker();
+}
+
 function renderPreorderAdmin(){
   const st=document.getElementById('po-status');if(!st)return;
+  // Sync mode toggle UI
+  const mode=window._poMode||'products';
+  switchPoMode(mode);
+  // Sync selected IDs from saved state
+  if(!window._poSelectedIds) window._poSelectedIds=new Set(poState.products||[]);
+  else{ poState.products=[...window._poSelectedIds]; }
+  if(!window._poSelectedCatIds) window._poSelectedCatIds=new Set(poState.categories||[]);
+  else{ poState.categories=[...window._poSelectedCatIds]; }
   const open=_poOpen();
   st.textContent=open?'OPEN':'CLOSED';st.style.background=open?'#dcfce7':'#f3f4f6';st.style.color=open?'#166534':'#6b7280';
   document.getElementById('po-close-btn').style.display=open?'':'none';
@@ -5100,16 +5344,30 @@ function renderPreorderAdmin(){
   const wid=sel.value;
   const rows=pre.filter(o=>o.preorderWindowId===wid&&o.status!=='Cancelled');
   const agg={};
-  rows.forEach(o=>(o.items||[]).filter(i=>i.preorder).forEach(i=>{const k=(i.name||'')+'|'+(i.unit||'');const a=(agg[k]=agg[k]||{name:i.name,unit:i.unit||'',qty:0,orders:0,rev:0,cost:0,nocost:false});const q=Number(i.qty)||0,pr=allProducts.find(x=>x.id===i.id);a.qty+=q;a.orders++;a.rev+=(Number(i.price)||0)*q;a.cost+=(pr?.costPrice||0)*q;if(!pr?.costPrice)a.nocost=true;}));
+  rows.forEach(o=>(o.items||[]).filter(i=>i.preorder).forEach(i=>{const k=(i.name||'')+'|'+(i.unit||'');const a=(agg[k]=agg[k]||{name:i.name,unit:i.unit||'',qty:0,orders:0,rev:0,cost:0,nocost:false,category:''});const q=Number(i.qty)||0,pr=allProducts.find(x=>x.id===i.id);a.qty+=q;a.orders++;a.rev+=(Number(i.price)||0)*q;a.cost+=(pr?.costPrice||0)*q;if(!pr?.costPrice)a.nocost=true;if(pr?.category&&!a.category)a.category=pr.category;}));
   const T=list0=>list0.reduce((t,r)=>({rev:t.rev+r.rev,cost:t.cost+r.cost,nocost:t.nocost||r.nocost}),{rev:0,cost:0,nocost:false});
   const list=Object.values(agg).sort((a,b)=>a.name.localeCompare(b.name));
   window._poList=list;window._poWid=wid;
   const tt=T(list),profit=tt.rev-tt.cost,mg=tt.rev>0?(profit/tt.rev*100):0;
   const card=(l,v,c)=>`<div style="flex:1;min-width:110px;background:#f9fafb;border-radius:10px;padding:10px 12px;"><div style="font-size:11px;color:#6b7280;font-weight:600;">${l}</div><div style="font-size:18px;font-weight:800;color:${c||'#111827'};">${v}</div></div>`;
   document.getElementById('po-summary').innerHTML=card('Orders',rows.length)+card('Revenue','₹'+Math.round(tt.rev))+card('Purchase cost','₹'+Math.round(tt.cost))+card('Profit','₹'+Math.round(profit)+' · '+mg.toFixed(0)+'%',profit>=0?'#16a34a':'#dc2626')+(tt.nocost?'<div style="width:100%;font-size:11px;color:#b45309;">Some fruits have no Cost Price set in Products, so purchase cost and profit are understated.</div>':'');
-  document.getElementById('po-list').innerHTML=list.length
-    ?`<table style="width:100%;border-collapse:collapse;font-size:13px;"><tr style="text-align:left;color:#6b7280;font-size:11px;"><th style="padding:6px 4px;">Fruit</th><th>Unit</th><th style="text-align:right;">Total qty</th><th style="text-align:right;">Revenue</th><th style="text-align:right;">Cost</th><th style="text-align:right;">Orders</th></tr>${list.map(r=>`<tr style="border-top:1px solid #f3f4f6;"><td style="padding:8px 4px;font-weight:700;">${_poEsc(r.name)}</td><td>${_poEsc(r.unit)}</td><td style="text-align:right;font-weight:800;">${r.qty}</td><td style="text-align:right;">₹${Math.round(r.rev)}</td><td style="text-align:right;">${r.nocost?'—':'₹'+Math.round(r.cost)}</td><td style="text-align:right;">${r.orders}</td></tr>`).join('')}</table><div style="font-size:11px;color:#6b7280;margin-top:8px;">${rows.length} order(s) · cancelled orders excluded</div>`
-    :'<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;">No pre-orders in this window yet</div>';
+  const tblHeader=`<tr style="text-align:left;color:#6b7280;font-size:11px;"><th style="padding:6px 4px;">Item</th><th>Unit</th><th style="text-align:right;">Total qty</th><th style="text-align:right;">Revenue</th><th style="text-align:right;">Cost</th><th style="text-align:right;">Orders</th></tr>`;
+  const tblRow=r=>`<tr style="border-top:1px solid #f3f4f6;"><td style="padding:8px 4px;font-weight:700;">${_poEsc(r.name)}</td><td>${_poEsc(r.unit)}</td><td style="text-align:right;font-weight:800;">${r.qty}</td><td style="text-align:right;">₹${Math.round(r.rev)}</td><td style="text-align:right;">${r.nocost?'—':'₹'+Math.round(r.cost)}</td><td style="text-align:right;">${r.orders}</td></tr>`;
+  let poListHtml='';
+  if(list.length){
+    if((window._poMode||'products')==='categories'){
+      const groups=_poGroupedByCat(list);
+      poListHtml=groups.map(g=>`
+        <div style="font-size:12px;font-weight:800;color:#1a5c2a;background:#f0fdf4;padding:6px 8px;border-radius:6px;margin-top:12px;margin-bottom:4px;">📦 ${_poEsc(g.cat)}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">${tblHeader}${g.items.map(tblRow).join('')}</table>`).join('');
+    } else {
+      poListHtml=`<table style="width:100%;border-collapse:collapse;font-size:13px;">${tblHeader}${list.map(tblRow).join('')}</table>`;
+    }
+    poListHtml+=`<div style="font-size:11px;color:#6b7280;margin-top:8px;">${rows.length} order(s) · cancelled orders excluded</div>`;
+  } else {
+    poListHtml='<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;">No pre-orders in this window yet</div>';
+  }
+  document.getElementById('po-list').innerHTML=poListHtml;
   document.getElementById('po-orders').innerHTML=rows.length?rows.map(o=>`<div style="padding:8px 0;border-top:1px solid #f3f4f6;font-size:12px;"><b>${_poEsc(o.name)}</b> · ${_poEsc(o.phone)} · ${_poEsc(o.status)}<br><span style="color:#6b7280;">${(o.items||[]).filter(i=>i.preorder).map(i=>_poEsc(i.name)+' × '+i.qty).join(', ')}</span></div>`).join(''):'';
 }
 async function poSave(newWindow){
@@ -5117,8 +5375,13 @@ async function poSave(newWindow){
   const ms=v?new Date(v).getTime():0;
   if(!ms||ms<=Date.now()){showToast('Pick a closing time in the future');return;}
   const{db,doc,setDoc}=window._fb;
-  const data={open:true,closesAt:ms,categories:poState.categories||['Fruits']};
-  if(newWindow||!poState.windowId)data.windowId='w'+Date.now();
+  const mode=window._poMode||'products';
+  const selectedProds=[...(window._poSelectedIds||[])];
+  const selectedCats=[...(window._poSelectedCatIds||[])];
+  if(mode==='products'&&!selectedProds.length){showToast('Select at least one product for pre-order');return;}
+  if(mode==='categories'&&!selectedCats.length){showToast('Select at least one category for pre-order');return;}
+  const data={open:true,closesAt:ms,mode,products:mode==='products'?selectedProds:[],categories:mode==='categories'?selectedCats:[]};
+  if(newWindow||!poState.windowId){data.windowId='w'+Date.now(); window._poSelectedIds=new Set(); window._poSelectedCatIds=new Set();}
   try{await setDoc(doc(db,'settings','preorder'),data,{merge:true});poState={...poState,...data};showToast(newWindow?'New pre-order window opened':'Closing time updated');renderPreorderAdmin();}
   catch(e){console.error(e);showToast('Could not save: '+(e.message||e));}
 }
@@ -5198,11 +5461,47 @@ async function poAutoRecordPurchases(wid){
   else if(skipped>0)showToast('All purchase records already exist for this window');
   else showToast('No purchase records created (products may have no cost price set)');
 }
-function _poText(){const l=window._poList||[];return 'Fruit order list – '+_poWinLabel(window._poWid)+'\n'+l.map(r=>`${r.name}${r.unit?' ('+r.unit+')':''}: ${r.qty}`).join('\n');}
+function _poGroupedByCat(list){
+  // Returns [{cat, items:[]}] sorted by category name; uncategorised goes last
+  const map={};
+  list.forEach(r=>{
+    const cat=r.category||'Other';
+    if(!map[cat])map[cat]=[];
+    map[cat].push(r);
+  });
+  return Object.entries(map)
+    .sort(([a],[b])=>a==='Other'?1:b==='Other'?-1:a.localeCompare(b))
+    .map(([cat,items])=>({cat,items:items.sort((a,b)=>a.name.localeCompare(b.name))}));
+}
+function _poText(){
+  const l=window._poList||[];
+  const mode=window._poMode||'products';
+  const header='Fruit order list – '+_poWinLabel(window._poWid);
+  if(mode==='categories'){
+    const groups=_poGroupedByCat(l);
+    return header+'\n\n'+groups.map(g=>`[${g.cat}]\n`+g.items.map(r=>`  ${r.name}${r.unit?' ('+r.unit+')':''}: ${r.qty}`).join('\n')).join('\n\n');
+  }
+  return header+'\n'+l.map(r=>`${r.name}${r.unit?' ('+r.unit+')':''}: ${r.qty}`).join('\n');
+}
 function poCopy(){if(!(window._poList||[]).length){showToast('Nothing to copy');return;}navigator.clipboard.writeText(_poText()).then(()=>showToast('Copied – paste into WhatsApp'),()=>showToast('Copy failed'));}
-function poPrint(){const l=window._poList||[];if(!l.length){showToast('Nothing to print');return;}
+function poPrint(){
+  const l=window._poList||[];if(!l.length){showToast('Nothing to print');return;}
   const w=window.open('','_blank');if(!w){showToast('Allow pop-ups to print');return;}
-  w.document.write(`<html><head><title>Fruit order list</title><style>body{font-family:sans-serif;padding:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style></head><body><h2>Fruit order list – ${_poWinLabel(window._poWid)}</h2><table><tr><th>Fruit</th><th>Unit</th><th>Total qty</th></tr>${l.map(r=>`<tr><td>${_poEsc(r.name)}</td><td>${_poEsc(r.unit)}</td><td>${r.qty}</td></tr>`).join('')}</table></body></html>`);w.document.close();w.print();}
+  const mode=window._poMode||'products';
+  let body='';
+  if(mode==='categories'){
+    const groups=_poGroupedByCat(l);
+    body=groups.map(g=>`
+      <h3 style="margin:18px 0 6px;font-size:15px;color:#1a5c2a;border-bottom:2px solid #d1fae5;padding-bottom:4px;">📦 ${g.cat}</h3>
+      <table><tr><th>Item</th><th>Unit</th><th>Total qty</th></tr>
+      ${g.items.map(r=>`<tr><td>${_poEsc(r.name)}</td><td>${_poEsc(r.unit)}</td><td>${r.qty}</td></tr>`).join('')}
+      </table>`).join('');
+  } else {
+    body=`<table><tr><th>Fruit</th><th>Unit</th><th>Total qty</th></tr>${l.map(r=>`<tr><td>${_poEsc(r.name)}</td><td>${_poEsc(r.unit)}</td><td>${r.qty}</td></tr>`).join('')}</table>`;
+  }
+  w.document.write(`<html><head><title>Fruit order list</title><style>body{font-family:sans-serif;padding:20px}h3{margin:18px 0 6px}table{border-collapse:collapse;width:100%;margin-bottom:12px}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style></head><body><h2>Fruit order list – ${_poWinLabel(window._poWid)}</h2>${body}</body></html>`);
+  w.document.close();w.print();
+}
 
 function navAdmin(page){
   currentPage=page;
@@ -5345,7 +5644,7 @@ function buildThermalBillHtml(o,w,autoPrint){
   const fs=w==='58'?11:12.5;               // base font size (px)
   const cancelled=/cancel/i.test(d.status);
   const line=`<div class="ln"></div>`;
-  const rows=d.items.map(i=>`<div class="it"><div class="nm">${billEsc(i.name)}</div>
+  const rows=d.items.map(i=>`<div class="it"><div class="nm">${billEsc(i.name)}${i.selectedWeight?` (${billEsc(i.selectedWeight)})`:''}</div>
     <div class="rw"><span>${i.qty} x ${_thermalMoney(i.price)}</span><span class="b">${_thermalMoney(i.qty*i.price)}</span></div></div>`).join('')||'<div class="c">No items</div>';
   const units=d.items.reduce((s,i)=>s+i.qty,0);
   const row=(a,b,cls)=>`<div class="rw ${cls||''}"><span>${a}</span><span>${b}</span></div>`;
@@ -5622,7 +5921,7 @@ function buildOrderBillHtml(o,fmt){
   if(fmt==='thermal')return buildThermalBillHtml(o,getThermalWidth());
   const d=getOrderBillData(o);
   const rec=fmt==='receipt';
-  const rows=d.items.map((i,n)=>`<tr><td>${rec?'':`<span class="n">${n+1}.</span>`}${billEsc(i.name)}</td><td class="c">${i.qty}</td><td class="r">${i.price.toFixed(2)}</td><td class="r b">${(i.qty*i.price).toFixed(2)}</td></tr>`).join('');
+  const rows=d.items.map((i,n)=>`<tr><td>${rec?'':`<span class="n">${n+1}.</span>`}${billEsc(i.name)}${i.selectedWeight?` <span style="font-size:10px;color:#6b7280;">(${billEsc(i.selectedWeight)})</span>`:''}</td><td class="c">${i.qty}</td><td class="r">${i.price.toFixed(2)}</td><td class="r b">${(i.qty*i.price).toFixed(2)}</td></tr>`).join('');
   const cancelled=/cancel/i.test(d.status);
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${billEsc(d.billNo)}</title>
