@@ -5313,6 +5313,7 @@ async function loadPreorderAdmin(){
   const wasOpen=poState.open;
   try{const{db,doc,getDoc}=window._fb;const sn=await getDoc(doc(db,'settings','preorder'));
     if(sn.exists()){const d=sn.data();poState={open:!!d.open,closesAt:Number(d.closesAt)||0,windowId:d.windowId||'',products:d.products||[],categories:d.categories||[],mode:d.mode||'products'};window._poSelectedIds=new Set(poState.products);window._poSelectedCatIds=new Set(poState.categories);window._poMode=poState.mode||'products';}
+    else{window._poMode=window._poMode||'products';}
   }catch(e){console.error('loadPreorderAdmin:',e);showToast('Could not load pre-order settings');}
   const inp=document.getElementById('po-closes');if(inp&&poState.closesAt)inp.value=_poToLocalInput(poState.closesAt);
   // If the window was open but the closing time has now passed (natural expiry),
@@ -5487,20 +5488,17 @@ async function poSave(newWindow){
   const ms=v?new Date(v).getTime():0;
   if(!ms||ms<=Date.now()){showToast('Pick a closing time in the future');return;}
   const{db,doc,setDoc}=window._fb;
-  const mode=window._poMode||'products';
-  const selectedProds=[...(window._poSelectedIds||[])];
-  const selectedCats=[...(window._poSelectedCatIds||[])];
+  // When updating an existing window, always use the saved poState mode/selections as source of truth
+  // to avoid accidentally overwriting mode/products when _poMode was never set in this session
+  const mode=newWindow?(window._poMode||'products'):( poState.mode||window._poMode||'products');
+  const selectedProds=newWindow?[...(window._poSelectedIds||[])]:(poState.products||[...(window._poSelectedIds||[])]);
+  const selectedCats=newWindow?[...(window._poSelectedCatIds||[])]:(poState.categories||[...(window._poSelectedCatIds||[])]);
   // Only validate selections when opening a new window; updating an existing open window only needs the new closing time
   if(newWindow){
     if(mode==='products'&&!selectedProds.length){showToast('Select at least one product for pre-order');return;}
     if(mode==='categories'&&!selectedCats.length){showToast('Select at least one category for pre-order');return;}
   }
   const data={open:true,closesAt:ms,mode,products:mode==='products'?selectedProds:[],categories:mode==='categories'?selectedCats:[]};
-  // When updating, preserve existing products/categories from poState if none are selected in the UI
-  if(!newWindow&&poState.windowId){
-    if(mode==='products'&&!selectedProds.length)data.products=poState.products||[];
-    if(mode==='categories'&&!selectedCats.length)data.categories=poState.categories||[];
-  }
   if(newWindow||!poState.windowId){data.windowId='w'+Date.now(); window._poSelectedIds=new Set(); window._poSelectedCatIds=new Set();}
   try{await setDoc(doc(db,'settings','preorder'),data,{merge:true});poState={...poState,...data};_schedulePoAutoClose();showToast(newWindow?'New pre-order window opened':'Closing time updated');closeModal('po-selection-modal');renderPreorderAdmin();}
   catch(e){console.error(e);showToast('Could not save: '+(e.message||e));}
