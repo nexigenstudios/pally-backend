@@ -448,7 +448,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       <div class="nav-item" onclick="navAdmin('orders')" id="nav-orders" data-page="orders"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">receipt_long</span><span class="nav-label">Orders</span><span class="badge-count nav-label" id="pending-badge" style="margin-left:auto;background:#2d8a45;color:white;font-size:10px;border-radius:999px;padding:1px 7px;display:none;">0</span></div>
       <div class="nav-item" onclick="navAdmin('products')" id="nav-products" data-page="products"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">inventory_2</span><span class="nav-label">Products</span></div>
       <div class="nav-item" onclick="navAdmin('categories')" id="nav-categories" data-page="categories"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">category</span><span class="nav-label">Categories</span></div>
-      <div class="nav-item" onclick="navAdmin('preorder')" id="nav-preorder" data-page="preorder"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">nutrition</span><span class="nav-label">Fruit Pre-order</span></div>
+      <div class="nav-item" onclick="navAdmin('preorder')" id="nav-preorder" data-page="preorder"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">nutrition</span><span class="nav-label">Pre-order</span></div>
       <div class="nav-item" onclick="navAdmin('purchases')" id="nav-purchases" data-page="purchases"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">shopping_cart</span><span class="nav-label">Purchases</span></div>
       <div class="nav-item" onclick="navAdmin('billing')" id="nav-billing" data-page="billing"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">point_of_sale</span><span class="nav-label">Billing</span></div>
       <div class="nav-item" onclick="navAdmin('customers')" id="nav-customers" data-page="customers"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">group</span><span class="nav-label">Customers</span></div>
@@ -558,14 +558,48 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
   </div>
 </div>
 
-<!-- FRUIT PRE-ORDER PAGE -->
+<!-- PRE-ORDER PAGE -->
 <div class="page-content" id="page-preorder">
-  <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;"><div style="font-size:15px;font-weight:800;">Ordering window</div><span id="po-status" class="badge"></span></div>
-    <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Selected products or categories are visible to customers only while the window is open, with no stock limit. After the closing time they are hidden automatically.</div>
+  <!-- Top bar: status + action buttons -->
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="font-size:15px;font-weight:800;">Pre-order</div>
+      <span id="po-status" class="badge"></span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="openPoSelectionModal('products')" class="btn" style="padding:8px 14px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">+ Add Products</button>
+      <button onclick="openPoSelectionModal('categories')" class="btn" style="padding:8px 14px;background:#1d4ed8;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">+ Add Categories</button>
+      <button onclick="poCloseNow()" class="btn" id="po-close-btn" style="padding:8px 14px;background:#fee2e2;color:#b91c1c;border:none;border-radius:8px;font-size:12px;font-weight:700;">Close now</button>
+    </div>
+  </div>
+  <!-- Supplier list -->
+  <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:15px;font-weight:800;">Supplier list</div><select id="po-window-sel" class="input-f" onchange="renderPreorderAdmin()" style="width:auto;padding:6px 10px;"></select></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="poCopy()" class="btn" style="padding:8px 14px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Copy for supplier</button>
+        <button onclick="poPrint()" class="btn" style="padding:8px 14px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:12px;font-weight:700;">Print</button>
+        <button onclick="poManualRecordPurchases()" class="btn" id="po-record-btn" style="padding:8px 14px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:8px;font-size:12px;font-weight:700;">📥 Add to Purchase</button>
+      </div>
+    </div>
+    <div id="po-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
+    <div id="po-list"></div>
+    <div style="font-size:13px;font-weight:800;margin:18px 0 6px;">Orders in this window</div>
+    <div id="po-orders"></div>
+  </div>
+</div>
+
+<!-- PRE-ORDER SELECTION MODAL -->
+<div class="modal-bd" id="po-selection-modal" onclick="closeModal('po-selection-modal')">
+  <div class="modal-box" style="max-width:480px;padding:20px;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:800;">Pre-order window</div>
+      <button onclick="closeModal('po-selection-modal')" style="background:none;border:none;cursor:pointer;font-size:20px;color:#6b7280;">×</button>
+    </div>
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px;">Selected products or categories are visible to customers with no stock limit. Hidden automatically after closing time.</div>
     <!-- Mode toggle -->
     <div style="margin-bottom:14px;">
-      <label class="lbl" style="margin-bottom:6px;display:block;">Pre-order selection mode</label>
+      <label class="lbl" style="margin-bottom:6px;display:block;">Selection mode</label>
       <div style="display:flex;gap:6px;">
         <button class="tab-btn active" id="po-mode-products" onclick="switchPoMode('products')" style="flex:1;">🛒 By Products</button>
         <button class="tab-btn" id="po-mode-categories" onclick="switchPoMode('categories')" style="flex:1;">📦 By Categories</button>
@@ -577,7 +611,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       <input id="po-prod-search" type="text" class="input-f" placeholder="Search products to add…" oninput="renderPoProductPicker()" style="margin-bottom:8px;font-size:12px;">
       <div id="po-prod-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:0;"></div>
       <div id="po-prod-list" style="max-height:180px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;"></div>
-      <div style="font-size:11px;color:#9ca3af;margin-top:5px;">Selected products get unlimited stock while the window is open and are hidden when it closes.</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:5px;">Selected products get unlimited stock while the window is open.</div>
     </div>
     <!-- Category picker -->
     <div id="po-picker-categories" style="display:none;margin-bottom:14px;">
@@ -586,25 +620,14 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       <div id="po-cat-list" style="max-height:220px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;"></div>
       <div style="font-size:11px;color:#9ca3af;margin-top:5px;">All visible products in selected categories get unlimited stock while the window is open.</div>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
-      <div><label class="lbl">Customers can order until</label><input id="po-closes" type="datetime-local" class="input-f"></div>
-      <button onclick="poSave(true)" class="btn" id="po-open-btn" style="padding:10px 16px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Open new window</button>
-      <button onclick="poSave(false)" class="btn" id="po-update-btn" style="padding:10px 16px;background:#e2f0e6;color:#1a5c2a;border:none;border-radius:8px;font-size:13px;font-weight:700;">Update closing time</button>
-      <button onclick="poCloseNow()" class="btn" id="po-close-btn" style="padding:10px 16px;background:#fee2e2;color:#b91c1c;border:none;border-radius:8px;font-size:13px;font-weight:700;">Close now</button>
-    </div>
-  </div>
-  <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:15px;font-weight:800;">Supplier list</div><select id="po-window-sel" class="input-f" onchange="renderPreorderAdmin()" style="width:auto;padding:6px 10px;"></select></div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="poCopy()" class="btn" style="padding:8px 14px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Copy for supplier</button>
-        <button onclick="poPrint()" class="btn" style="padding:8px 14px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:12px;font-weight:700;">Print</button>
+    <!-- Date + buttons -->
+    <div style="border-top:1px solid #f3f4f6;padding-top:14px;margin-top:4px;">
+      <div style="margin-bottom:12px;"><label class="lbl">Customers can order until</label><input id="po-closes" type="datetime-local" class="input-f"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="poSave(true)" class="btn" id="po-open-btn" style="flex:1;padding:10px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Open new window</button>
+        <button onclick="poSave(false)" class="btn" id="po-update-btn" style="flex:1;padding:10px;background:#e2f0e6;color:#1a5c2a;border:none;border-radius:8px;font-size:13px;font-weight:700;">Update closing time</button>
       </div>
     </div>
-    <div id="po-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
-    <div id="po-list"></div>
-    <div style="font-size:13px;font-weight:800;margin:18px 0 6px;">Orders in this window</div>
-    <div id="po-orders"></div>
   </div>
 </div>
 
@@ -2064,16 +2087,13 @@ function getFilteredOrders(){
 //           2) product.costPrice fallback for legacy items with no batch data
 function woptToGrams(s){
   if(!s)return 0;
-  const kg=s.match(/^(\d+\.?\d*)\s*kg$/i);
-  if(kg)return parseFloat(kg[1])*1000;
-  const g=s.match(/^(\d+\.?\d*)\s*g$/i);
-  if(g)return parseFloat(g[1]);
+  const kg=s.match(/^(\d+\.?\d*)\s*kg$/i);if(kg)return parseFloat(kg[1])*1000;
+  const g=s.match(/^(\d+\.?\d*)\s*g$/i);if(g)return parseFloat(g[1]);
   return 0;
 }
 function getBestCostForItem(item){
   if(!item.id)return item.costPrice||0;
   const p=allProducts.find(x=>x.id===item.id);
-  // Use oldest batch with remaining stock (FIFO)
   const batches=allBatches
     .filter(b=>b.productDocId===item.id&&(b.remaining||0)>0)
     .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
@@ -2081,14 +2101,12 @@ function getBestCostForItem(item){
   if(batches.length>0){
     baseCost=batches[0].purchaseCost||batches[0].unitCost||0;
   } else {
-    // If all batches exhausted but we still have purchases, use the most recent batch cost
     const anyBatch=allBatches
       .filter(b=>b.productDocId===item.id)
       .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     if(anyBatch.length>0)baseCost=anyBatch[0].purchaseCost||anyBatch[0].unitCost||0;
     else baseCost=p?.costPrice||0;
   }
-  // Scale cost proportionally for weight-based variants
   if(p?.weightBased&&p.weightOptions&&p.weightOptions.length&&item.unit){
     const baseG=woptToGrams(p.weightOptions[0]);
     const orderedG=woptToGrams(item.unit);
@@ -2363,7 +2381,7 @@ function openOrderDetail(fid){
     <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:2px 0;"><span>Gross Profit</span><span style="color:${totalProfit>=0?'#16a34a':'#dc2626'};">₹${totalProfit.toFixed(2)}</span></div>
     <div style="margin-top:12px;"><label class="lbl">Update Status</label><select onchange="updateOrderStatus('${o.firestoreId}',this.value);closeModal('order-detail-modal')" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-weight:600;background:white;outline:none;cursor:pointer;">${ALL_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${adminDisplayStatus(s)}</option>`).join('')}</select></div>
     <button onclick="openOrderBill('${o.firestoreId}')" class="btn" style="width:100%;margin-top:12px;padding:12px;background:#1a5c2a;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined ms" style="font-size:18px;">receipt_long</span>Generate Bill</button>`;
-  document.getElementById('order-detail-modal').classList.add('open');
+  openModal('order-detail-modal');
 }
 
 // Lets admin change a single already-placed order from Room Delivery <-> Pickup.
@@ -2466,7 +2484,7 @@ function openBulkAssignProducts(){
   const sel=document.getElementById('bulk-assign-hostel');
   sel.innerHTML='<option value="">Select branch...</option>'+
     (allHostels||[]).map(h=>`<option value="${h.id}">${h.name}</option>`).join('');
-  document.getElementById('bulk-assign-modal').classList.add('open');
+  openModal('bulk-assign-modal');
 }
 
 async function runBulkAssignProducts(){
@@ -2608,7 +2626,7 @@ function openAddProduct(){
   woptRender();
   document.getElementById('p-img-preview').style.display='none';
   populateProductHostelBranchSelect();
-  document.getElementById('product-modal').classList.add('open');
+  openModal('product-modal');
 }
 
 function openEditProduct(id){
@@ -2636,7 +2654,7 @@ function openEditProduct(id){
   const pr=document.getElementById('p-img-preview');if(p.imageUrl){pr.src=p.imageUrl;pr.style.display='block';}else{pr.style.display='none';}
   populateProductHostelBranchSelect();
   if(!scopedHostel){const sel=document.getElementById('p-hostelbranch');if(sel)sel.value=p.hostelId||'';}
-  document.getElementById('product-modal').classList.add('open');
+  openModal('product-modal');
 }
 
 async function saveProduct(){
@@ -2738,7 +2756,7 @@ function openAddPurchase(){
   document.getElementById('pur-new-info').style.display='';
   document.getElementById('pur-edit-info').style.display='none';
   document.getElementById('pur-delete-row').style.display='none';
-  document.getElementById('purchase-modal').classList.add('open');
+  openModal('purchase-modal');
 }
 
 function openEditPurchase(id){
@@ -2759,10 +2777,14 @@ function openEditPurchase(id){
   document.getElementById('pur-date').value=p.date||'';
   document.getElementById('pur-notes').value=p.notes||'';
   document.getElementById('pur-new-info').style.display='none';
+  const isPreorderRec=!!(p.preorderWindowId||p.fullyUsed);
   document.getElementById('pur-edit-info').style.display='';
+  document.getElementById('pur-edit-info').innerHTML=isPreorderRec
+    ?'<span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">info</span> This is a <b>pre-order purchase</b> — already sold. Editing updates cost/notes only. Stock and inventory batches are <b>not affected</b>.'
+    :'<span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">warning</span> Editing updates the purchase record and its linked batch. Qty changes adjust product stock and batch remaining proportionally. Cost changes update the batch purchase cost.';
   document.getElementById('pur-delete-row').style.display='';
   calcPurchaseTotal();
-  document.getElementById('purchase-modal').classList.add('open');
+  openModal('purchase-modal');
 }
 
 // ─── SAVE PURCHASE: creates a batch doc, or updates existing purchase+batch ───
@@ -2787,23 +2809,26 @@ async function savePurchase(){
       const oldPur=allPurchases.find(x=>x.id===editId);
       const oldQty=oldPur?.qty||0;
       const qtyDiff=qty-oldQty; // positive = more stock added, negative = stock reduced
+      const isPreorder=!!(oldPur?.preorderWindowId||oldPur?.fullyUsed);
       const supplier=document.getElementById('pur-supplier').value.trim();
       const notes=document.getElementById('pur-notes').value.trim();
       // Update purchase record
       await updateDoc(doc(db,'purchases',editId),{supplier,qty,unitCost,totalCost,date,notes,updatedAt:new Date().toISOString()});
-      // Update linked batch if found
-      if(batchId){
-        const oldBatch=allBatches.find(b=>b.id===batchId);
-        const oldRemaining=oldBatch?.remaining||0;
-        // remaining adjusts by same delta as qty
-        const newRemaining=Math.max(0,oldRemaining+qtyDiff);
-        await updateDoc(doc(db,'products',productId,'batches',batchId),{
-          supplier,qty,purchaseCost:unitCost,remaining:newRemaining,totalCost,date,notes,updatedAt:new Date().toISOString()
-        });
-      }
-      // Adjust product stock by the qty difference
-      if(qtyDiff!==0){
-        await updateDoc(doc(db,'products',productId),{stock:increment(qtyDiff),updatedAt:new Date().toISOString()});
+      if(!isPreorder){
+        // Update linked batch if found (normal purchases only)
+        if(batchId){
+          const oldBatch=allBatches.find(b=>b.id===batchId);
+          const oldRemaining=oldBatch?.remaining||0;
+          // remaining adjusts by same delta as qty
+          const newRemaining=Math.max(0,oldRemaining+qtyDiff);
+          await updateDoc(doc(db,'products',productId,'batches',batchId),{
+            supplier,qty,purchaseCost:unitCost,remaining:newRemaining,totalCost,date,notes,updatedAt:new Date().toISOString()
+          });
+        }
+        // Adjust product stock by the qty difference (normal purchases only)
+        if(qtyDiff!==0){
+          await updateDoc(doc(db,'products',productId),{stock:increment(qtyDiff),updatedAt:new Date().toISOString()});
+        }
       }
       showToast('Purchase updated!');
     }else{
@@ -2869,19 +2894,23 @@ async function deletePurchasePermanent(){
   const batchId=document.getElementById('pur-batch-id').value;
   if(!id)return;
   const p=allPurchases.find(x=>x.id===id);
-  if(!confirm('Permanently delete this purchase AND its inventory batch?\n\nThis will also reduce product stock by '+( p?.qty||0)+' units.\n\nThis cannot be undone.'))return;
+  const isPreorder=!!(p?.preorderWindowId||p?.fullyUsed);
+  const confirmMsg=isPreorder
+    ?'Permanently delete this pre-order purchase record?\n\nStock will NOT be affected (pre-order items are already sold).\n\nThis cannot be undone.'
+    :'Permanently delete this purchase AND its inventory batch?\n\nThis will also reduce product stock by '+(p?.qty||0)+' units.\n\nThis cannot be undone.';
+  if(!confirm(confirmMsg))return;
   try{
     const{db,doc,deleteDoc,updateDoc,increment}=window._fb;
     const productId=p?.productId;
     const qty=p?.qty||0;
     // 1. Delete purchase record
     await deleteDoc(doc(db,'purchases',id));
-    // 2. Delete linked batch
-    if(batchId&&productId){
+    // 2. Delete linked batch (only for normal purchases that have one)
+    if(!isPreorder&&batchId&&productId){
       await deleteDoc(doc(db,'products',productId,'batches',batchId));
     }
-    // 3. Reduce product stock
-    if(productId&&qty>0){
+    // 3. Reduce product stock (only for normal purchases — preorder never added stock)
+    if(!isPreorder&&productId&&qty>0){
       await updateDoc(doc(db,'products',productId),{stock:increment(-qty),updatedAt:new Date().toISOString()});
     }
     allPurchases=allPurchases.filter(x=>x.id!==id);
@@ -2953,7 +2982,7 @@ function openSetSellingPrice(){
   document.getElementById('sp-new-price').value='';
   document.getElementById('sp-margin-preview').style.display='none';
   const info=document.getElementById('sp-current-info');if(info)info.style.display='none';
-  document.getElementById('selling-price-modal').classList.add('open');
+  openModal('selling-price-modal');
 }
 
 function onSellingPriceProductChange(){
@@ -3070,7 +3099,7 @@ function openBulkAssignWorkers(){
   const sel=document.getElementById('bulk-assign-workers-hostel');
   sel.innerHTML='<option value="">Select branch...</option>'+
     (allHostels||[]).map(h=>`<option value="${h.id}">${h.name}</option>`).join('');
-  document.getElementById('bulk-assign-workers-modal').classList.add('open');
+  openModal('bulk-assign-workers-modal');
 }
 
 async function runBulkAssignWorkers(){
@@ -3133,7 +3162,7 @@ function openAddWorker(){
   document.getElementById('w-login-fields').style.display='flex';
   populateWorkerHostelBranchSelect();
   toggleWorkerLoginSection();
-  document.getElementById('worker-modal').classList.add('open');
+  openModal('worker-modal');
 }
 
 function openEditWorker(id){
@@ -3166,7 +3195,7 @@ function openEditWorker(id){
     const sel=document.getElementById('w-pickuppoint');
     if(sel)sel.value=w.pickupPointId||'';
   }
-  document.getElementById('worker-modal').classList.add('open');
+  openModal('worker-modal');
 }
 
 async function saveWorker(){
@@ -3333,7 +3362,7 @@ function openAddBanner(){
   document.getElementById('ban-color').value='#2d8a45';
   document.getElementById('ban-active').checked=true;
   document.getElementById('ban-img-prev').style.display='none';
-  document.getElementById('banner-modal').classList.add('open');
+  openModal('banner-modal');
 }
 
 function openEditBanner(i){
@@ -3348,7 +3377,7 @@ function openEditBanner(i){
   document.getElementById('ban-active').checked=b.active!==false;
   document.getElementById('ban-edit-id').value=i;
   const pr=document.getElementById('ban-img-prev');if(b.image){pr.src=b.image;pr.style.display='block';}else{pr.style.display='none';}
-  document.getElementById('banner-modal').classList.add('open');
+  openModal('banner-modal');
 }
 
 async function saveBanner(){
@@ -3371,8 +3400,8 @@ function renderFaqs(){
   el.innerHTML=allFaqs.map((f,i)=>`<div style="background:white;border-radius:10px;border:1px solid #e5e7eb;padding:12px 14px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;"><div style="flex:1;"><div style="font-weight:700;font-size:13px;">${f.question||''}</div><div style="font-size:12px;color:#6b7280;margin-top:4px;line-height:1.5;">${f.answer||''}</div>${f.category?`<span class="badge" style="margin-top:6px;background:#f3f4f6;color:#6b7280;font-size:10px;">${f.category}</span>`:''}</div><div style="display:flex;gap:5px;flex-shrink:0;"><button onclick="openEditFaq(${i})" class="btn" style="padding:4px 8px;background:#eff6ff;color:#2563eb;border:none;border-radius:6px;font-size:11px;font-weight:700;">Edit</button><button onclick="deleteFaq(${i})" class="btn" style="padding:4px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:11px;font-weight:700;">Del</button></div></div></div>`).join('');
 }
 
-function openAddFaq(){document.getElementById('faq-modal-title').textContent='Add FAQ';['faq-q','faq-a','faq-cat','faq-edit-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('faq-modal').classList.add('open');}
-function openEditFaq(i){const f=allFaqs[i];if(!f)return;document.getElementById('faq-modal-title').textContent='Edit FAQ';document.getElementById('faq-q').value=f.question||'';document.getElementById('faq-a').value=f.answer||'';document.getElementById('faq-cat').value=f.category||'';document.getElementById('faq-edit-id').value=i;document.getElementById('faq-modal').classList.add('open');}
+function openAddFaq(){document.getElementById('faq-modal-title').textContent='Add FAQ';['faq-q','faq-a','faq-cat','faq-edit-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});openModal('faq-modal');}
+function openEditFaq(i){const f=allFaqs[i];if(!f)return;document.getElementById('faq-modal-title').textContent='Edit FAQ';document.getElementById('faq-q').value=f.question||'';document.getElementById('faq-a').value=f.answer||'';document.getElementById('faq-cat').value=f.category||'';document.getElementById('faq-edit-id').value=i;openModal('faq-modal');}
 async function saveFaq(){const q=document.getElementById('faq-q').value.trim(),a=document.getElementById('faq-a').value.trim();if(!q||!a){showToast('Question and answer are required');return;}const data={question:q,answer:a,category:document.getElementById('faq-cat').value.trim()};const editId=document.getElementById('faq-edit-id').value;if(editId!=='')allFaqs[parseInt(editId)]=data;else allFaqs.push(data);await saveCmsCollection('faqs',allFaqs);renderFaqs();closeModal('faq-modal');showToast('FAQ saved!');}
 async function deleteFaq(i){if(!confirm('Delete FAQ?'))return;allFaqs.splice(i,1);await saveCmsCollection('faqs',allFaqs);renderFaqs();showToast('FAQ deleted');}
 
@@ -3383,8 +3412,8 @@ function renderBlogs(){
   el.innerHTML=allBlogs.map((b,i)=>`<div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:14px;display:flex;gap:12px;">${b.image?`<img src="${b.image}" style="width:70px;height:50px;object-fit:cover;border-radius:8px;flex-shrink:0;" onerror="this.style.display='none'">`:''}<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;">${b.title||''}</div><div style="font-size:11px;color:#9ca3af;margin-top:3px;">${b.author||'Snacky Team'} · ${b.date||''} · <span style="color:${b.published?'#16a34a':'#9ca3af'};font-weight:700;">${b.published?'Published':'Draft'}</span></div><div style="font-size:12px;color:#6b7280;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(b.content||'').substring(0,90)}...</div></div><div style="display:flex;gap:5px;flex-shrink:0;"><button onclick="openEditBlog(${i})" class="btn" style="padding:5px 10px;background:#eff6ff;color:#2563eb;border:none;border-radius:7px;font-size:11px;font-weight:700;">Edit</button><button onclick="deleteBlog(${i})" class="btn" style="padding:5px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:11px;font-weight:700;">Del</button></div></div>`).join('');
 }
 
-function openAddBlog(){document.getElementById('blog-modal-title').textContent='New Blog Post';['blog-title','blog-author','blog-image','blog-content','blog-edit-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('blog-published').checked=true;document.getElementById('blog-modal').classList.add('open');}
-function openEditBlog(i){const b=allBlogs[i];if(!b)return;document.getElementById('blog-modal-title').textContent='Edit Post';document.getElementById('blog-title').value=b.title||'';document.getElementById('blog-author').value=b.author||'';document.getElementById('blog-image').value=b.image||'';document.getElementById('blog-content').value=b.content||'';document.getElementById('blog-published').checked=b.published!==false;document.getElementById('blog-edit-id').value=i;document.getElementById('blog-modal').classList.add('open');}
+function openAddBlog(){document.getElementById('blog-modal-title').textContent='New Blog Post';['blog-title','blog-author','blog-image','blog-content','blog-edit-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('blog-published').checked=true;openModal('blog-modal');}
+function openEditBlog(i){const b=allBlogs[i];if(!b)return;document.getElementById('blog-modal-title').textContent='Edit Post';document.getElementById('blog-title').value=b.title||'';document.getElementById('blog-author').value=b.author||'';document.getElementById('blog-image').value=b.image||'';document.getElementById('blog-content').value=b.content||'';document.getElementById('blog-published').checked=b.published!==false;document.getElementById('blog-edit-id').value=i;openModal('blog-modal');}
 async function saveBlog(){const title=document.getElementById('blog-title').value.trim(),content=document.getElementById('blog-content').value.trim();if(!title||!content){showToast('Title and content are required');return;}const data={title,author:document.getElementById('blog-author').value.trim()||'Snacky Team',image:document.getElementById('blog-image').value.trim(),content,published:document.getElementById('blog-published').checked,date:new Date().toLocaleDateString('en-IN')};const editId=document.getElementById('blog-edit-id').value;if(editId!=='')allBlogs[parseInt(editId)]=data;else allBlogs.push(data);await saveCmsCollection('blogs',allBlogs);renderBlogs();closeModal('blog-modal');showToast('Blog post saved!');}
 async function deleteBlog(i){if(!confirm('Delete blog post?'))return;allBlogs.splice(i,1);await saveCmsCollection('blogs',allBlogs);renderBlogs();showToast('Post deleted');}
 
@@ -3655,7 +3684,7 @@ function openOrdersPackingModal(){
   document.getElementById('pm-pack-from').value=_isoDate(ls);
   document.getElementById('pm-pack-to').value=_isoDate(ls);
   updatePackingModalPreview();
-  document.getElementById('packing-modal').classList.add('open');
+  openModal('packing-modal');
 }
 function setPackingModalRange(preset){setPackingRange(preset,'pm-pack-from','pm-pack-to');}
 function downloadPackingCSVFromModal(){
@@ -4215,7 +4244,7 @@ function openAddPromo(){
   document.getElementById('promo-value').value='';
   document.getElementById('promo-type').value='percent';
   document.getElementById('promo-active').checked=true;
-  document.getElementById('promo-modal').classList.add('open');
+  openModal('promo-modal');
 }
 
 function openEditPromo(code){
@@ -4230,7 +4259,7 @@ function openEditPromo(code){
   document.getElementById('promo-min').value=p.minPurchase||'';
   document.getElementById('promo-active').checked=p.active!==false;
   document.getElementById('promo-edit-code').value=p.id;
-  document.getElementById('promo-modal').classList.add('open');
+  openModal('promo-modal');
 }
 
 async function savePromo(){
@@ -4353,7 +4382,7 @@ function openAddHostel(){
   document.getElementById('hostel-admin-password').value='';
   document.getElementById('hostel-admin-existing').style.display='none';
   document.getElementById('hostel-admin-fields').style.display='flex';
-  document.getElementById('hostel-modal').classList.add('open');
+  openModal('hostel-modal');
   setTimeout(()=>document.getElementById('hostel-name').focus(),100);
 }
 
@@ -4374,7 +4403,7 @@ function openEditHostel(id){
     document.getElementById('hostel-admin-existing').style.display='none';
     document.getElementById('hostel-admin-fields').style.display='flex';
   }
-  document.getElementById('hostel-modal').classList.add('open');
+  openModal('hostel-modal');
   setTimeout(()=>document.getElementById('hostel-name').focus(),100);
 }
 
@@ -4532,7 +4561,7 @@ function openAddPickupPoint(){
   document.getElementById('pickuppoint-active').checked=true;
   document.getElementById('pickuppoint-edit-id').value='';
   populatePickupPointHostelBranchSelect();
-  document.getElementById('pickuppoint-modal').classList.add('open');
+  openModal('pickuppoint-modal');
   setTimeout(()=>document.getElementById('pickuppoint-name').focus(),100);
 }
 
@@ -4545,7 +4574,7 @@ function openEditPickupPoint(id){
   document.getElementById('pickuppoint-edit-id').value=id;
   populatePickupPointHostelBranchSelect();
   if(!scopedHostel){const sel=document.getElementById('pickuppoint-hostelbranch');if(sel)sel.value=p.hostelId||'';}
-  document.getElementById('pickuppoint-modal').classList.add('open');
+  openModal('pickuppoint-modal');
   setTimeout(()=>document.getElementById('pickuppoint-name').focus(),100);
 }
 
@@ -4898,7 +4927,7 @@ function openSavedBillPreview(res){
   if(getPosPrintStyle().startsWith('thermal'))_obm.fmt='thermal';
   document.getElementById('obm-sub').textContent=(o.orderId||'Bill')+' · '+(o.name||'');
   renderOrderBill();
-  document.getElementById('order-bill-modal').classList.add('open');
+  openModal('order-bill-modal');
 }
 
 // POS receipt style: 'standard' | 'thermal80' | 'thermal58' (remembered on this device)
@@ -5158,7 +5187,7 @@ function openAddCategory(){
   document.getElementById('cat-order').value='0';
   document.getElementById('cat-visible').checked=true;
   document.getElementById('cat-img-preview-wrap').style.display='none';
-  document.getElementById('category-modal').classList.add('open');
+  openModal('category-modal');
 }
 
 function openEditCategory(id){
@@ -5171,7 +5200,7 @@ function openEditCategory(id){
   document.getElementById('cat-order').value=cat.sortOrder??0;
   document.getElementById('cat-visible').checked=!cat.hidden;
   previewCatImage();
-  document.getElementById('category-modal').classList.add('open');
+  openModal('category-modal');
 }
 
 function previewCatImage(){
@@ -5219,7 +5248,7 @@ async function persistCategories(){
 }
 // ─── END CATEGORIES ───────────────────────────────────────────────────────────
 
-// ───────── FRUIT PRE-ORDER ─────────
+// ───────── PRE-ORDER ─────────
 let poState={open:false,closesAt:0,windowId:'',categories:['Fruits']};
 const _poOpen=()=>!!poState.open&&(!poState.closesAt||Date.now()<poState.closesAt);
 const _poEsc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -5340,11 +5369,19 @@ function poToggleProduct(id){
   renderPoProductPicker();
 }
 
+function openPoSelectionModal(mode){
+  window._poMode=mode||window._poMode||'products';
+  // Sync closing time into input if window is open
+  if(poState.closesAt){
+    const dt=new Date(poState.closesAt);
+    const local=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    document.getElementById('po-closes').value=local;
+  }
+  switchPoMode(window._poMode);
+  openModal('po-selection-modal');
+}
 function renderPreorderAdmin(){
   const st=document.getElementById('po-status');if(!st)return;
-  // Sync mode toggle UI
-  const mode=window._poMode||'products';
-  switchPoMode(mode);
   // Sync selected IDs from saved state
   if(!window._poSelectedIds) window._poSelectedIds=new Set(poState.products||[]);
   else{ poState.products=[...window._poSelectedIds]; }
@@ -5362,7 +5399,7 @@ function renderPreorderAdmin(){
   const wid=sel.value;
   const rows=pre.filter(o=>o.preorderWindowId===wid&&o.status!=='Cancelled');
   const agg={};
-  rows.forEach(o=>(o.items||[]).filter(i=>i.preorder).forEach(i=>{const k=(i.name||'')+'|'+(i.unit||'');const a=(agg[k]=agg[k]||{name:i.name,unit:i.unit||'',qty:0,orders:0,rev:0,cost:0,nocost:false,category:''});const q=Number(i.qty)||0,pr=allProducts.find(x=>x.id===i.id);a.qty+=q;a.orders++;a.rev+=(Number(i.price)||0)*q;a.cost+=(pr?.costPrice||0)*q;if(!pr?.costPrice)a.nocost=true;if(pr?.category&&!a.category)a.category=pr.category;}));
+  rows.forEach(o=>(o.items||[]).filter(i=>i.preorder).forEach(i=>{const k=(i.name||'')+'|'+(i.unit||'');const a=(agg[k]=agg[k]||{name:i.name,unit:i.unit||'',qty:0,orders:0,rev:0,cost:0,nocost:false,category:'',productId:'',costPrice:0});const q=Number(i.qty)||0,pr=allProducts.find(x=>x.id===i.id);a.qty+=q;a.orders++;a.rev+=(Number(i.price)||0)*q;a.cost+=(pr?.costPrice||0)*q;if(!pr?.costPrice)a.nocost=true;if(pr?.category&&!a.category)a.category=pr.category;if(pr?.id&&!a.productId)a.productId=pr.id;if(pr?.costPrice&&!a.costPrice)a.costPrice=pr.costPrice;}));
   const T=list0=>list0.reduce((t,r)=>({rev:t.rev+r.rev,cost:t.cost+r.cost,nocost:t.nocost||r.nocost}),{rev:0,cost:0,nocost:false});
   const list=Object.values(agg).sort((a,b)=>a.name.localeCompare(b.name));
   window._poList=list;window._poWid=wid;
@@ -5400,7 +5437,7 @@ async function poSave(newWindow){
   if(mode==='categories'&&!selectedCats.length){showToast('Select at least one category for pre-order');return;}
   const data={open:true,closesAt:ms,mode,products:mode==='products'?selectedProds:[],categories:mode==='categories'?selectedCats:[]};
   if(newWindow||!poState.windowId){data.windowId='w'+Date.now(); window._poSelectedIds=new Set(); window._poSelectedCatIds=new Set();}
-  try{await setDoc(doc(db,'settings','preorder'),data,{merge:true});poState={...poState,...data};showToast(newWindow?'New pre-order window opened':'Closing time updated');renderPreorderAdmin();}
+  try{await setDoc(doc(db,'settings','preorder'),data,{merge:true});poState={...poState,...data};showToast(newWindow?'New pre-order window opened':'Closing time updated');closeModal('po-selection-modal');renderPreorderAdmin();}
   catch(e){console.error(e);showToast('Could not save: '+(e.message||e));}
 }
 async function poCloseNow(){
@@ -5479,6 +5516,95 @@ async function poAutoRecordPurchases(wid){
   else if(skipped>0)showToast('All purchase records already exist for this window');
   else showToast('No purchase records created (products may have no cost price set)');
 }
+
+async function poManualRecordPurchases(){
+  const wid=document.getElementById('po-window-sel').value;
+  if(!wid){showToast('Select a pre-order window first');return;}
+  const list=window._poList||[];
+  if(!list.length){showToast('No items in this window');return;}
+  const{db,collection,getDocs,query,where}=window._fb;
+  let already=new Set();
+  try{
+    const snap=await getDocs(query(collection(db,'purchases'),where('preorderWindowId','==',wid)));
+    snap.forEach(d=>already.add((d.data().productId||'')+'|'+(d.data().productName||'')));
+  }catch(e){console.warn(e);}
+  const rows=list.map(r=>{
+    const productId=r.productId||allProducts.find(x=>x.name===r.name)?.id||'';
+    const unitCost=r.costPrice||allProducts.find(x=>x.id===productId)?.costPrice||0;
+    return{...r,productId,key:productId+'|'+r.name,unitCost,alreadyDone:already.has(productId+'|'+r.name)};
+  });
+  document.getElementById('po-confirm-modal')?.remove();
+  const modal=document.createElement('div');
+  modal.id='po-confirm-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML=`
+    <div style="background:white;border-radius:14px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div style="font-size:15px;font-weight:800;">📥 Add to Purchase</div>
+        <button onclick="document.getElementById('po-confirm-modal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;">✕</button>
+      </div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:14px;">Window: <b>${_poWinLabel(wid)}</b> · Recorded as purchased &amp; already sold (stock = 0). Adjust unit costs if needed.</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="color:#6b7280;font-size:11px;text-align:left;">
+            <th style="padding:6px 4px;">Item</th><th style="padding:6px 4px;text-align:center;">Unit</th>
+            <th style="padding:6px 4px;text-align:center;">Qty</th><th style="padding:6px 4px;">Unit Cost (₹)</th>
+            <th style="padding:6px 4px;text-align:right;">Total</th>
+          </tr></thead>
+          <tbody>${rows.map((r,i)=>`
+            <tr style="border-top:1px solid #f3f4f6;">
+              <td style="padding:8px 4px;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                  <input type="checkbox" id="poc-chk-${i}" ${r.alreadyDone?'':'checked'} ${r.alreadyDone?'disabled':''}>
+                  <span style="font-weight:700;">${_poEsc(r.name)}</span>
+                  ${r.alreadyDone?'<span style="font-size:10px;color:#6b7280;background:#f3f4f6;border-radius:4px;padding:1px 5px;">already recorded</span>':''}
+                </label>
+              </td>
+              <td style="padding:8px 4px;text-align:center;">${_poEsc(r.unit)}</td>
+              <td style="padding:8px 4px;text-align:center;font-weight:800;">${r.qty}</td>
+              <td style="padding:8px 4px;"><input type="number" id="poc-cost-${i}" value="${r.unitCost}" min="0" step="0.01" style="width:80px;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;font-size:12px;text-align:right;" ${r.alreadyDone?'disabled':''}></td>
+              <td style="padding:8px 4px;text-align:right;font-size:12px;color:#6b7280;" id="poc-total-${i}">₹${Math.round((r.unitCost||0)*r.qty)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+        <button onclick="document.getElementById('po-confirm-modal').remove()" style="padding:9px 18px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Cancel</button>
+        <button onclick="poConfirmRecordPurchases()" style="padding:9px 18px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">✅ Confirm &amp; Save to Purchases</button>
+      </div>
+    </div>`;
+  window._poConfirmRows=rows.map((r,i)=>({...r,idx:i}));
+  document.body.appendChild(modal);
+  rows.forEach((_,i)=>{
+    const costEl=document.getElementById('poc-cost-'+i);
+    const totalEl=document.getElementById('poc-total-'+i);
+    if(costEl&&totalEl)costEl.addEventListener('input',()=>{totalEl.textContent='₹'+Math.round((parseFloat(costEl.value)||0)*rows[i].qty);});
+  });
+}
+
+async function poConfirmRecordPurchases(){
+  const rows=window._poConfirmRows||[];
+  document.getElementById('po-confirm-modal')?.remove();
+  const wid=window._poWid||document.getElementById('po-window-sel').value;
+  if(!wid||!rows.length){showToast('Nothing to record');return;}
+  const{db,collection,addDoc,doc,updateDoc,serverTimestamp}=window._fb;
+  const today=new Date().toISOString().split('T')[0];
+  let created=0,skipped=0;
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i];
+    const chk=document.getElementById('poc-chk-'+r.idx);
+    if((chk&&!chk.checked)||r.alreadyDone){skipped++;continue;}
+    const costEl=document.getElementById('poc-cost-'+r.idx);
+    const unitCost=costEl?parseFloat(costEl.value)||0:r.unitCost||0;
+    try{
+      await addDoc(collection(db,'purchases'),{productId:r.productId||'',productName:r.name||'',hostelId:'',hostelName:'',supplier:'',qty:r.qty,unitCost,totalCost:unitCost*r.qty,date:today,remaining:0,fullyUsed:true,notes:'Pre-order '+_poWinLabel(wid)+' — recorded as sold',updatedSellPrice:null,preorderWindowId:wid,createdAt:serverTimestamp()});
+      if(unitCost>0&&r.productId)await updateDoc(doc(db,'products',r.productId),{costPrice:unitCost});
+      created++;
+    }catch(e){console.error('Purchase record failed for',r.name,e);}
+  }
+  await loadPurchases();
+  showToast(created+' purchase record'+(created>1?'s':'')+' saved'+(skipped?' ('+skipped+' skipped)':''));
+}
 function _poGroupedByCat(list){
   // Returns [{cat, items:[]}] sorted by category name; uncategorised goes last
   const map={};
@@ -5528,7 +5654,7 @@ function navAdmin(page){
   document.querySelectorAll('.page-content').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
-  const titles={dashboard:'Dashboard',orders:'Order Management',products:'Products',categories:'Categories',preorder:'Fruit Pre-order',purchases:'Purchase Records',billing:'Billing',workers:'Workers',hostels:'Hostel Management',pickuppoints:'Pickup Points',customers:'Customers',analytics:'Analytics',promos:'Promo Codes',chats:'Support Chats',cms:'Content Management',settings:'Settings'};
+  const titles={dashboard:'Dashboard',orders:'Order Management',products:'Products',categories:'Categories',preorder:'Pre-order',purchases:'Purchase Records',billing:'Billing',workers:'Workers',hostels:'Hostel Management',pickuppoints:'Pickup Points',customers:'Customers',analytics:'Analytics',promos:'Promo Codes',chats:'Support Chats',cms:'Content Management',settings:'Settings'};
   document.getElementById('page-title').textContent=titles[page]||page;
   if(page==='orders'){renderOrdersTable();renderOrderChips();}
   if(page==='products')renderProductsAdmin();
@@ -5575,7 +5701,16 @@ function toggleSidebar(){
 }
 
 // ─── HELPERS ───
-function closeModal(id){document.getElementById(id)?.classList.remove('open');}
+function closeModal(id){
+  const el=document.getElementById(id);if(!el)return;
+  if(el._openedAt&&Date.now()-el._openedAt<350)return;
+  el.classList.remove('open');
+}
+function openModal(id){
+  const el=document.getElementById(id);if(!el)return;
+  el._openedAt=Date.now();
+  el.classList.add('open');
+}
 
 function showToast(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
@@ -5902,7 +6037,7 @@ function openPrinterSetup(){
   sel.value=getPrinterMethod();
   document.getElementById('tp-width').value=getThermalWidth();
   tpMethodChanged(true);
-  document.getElementById('printer-setup-modal').classList.add('open');
+  openModal('printer-setup-modal');
 }
 function tpMethodChanged(skipSave){
   const m=document.getElementById('tp-method').value;
@@ -6026,7 +6161,7 @@ function openOrderBill(fid){
   document.getElementById('obm-sub').textContent=(o.orderId||'Order')+' · '+(o.name||'');
   if(/cancel/i.test(o.status||''))showToast('Note: this order is cancelled');
   renderOrderBill();
-  document.getElementById('order-bill-modal').classList.add('open');
+  openModal('order-bill-modal');
 }
 
 function printOrderBill(){
