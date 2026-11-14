@@ -5251,6 +5251,41 @@ async function persistCategories(){
 // ───────── PRE-ORDER ─────────
 let poState={open:false,closesAt:0,windowId:'',categories:['Fruits']};
 const _poOpen=()=>!!poState.open&&(!poState.closesAt||Date.now()<poState.closesAt);
+
+// ─── AUTO-CLOSE TIMER ───────────────────────────────────────────────────────
+// Schedules a client-side timer so preorder products hide automatically when
+// the window expires — even if the admin never navigates to the preorder page.
+let _poAutoCloseTimer = null;
+function _schedulePoAutoClose(){
+  if(_poAutoCloseTimer){clearTimeout(_poAutoCloseTimer);_poAutoCloseTimer=null;}
+  if(!poState.open||!poState.closesAt)return;
+  const delay=poState.closesAt-Date.now();
+  if(delay<=0){
+    // Already expired — close immediately (guards against race on load)
+    _poAutoExpireNow();
+    return;
+  }
+  // Cap at ~24 days (setTimeout max-safe-integer ~24.8 days); re-schedule if longer
+  const MAX_DELAY=2147483647;
+  if(delay>MAX_DELAY){
+    _poAutoCloseTimer=setTimeout(()=>_schedulePoAutoClose(),MAX_DELAY);
+    return;
+  }
+  _poAutoCloseTimer=setTimeout(()=>_poAutoExpireNow(),delay);
+}
+async function _poAutoExpireNow(){
+  _poAutoCloseTimer=null;
+  if(!poState.open)return; // already closed by another means
+  const{db,doc,setDoc}=window._fb;
+  try{
+    await setDoc(doc(db,'settings','preorder'),{open:false},{merge:true});
+    poState.open=false;
+    showToast('⏰ Pre-order window closed automatically — products hidden from customers');
+    renderPreorderAdmin();
+    await poAutoRecordPurchases(poState.windowId);
+  }catch(e){console.error('Auto-close timer failed:',e);}
+}
+// ─────────────────────────────────────────────────────────────────────────────
 const _poEsc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const _poWinLabel=id=>{const t=Number(String(id).slice(1));return t?new Date(t).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'(no window)';};
 function _poToLocalInput(ms){const d=new Date(ms-new Date(ms).getTimezoneOffset()*60000);return d.toISOString().slice(0,16);}
@@ -5271,6 +5306,7 @@ async function loadPreorderAdmin(){
       await poAutoRecordPurchases(poState.windowId);
     }catch(e){console.error('Auto-close on expiry failed:',e);}
   }
+  _schedulePoAutoClose();
   renderPreorderAdmin();
 }
 function switchPoMode(mode){
@@ -5437,11 +5473,12 @@ async function poSave(newWindow){
   if(mode==='categories'&&!selectedCats.length){showToast('Select at least one category for pre-order');return;}
   const data={open:true,closesAt:ms,mode,products:mode==='products'?selectedProds:[],categories:mode==='categories'?selectedCats:[]};
   if(newWindow||!poState.windowId){data.windowId='w'+Date.now(); window._poSelectedIds=new Set(); window._poSelectedCatIds=new Set();}
-  try{await setDoc(doc(db,'settings','preorder'),data,{merge:true});poState={...poState,...data};showToast(newWindow?'New pre-order window opened':'Closing time updated');closeModal('po-selection-modal');renderPreorderAdmin();}
+  try{await setDoc(doc(db,'settings','preorder'),data,{merge:true});poState={...poState,...data};_schedulePoAutoClose();showToast(newWindow?'New pre-order window opened':'Closing time updated');closeModal('po-selection-modal');renderPreorderAdmin();}
   catch(e){console.error(e);showToast('Could not save: '+(e.message||e));}
 }
 async function poCloseNow(){
   if(!confirm('Close ordering now? Fruits will be hidden from customers.\n\nPurchase records will be auto-created in Purchases for each fruit ordered.'))return;
+  if(_poAutoCloseTimer){clearTimeout(_poAutoCloseTimer);_poAutoCloseTimer=null;}
   const{db,doc,setDoc}=window._fb;
   try{
     await setDoc(doc(db,'settings','preorder'),{open:false},{merge:true});
