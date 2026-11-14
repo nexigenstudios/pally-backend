@@ -622,13 +622,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     </div>
     <!-- Date + buttons -->
     <div style="border-top:1px solid #f3f4f6;padding-top:14px;margin-top:4px;">
-      <div style="margin-bottom:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <label class="lbl" style="margin:0;">Customers can order until</label>
-          <button onclick="poResetTime()" id="po-reset-time-btn" class="btn" style="padding:3px 10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;font-size:11px;font-weight:700;display:none;">↺ Reset time</button>
-        </div>
-        <input id="po-closes" type="datetime-local" class="input-f">
-      </div>
+      <div style="margin-bottom:12px;"><label class="lbl">Customers can order until</label><input id="po-closes" type="datetime-local" class="input-f"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button onclick="poSave(true)" class="btn" id="po-open-btn" style="flex:1;padding:10px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Open new window</button>
         <button onclick="poSave(false)" class="btn" id="po-update-btn" style="flex:1;padding:10px;background:#e2f0e6;color:#1a5c2a;border:none;border-radius:8px;font-size:13px;font-weight:700;">Update closing time</button>
@@ -2643,7 +2637,7 @@ function openEditProduct(id){
   document.getElementById('p-category').value=p.category||'Chips';
   document.getElementById('p-price').value=p.price||'';
   document.getElementById('p-cost').value=p.costPrice||'';
-  document.getElementById('p-stock').value=p.stock||'';
+  document.getElementById('p-stock').value=p.stock??'';
   document.getElementById('p-image').value=p.imageUrl||'';
   document.getElementById('p-desc').value=p.desc||'';
   document.getElementById('p-rating').value=p.rating||4.5;
@@ -4689,10 +4683,10 @@ function renderBillSearch(){
       ${p.imageUrl?`<img src="${p.imageUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;">`:'<div style="width:36px;height:36px;background:#e5e7eb;border-radius:6px;flex-shrink:0;"></div>'}
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name||'—'}</div>
-        <div style="font-size:11px;color:${(!_poIsActive(p)&&(p.stock||0)<=0)?'#dc2626':'#6b7280'};">${p.category||''} · ${_poIsActive(p)?'<span style="color:#2d8a45;font-weight:700;">Pre-order</span>':'Stock: '+(p.stock??0)}</div>
+        <div style="font-size:11px;color:${(p.stock||0)<=0?'#dc2626':'#6b7280'};">${p.category||''} · Stock: ${p.stock??0}</div>
       </div>
       <div style="font-size:13px;font-weight:800;color:#1a5c2a;flex-shrink:0;">₹${p.price||0}</div>
-      <button onclick="addToBillCart('${p.id}')" ${(!_poIsActive(p)&&(p.stock||0)<=0)?'disabled':''} class="btn" style="padding:5px 12px;background:${(!_poIsActive(p)&&(p.stock||0)<=0)?'#d1d5db':'#2d8a45'};color:white;border:none;border-radius:7px;font-size:12px;font-weight:700;flex-shrink:0;${(!_poIsActive(p)&&(p.stock||0)<=0)?'cursor:not-allowed;':''}">${(!_poIsActive(p)&&(p.stock||0)<=0)?'Out':'+ Add'}</button>
+      <button onclick="addToBillCart('${p.id}')" ${(p.stock||0)<=0?'disabled':''} class="btn" style="padding:5px 12px;background:${(p.stock||0)<=0?'#d1d5db':'#2d8a45'};color:white;border:none;border-radius:7px;font-size:12px;font-weight:700;flex-shrink:0;${(p.stock||0)<=0?'cursor:not-allowed;':''}">${(p.stock||0)<=0?'Out':'+ Add'}</button>
     </div>`).join('');
 }
 
@@ -4701,7 +4695,7 @@ function addToBillCart(productId){
   if(!p)return;
   const available=p.stock||0;
   const existing=billCart.find(x=>x.id===productId);
-  if(!_poIsActive(p)&&(existing?existing.qty:0)+1>available){showToast(available<=0?p.name+' is out of stock':'Only '+available+' in stock for '+p.name);return;}
+  if((existing?existing.qty:0)+1>available){showToast(available<=0?p.name+' is out of stock':'Only '+available+' in stock for '+p.name);return;}
   if(existing){existing.qty++;} else {billCart.push({id:productId,name:p.name,price:p.price||0,qty:1,isProduct:true});}
   renderBillCart();
   showToast(p.name+' added to bill');
@@ -4725,7 +4719,7 @@ function updateBillQty(id,delta){
   if(delta>0&&item.isProduct){
     const p=allProducts.find(x=>x.id===id);
     const available=p?(p.stock||0):0;
-    if(!_poIsActive(p)&&item.qty+delta>available){showToast('Only '+available+' in stock for '+item.name);return;}
+    if(item.qty+delta>available){showToast('Only '+available+' in stock for '+item.name);return;}
   }
   item.qty+=delta;
   if(item.qty<=0)billCart=billCart.filter(x=>x.id!==id);
@@ -4892,16 +4886,10 @@ async function commitBill(orderId){
       snaps.forEach((snap,k)=>{
         const it=stockItems[k];
         if(!snap.exists())throw new Error('"'+it.name+'" no longer exists.');
-        const p=allProducts.find(x=>x.id===it.id);
-        if(_poIsActive(p))return; // preorder: unlimited stock, skip check
         const avail=snap.data().stock??0;
         if(avail<it.qty)throw new Error(avail<=0?'"'+it.name+'" is out of stock.':'"'+it.name+'" — only '+avail+' left, bill has '+it.qty+'.');
       });
-      snaps.forEach((snap,k)=>{
-        const p=allProducts.find(x=>x.id===stockItems[k].id);
-        if(_poIsActive(p))return; // preorder: don't deduct stock
-        txn.update(refs[k],{stock:(snap.data().stock??0)-stockItems[k].qty,updatedAt:new Date().toISOString()});
-      });
+      snaps.forEach((snap,k)=>txn.update(refs[k],{stock:(snap.data().stock??0)-stockItems[k].qty,updatedAt:new Date().toISOString()}));
       txn.set(orderRef,order);
     });
   }catch(e){
@@ -5261,16 +5249,8 @@ async function persistCategories(){
 // ─── END CATEGORIES ───────────────────────────────────────────────────────────
 
 // ───────── PRE-ORDER ─────────
-let poState={open:false,closesAt:0,windowId:'',categories:['Fruits']};
+let poState={open:false,closesAt:0,windowId:'',mode:'products',products:[],categories:[]};
 const _poOpen=()=>!!poState.open&&(!poState.closesAt||Date.now()<poState.closesAt);
-// Returns true if product p is covered by the current open preorder window (unlimited stock)
-function _poIsActive(p){
-  if(!_poOpen()||!p)return false;
-  const mode=poState.mode||'products';
-  if(mode==='products') return (poState.products||[]).includes(p.id);
-  if(mode==='categories') return (poState.categories||[]).includes(p.category);
-  return false;
-}
 
 // ─── AUTO-CLOSE TIMER ───────────────────────────────────────────────────────
 // Schedules a client-side timer so preorder products hide automatically when
@@ -5312,8 +5292,12 @@ function _poToLocalInput(ms){const d=new Date(ms-new Date(ms).getTimezoneOffset(
 async function loadPreorderAdmin(){
   const wasOpen=poState.open;
   try{const{db,doc,getDoc}=window._fb;const sn=await getDoc(doc(db,'settings','preorder'));
-    if(sn.exists()){const d=sn.data();poState={open:!!d.open,closesAt:Number(d.closesAt)||0,windowId:d.windowId||'',products:d.products||[],categories:d.categories||[],mode:d.mode||'products'};window._poSelectedIds=new Set(poState.products);window._poSelectedCatIds=new Set(poState.categories);window._poMode=poState.mode||'products';}
-    else{window._poMode=window._poMode||'products';}
+    if(sn.exists()){const d=sn.data();poState={open:!!d.open,closesAt:Number(d.closesAt)||0,windowId:d.windowId||'',products:Array.isArray(d.products)?d.products:[],categories:Array.isArray(d.categories)?d.categories:[],mode:d.mode||'products'};
+      // Always reset selection sets from freshly-loaded Firestore data so the modal
+      // doesn't open with stale selections from a previous session.
+      window._poSelectedIds=new Set(poState.products);
+      window._poSelectedCatIds=new Set(poState.categories);
+      window._poMode=poState.mode||'products';}
   }catch(e){console.error('loadPreorderAdmin:',e);showToast('Could not load pre-order settings');}
   const inp=document.getElementById('po-closes');if(inp&&poState.closesAt)inp.value=_poToLocalInput(poState.closesAt);
   // If the window was open but the closing time has now passed (natural expiry),
@@ -5439,16 +5423,16 @@ function openPoSelectionModal(mode){
 }
 function renderPreorderAdmin(){
   const st=document.getElementById('po-status');if(!st)return;
-  // Sync selected IDs from saved state
+  // Initialise selection sets from poState when first rendering (modal not yet opened).
+  // Do NOT sync back from window._poSelected* to poState here — that would overwrite the
+  // freshly-loaded Firestore data with whatever was left over from a previous modal session.
+  // The sync back only happens inside poSave() when the admin actually commits a change.
   if(!window._poSelectedIds) window._poSelectedIds=new Set(poState.products||[]);
-  else{ poState.products=[...window._poSelectedIds]; }
   if(!window._poSelectedCatIds) window._poSelectedCatIds=new Set(poState.categories||[]);
-  else{ poState.categories=[...window._poSelectedCatIds]; }
   const open=_poOpen();
   st.textContent=open?'OPEN':'CLOSED';st.style.background=open?'#dcfce7':'#f3f4f6';st.style.color=open?'#166534':'#6b7280';
   document.getElementById('po-close-btn').style.display=open?'':'none';
   document.getElementById('po-update-btn').style.display=open?'':'none';
-  const resetBtn=document.getElementById('po-reset-time-btn');if(resetBtn)resetBtn.style.display=open?'':'none';
   const pre=allOrders.filter(o=>o.preorder&&o.preorderWindowId);
   const ids=[...new Set([poState.windowId,...pre.map(o=>o.preorderWindowId)].filter(Boolean))].sort().reverse();
   const sel=document.getElementById('po-window-sel');const keep=sel.value;
@@ -5488,31 +5472,15 @@ async function poSave(newWindow){
   const ms=v?new Date(v).getTime():0;
   if(!ms||ms<=Date.now()){showToast('Pick a closing time in the future');return;}
   const{db,doc,setDoc}=window._fb;
-  // When updating an existing window, always use the saved poState mode/selections as source of truth
-  // to avoid accidentally overwriting mode/products when _poMode was never set in this session
-  const mode=newWindow?(window._poMode||'products'):( poState.mode||window._poMode||'products');
-  const selectedProds=newWindow?[...(window._poSelectedIds||[])]:(poState.products||[...(window._poSelectedIds||[])]);
-  const selectedCats=newWindow?[...(window._poSelectedCatIds||[])]:(poState.categories||[...(window._poSelectedCatIds||[])]);
-  // Only validate selections when opening a new window; updating an existing open window only needs the new closing time
-  if(newWindow){
-    if(mode==='products'&&!selectedProds.length){showToast('Select at least one product for pre-order');return;}
-    if(mode==='categories'&&!selectedCats.length){showToast('Select at least one category for pre-order');return;}
-  }
-  let data;
-  if(newWindow||!poState.windowId){
-    // Opening a new window — write everything
-    data={open:true,closesAt:ms,mode,products:mode==='products'?selectedProds:[],categories:mode==='categories'?selectedCats:[],windowId:'w'+Date.now()};
-    window._poSelectedIds=new Set(); window._poSelectedCatIds=new Set();
-  } else {
-    // Just updating closing time — only write closesAt, leave everything else untouched
-    data={closesAt:ms};
-  }
+  const mode=window._poMode||'products';
+  const selectedProds=[...(window._poSelectedIds||[])];
+  const selectedCats=[...(window._poSelectedCatIds||[])];
+  if(mode==='products'&&!selectedProds.length){showToast('Select at least one product for pre-order');return;}
+  if(mode==='categories'&&!selectedCats.length){showToast('Select at least one category for pre-order');return;}
+  const data={open:true,closesAt:ms,mode,products:mode==='products'?selectedProds:[],categories:mode==='categories'?selectedCats:[]};
+  if(newWindow||!poState.windowId){data.windowId='w'+Date.now(); window._poSelectedIds=new Set(); window._poSelectedCatIds=new Set();}
   try{await setDoc(doc(db,'settings','preorder'),data,{merge:true});poState={...poState,...data};_schedulePoAutoClose();showToast(newWindow?'New pre-order window opened':'Closing time updated');closeModal('po-selection-modal');renderPreorderAdmin();}
   catch(e){console.error(e);showToast('Could not save: '+(e.message||e));}
-}
-function poResetTime(){
-  const inp=document.getElementById('po-closes');
-  if(inp){inp.value='';inp.focus();}
 }
 async function poCloseNow(){
   if(!confirm('Close ordering now? Fruits will be hidden from customers.\n\nPurchase records will be auto-created in Purchases for each fruit ordered.'))return;
