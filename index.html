@@ -5498,8 +5498,15 @@ async function poSave(newWindow){
     if(mode==='products'&&!selectedProds.length){showToast('Select at least one product for pre-order');return;}
     if(mode==='categories'&&!selectedCats.length){showToast('Select at least one category for pre-order');return;}
   }
-  const data={open:true,closesAt:ms,mode,products:mode==='products'?selectedProds:[],categories:mode==='categories'?selectedCats:[]};
-  if(newWindow||!poState.windowId){data.windowId='w'+Date.now(); window._poSelectedIds=new Set(); window._poSelectedCatIds=new Set();}
+  let data;
+  if(newWindow||!poState.windowId){
+    // Opening a new window — write everything
+    data={open:true,closesAt:ms,mode,products:mode==='products'?selectedProds:[],categories:mode==='categories'?selectedCats:[],windowId:'w'+Date.now()};
+    window._poSelectedIds=new Set(); window._poSelectedCatIds=new Set();
+  } else {
+    // Just updating closing time — only write closesAt, leave everything else untouched
+    data={closesAt:ms};
+  }
   try{await setDoc(doc(db,'settings','preorder'),data,{merge:true});poState={...poState,...data};_schedulePoAutoClose();showToast(newWindow?'New pre-order window opened':'Closing time updated');closeModal('po-selection-modal');renderPreorderAdmin();}
   catch(e){console.error(e);showToast('Could not save: '+(e.message||e));}
 }
