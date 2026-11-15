@@ -5329,15 +5329,15 @@ function renderPoCategoryPicker(){
   const sel=document.getElementById('po-cat-selected');
   const list=document.getElementById('po-cat-list');
   if(!sel||!list) return;
-  const selCats=(allCategories||[]).filter(c=>window._poSelectedCatIds.has(c.id));
+  const selCats=(allCategories||[]).filter(c=>window._poSelectedCatIds.has(c.id)&&!c.hidden);
   sel.style.display=selCats.length?'flex':'none';
   sel.innerHTML=selCats.map(c=>`
     <span style="display:inline-flex;align-items:center;gap:5px;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;color:#1e40af;">
       📦 ${_poEsc(c.name)}
       <button type="button" onclick="poToggleCategory('${c.id}')" style="background:none;border:none;cursor:pointer;color:#2563eb;font-size:15px;line-height:1;padding:0;" aria-label="Remove">×</button>
     </span>`).join('');
-  const unselected=(allCategories||[]).filter(c=>!window._poSelectedCatIds.has(c.id));
-  if(!unselected.length && !(allCategories||[]).length){
+  const unselected=(allCategories||[]).filter(c=>!window._poSelectedCatIds.has(c.id)&&!c.hidden);
+  if(!unselected.length && !(allCategories||[]).filter(c=>!c.hidden).length){
     list.innerHTML='<div style="padding:12px;font-size:12px;color:#9ca3af;text-align:center;">No categories found. Add categories first.</div>';
     return;
   }
