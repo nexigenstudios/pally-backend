@@ -447,6 +447,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       <div class="nav-item active" onclick="navAdmin('dashboard')" id="nav-dashboard" data-page="dashboard"><span class="material-symbols-outlined ms ms-fill" style="font-size:20px;flex-shrink:0;">dashboard</span><span class="nav-label">Dashboard</span></div>
       <div class="nav-item" onclick="navAdmin('orders')" id="nav-orders" data-page="orders"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">receipt_long</span><span class="nav-label">Orders</span><span class="badge-count nav-label" id="pending-badge" style="margin-left:auto;background:#2d8a45;color:white;font-size:10px;border-radius:999px;padding:1px 7px;display:none;">0</span></div>
       <div class="nav-item" onclick="navAdmin('products')" id="nav-products" data-page="products"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">inventory_2</span><span class="nav-label">Products</span></div>
+      <div class="nav-item" onclick="navAdmin('stock')" id="nav-stock" data-page="stock"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">warehouse</span><span class="nav-label">Stock</span></div>
       <div class="nav-item" onclick="navAdmin('categories')" id="nav-categories" data-page="categories"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">category</span><span class="nav-label">Categories</span></div>
       <div class="nav-item" onclick="navAdmin('preorder')" id="nav-preorder" data-page="preorder"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">nutrition</span><span class="nav-label">Pre-order</span></div>
       <div class="nav-item" onclick="navAdmin('purchases')" id="nav-purchases" data-page="purchases"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">shopping_cart</span><span class="nav-label">Purchases</span></div>
@@ -555,6 +556,50 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
   <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
     <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Product</th><th>Branch</th><th>Category</th><th>Sell Price</th><th>Cost Price</th><th>Margin</th><th>Stock</th><th>Rating</th><th style="text-align:right">Actions</th></tr></thead><tbody id="products-tbody"></tbody></table></div>
     <div id="products-empty" style="text-align:center;padding:40px;color:#9ca3af;display:none;"><span class="material-symbols-outlined ms" style="font-size:36px;display:block;margin-bottom:6px;">inventory_2</span><div style="font-weight:700;">No products yet</div></div>
+  </div>
+</div>
+
+<!-- ===== STOCK ===== -->
+<div class="page-content" id="page-stock">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+    <div>
+      <h2 style="font-size:15px;font-weight:700;">Stock Management</h2>
+      <p style="font-size:12px;color:#6b7280;margin-top:2px;">Update stock levels directly or add new purchase entries to increase stock</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="openStockReport()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 14px;background:#7c3aed;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:17px;">print</span>Print Stock Report</button>
+      <button onclick="openAddPurchase()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 14px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:17px;">add_shopping_cart</span>Add Purchase</button>
+    </div>
+  </div>
+  <!-- Summary cards -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;">
+    <div class="stat-card"><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Total Products</p><h3 style="font-size:22px;font-weight:800;margin-top:4px;" id="stk-total-products">0</h3></div>
+    <div class="stat-card"><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Total Units</p><h3 style="font-size:22px;font-weight:800;margin-top:4px;" id="stk-total-units">0</h3></div>
+    <div class="stat-card"><p style="font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.06em;">Low Stock (&lt;10)</p><h3 style="font-size:22px;font-weight:800;margin-top:4px;color:#dc2626;" id="stk-low">0</h3></div>
+    <div class="stat-card"><p style="font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.06em;">Out of Stock</p><h3 style="font-size:22px;font-weight:800;margin-top:4px;color:#dc2626;" id="stk-zero">0</h3></div>
+  </div>
+  <!-- Search + filter -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
+    <div style="position:relative;flex:1;min-width:180px;"><span class="material-symbols-outlined ms" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#9ca3af;">search</span><input id="stock-search" type="text" placeholder="Search products..." oninput="renderStockTable()" class="input-f" style="padding-left:34px;"></div>
+    <select id="stock-filter" onchange="renderStockTable()" class="input-f" style="width:auto;min-width:140px;">
+      <option value="all">All Products</option>
+      <option value="low">Low Stock (&lt;10)</option>
+      <option value="zero">Out of Stock</option>
+      <option value="ok">In Stock (&ge;10)</option>
+    </select>
+  </div>
+  <!-- Stock table -->
+  <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>Product</th><th>Category</th><th>Branch</th><th>Current Stock</th><th>Status</th><th style="text-align:right;">Actions</th></tr></thead>
+        <tbody id="stock-tbody"></tbody>
+      </table>
+    </div>
+    <div id="stock-empty" style="text-align:center;padding:40px;color:#9ca3af;display:none;">
+      <span class="material-symbols-outlined ms" style="font-size:36px;display:block;margin-bottom:6px;">warehouse</span>
+      <div style="font-weight:700;">No products found</div>
+    </div>
   </div>
 </div>
 
@@ -1222,6 +1267,83 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <input type="hidden" id="pur-batch-id">
     <div id="pur-delete-row" style="display:none;margin-top:12px;"><button onclick="deletePurchasePermanent()" class="btn" style="width:100%;padding:10px;background:#fee2e2;color:#dc2626;border:none;border-radius:10px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:15px;vertical-align:middle;">delete_forever</span> Delete Purchase &amp; Batch Permanently</button></div>
     <button onclick="savePurchase()" id="save-pur-btn" class="btn" style="width:100%;margin-top:10px;padding:12px;background:#2d8a45;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;">Record Purchase</button>
+  </div>
+</div>
+
+<!-- Stock Update Modal -->
+<div class="modal-bd" id="stock-update-modal" onclick="closeModal('stock-update-modal')">
+  <div class="modal-box" style="max-width:420px;padding:24px;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h2 style="font-size:16px;font-weight:800;">Update Stock</h2>
+      <button onclick="closeModal('stock-update-modal')" class="btn" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms" style="font-size:16px;color:#6b7280;">close</span></button>
+    </div>
+    <div style="background:#f9fafb;border-radius:10px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:800;color:#111827;" id="su-product-name">—</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:2px;">Current stock: <strong id="su-current-stock" style="color:#374151;">0</strong> units</div>
+    </div>
+    <input type="hidden" id="su-product-id">
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label class="lbl">Adjustment Type</label>
+        <select id="su-type" class="input-f" onchange="updateStockPreview()">
+          <option value="set">Set exact stock (overwrite)</option>
+          <option value="add">Add to current stock</option>
+          <option value="subtract">Subtract from current stock</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Quantity *</label>
+        <input id="su-qty" type="number" min="0" class="input-f" placeholder="Enter quantity" oninput="updateStockPreview()">
+      </div>
+      <div>
+        <label class="lbl">Reason / Note (optional)</label>
+        <input id="su-reason" type="text" class="input-f" placeholder="e.g. Manual correction, damaged stock...">
+      </div>
+      <div id="su-preview" style="display:none;background:#f0fdf4;border-radius:8px;padding:10px;font-size:13px;color:#166534;font-weight:700;"></div>
+      <div style="background:#fef9c3;border-radius:8px;padding:10px;font-size:11px;color:#854d0e;font-weight:600;">
+        <span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">info</span>
+        This directly updates the stock field. For purchase-linked stock increases (with cost tracking), use "Add Purchase" instead.
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button onclick="closeModal('stock-update-modal')" class="btn" style="flex:1;padding:11px;background:#f3f4f6;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#374151;">Cancel</button>
+      <button onclick="saveStockUpdate()" id="save-su-btn" class="btn" style="flex:1;padding:11px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">Update Stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock Report Modal -->
+<div class="modal-bd" id="stock-report-modal" onclick="closeModal('stock-report-modal')">
+  <div class="modal-box" style="max-width:520px;padding:24px;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h2 style="font-size:16px;font-weight:800;">Print Stock Report</h2>
+      <button onclick="closeModal('stock-report-modal')" class="btn" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms" style="font-size:16px;color:#6b7280;">close</span></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
+      <div>
+        <label class="lbl">Report Type</label>
+        <select id="sr-type" class="input-f" onchange="onStockReportTypeChange()">
+          <option value="current">Current Stock Snapshot</option>
+          <option value="purchases">Purchase History (by date range)</option>
+          <option value="lowstock">Low Stock Alert (&lt;10 units)</option>
+          <option value="zerostock">Out of Stock Report</option>
+        </select>
+      </div>
+      <div id="sr-date-range" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label class="lbl">From Date</label><input id="sr-from" type="date" class="input-f"></div>
+        <div><label class="lbl">To Date</label><input id="sr-to" type="date" class="input-f"></div>
+      </div>
+      <div>
+        <label class="lbl">Filter by Category (optional)</label>
+        <select id="sr-category" class="input-f">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeModal('stock-report-modal')" class="btn" style="flex:1;padding:11px;background:#f3f4f6;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#374151;">Cancel</button>
+      <button onclick="printStockReport()" class="btn" style="flex:1;padding:11px;background:#7c3aed;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">print</span> Print Report</button>
+    </div>
   </div>
 </div>
 
@@ -2052,6 +2174,233 @@ async function loadCmsData(){
 }
 
 function refreshAll(){loadPurchases();loadAllBatches();loadWorkers();loadCustomers();loadSettings();loadCmsData();showToast('Refreshed!');}
+
+// ═══════════════════════════════════════════════════════════
+// STOCK MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+function renderStockSummary(){
+  const prods=getFilteredStockProducts('all');
+  document.getElementById('stk-total-products').textContent=prods.length;
+  document.getElementById('stk-total-units').textContent=prods.reduce((s,p)=>s+(p.stock||0),0);
+  document.getElementById('stk-low').textContent=prods.filter(p=>(p.stock||0)>0&&(p.stock||0)<10).length;
+  document.getElementById('stk-zero').textContent=prods.filter(p=>(p.stock||0)<=0).length;
+}
+
+function getFilteredStockProducts(filterVal){
+  const search=(document.getElementById('stock-search')?.value||'').toLowerCase();
+  let prods=[...allProducts];
+  if(search)prods=prods.filter(p=>(p.name||'').toLowerCase().includes(search)||(p.category||'').toLowerCase().includes(search));
+  if(filterVal==='low')prods=prods.filter(p=>(p.stock||0)>0&&(p.stock||0)<10);
+  else if(filterVal==='zero')prods=prods.filter(p=>(p.stock||0)<=0);
+  else if(filterVal==='ok')prods=prods.filter(p=>(p.stock||0)>=10);
+  return prods;
+}
+
+function renderStockTable(){
+  const filter=document.getElementById('stock-filter')?.value||'all';
+  const prods=getFilteredStockProducts(filter);
+  const tbody=document.getElementById('stock-tbody');
+  const empty=document.getElementById('stock-empty');
+  if(!tbody)return;
+  renderStockSummary();
+  if(!prods.length){tbody.innerHTML='';if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  tbody.innerHTML=prods.map(p=>{
+    const stock=p.stock||0;
+    let statusBadge='';
+    if(stock<=0)statusBadge='<span class="badge" style="background:#fee2e2;color:#b91c1c;">Out of Stock</span>';
+    else if(stock<10)statusBadge='<span class="badge" style="background:#fef3c7;color:#92400e;">Low Stock</span>';
+    else statusBadge='<span class="badge" style="background:#dcfce7;color:#15803d;">In Stock</span>';
+    return`<tr>
+      <td><div style="display:flex;align-items:center;gap:8px;"><img src="${p.imageUrl||catFb(p.category)}" style="width:32px;height:32px;border-radius:7px;object-fit:cover;flex-shrink:0;" onerror="this.src='${catFb(p.category)}'"><div style="font-weight:700;font-size:13px;">${p.name||''}</div></div></td>
+      <td><span class="badge" style="background:#fff5ed;color:#c2410c;">${p.category||'—'}</span></td>
+      <td>${p.hostelId?`<span class="badge" style="background:#eff6ff;color:#2563eb;">${p.hostelName||'Assigned'}</span>`:'<span class="badge" style="background:#fee2e2;color:#dc2626;">⚠ No branch</span>'}</td>
+      <td style="font-weight:800;font-size:15px;color:${stock<=0?'#dc2626':stock<10?'#d97706':'#374151'};">${stock}</td>
+      <td>${statusBadge}</td>
+      <td style="text-align:right;">
+        <div style="display:flex;justify-content:flex-end;gap:5px;flex-wrap:wrap;">
+          <button onclick="openStockUpdate('${p.id}')" class="btn" style="padding:5px 10px;background:#e0f2fe;color:#0369a1;border:none;border-radius:7px;font-size:11px;font-weight:700;">Update Stock</button>
+          <button onclick="openAddPurchaseForProduct('${p.id}')" class="btn" style="padding:5px 10px;background:#dcfce7;color:#15803d;border:none;border-radius:7px;font-size:11px;font-weight:700;">+ Purchase</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openStockUpdate(productId){
+  const p=allProducts.find(x=>x.id===productId);if(!p)return;
+  document.getElementById('su-product-id').value=productId;
+  document.getElementById('su-product-name').textContent=p.name||'Product';
+  document.getElementById('su-current-stock').textContent=p.stock||0;
+  document.getElementById('su-type').value='set';
+  document.getElementById('su-qty').value='';
+  document.getElementById('su-reason').value='';
+  document.getElementById('su-preview').style.display='none';
+  openModal('stock-update-modal');
+}
+
+function updateStockPreview(){
+  const productId=document.getElementById('su-product-id').value;
+  const p=allProducts.find(x=>x.id===productId);
+  const type=document.getElementById('su-type').value;
+  const qty=parseInt(document.getElementById('su-qty').value)||0;
+  const preview=document.getElementById('su-preview');
+  const cur=p?.stock||0;
+  let newVal=cur;
+  if(type==='set')newVal=qty;
+  else if(type==='add')newVal=cur+qty;
+  else if(type==='subtract')newVal=Math.max(0,cur-qty);
+  if(!document.getElementById('su-qty').value){preview.style.display='none';return;}
+  preview.style.display='block';
+  preview.innerHTML=`New stock will be: <strong>${newVal} units</strong> (was ${cur})`;
+  preview.style.background=newVal<=0?'#fee2e2':newVal<10?'#fef9c3':'#f0fdf4';
+  preview.style.color=newVal<=0?'#b91c1c':newVal<10?'#854d0e':'#166534';
+}
+
+async function saveStockUpdate(){
+  const productId=document.getElementById('su-product-id').value;
+  const type=document.getElementById('su-type').value;
+  const qty=parseInt(document.getElementById('su-qty').value);
+  if(!productId){showToast('No product selected');return;}
+  if(isNaN(qty)||qty<0){showToast('Please enter a valid quantity');return;}
+  const p=allProducts.find(x=>x.id===productId);
+  const cur=p?.stock||0;
+  let newStock=cur;
+  if(type==='set')newStock=qty;
+  else if(type==='add')newStock=cur+qty;
+  else if(type==='subtract')newStock=Math.max(0,cur-qty);
+  const btn=document.getElementById('save-su-btn');
+  btn.textContent='Saving...';btn.disabled=true;
+  try{
+    const{db,doc,updateDoc}=window._fb;
+    await updateDoc(doc(db,'products',productId),{stock:newStock,updatedAt:new Date().toISOString()});
+    // Update in-memory
+    const idx=allProducts.findIndex(x=>x.id===productId);
+    if(idx!==-1)allProducts[idx].stock=newStock;
+    showToast('Stock updated: '+p.name+' → '+newStock+' units');
+    closeModal('stock-update-modal');
+    renderStockTable();
+    if(currentPage==='products')renderProductsAdmin();
+  }catch(e){showToast('Error: '+(e.message||'unknown'));}
+  btn.textContent='Update Stock';btn.disabled=false;
+}
+
+function openAddPurchaseForProduct(productId){
+  // Open the purchase modal pre-filled with the product
+  openAddPurchase();
+  setTimeout(()=>{
+    const sel=document.getElementById('pur-product');
+    if(sel)sel.value=productId;
+  },100);
+}
+
+// ─── STOCK REPORT (print) ───
+function openStockReport(){
+  // Populate category dropdown
+  const cats=[...new Set(allProducts.map(p=>p.category).filter(Boolean))].sort();
+  const catSel=document.getElementById('sr-category');
+  if(catSel){
+    catSel.innerHTML='<option value="">All Categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+  // Default date range: this month
+  const today=new Date();
+  const firstDay=new Date(today.getFullYear(),today.getMonth(),1).toISOString().slice(0,10);
+  if(document.getElementById('sr-from'))document.getElementById('sr-from').value=firstDay;
+  if(document.getElementById('sr-to'))document.getElementById('sr-to').value=today.toISOString().slice(0,10);
+  onStockReportTypeChange();
+  openModal('stock-report-modal');
+}
+
+function onStockReportTypeChange(){
+  const type=document.getElementById('sr-type')?.value;
+  const dateRange=document.getElementById('sr-date-range');
+  if(dateRange)dateRange.style.display=(type==='purchases')?'grid':'none';
+}
+
+function printStockReport(){
+  const type=document.getElementById('sr-type').value;
+  const catFilter=document.getElementById('sr-category')?.value||'';
+  const fromDate=document.getElementById('sr-from')?.value||'';
+  const toDate=document.getElementById('sr-to')?.value||'';
+
+  let title='', rows='', headers='';
+  const now=new Date().toLocaleString('en-IN');
+
+  if(type==='current'){
+    title='Current Stock Report';
+    let prods=[...allProducts];
+    if(catFilter)prods=prods.filter(p=>p.category===catFilter);
+    prods.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    headers='<tr><th>#</th><th>Product</th><th>Category</th><th>Branch</th><th>Stock (units)</th><th>Sell Price</th><th>Status</th></tr>';
+    rows=prods.map((p,i)=>{
+      const stock=p.stock||0;
+      const status=stock<=0?'Out of Stock':stock<10?'Low Stock':'In Stock';
+      const statusColor=stock<=0?'#dc2626':stock<10?'#d97706':'#16a34a';
+      return`<tr><td>${i+1}</td><td><strong>${p.name||''}</strong></td><td>${p.category||''}</td><td>${p.hostelName||'—'}</td><td style="font-weight:800;color:${stockColorHex(stock)};">${stock}</td><td>₹${p.price||0}</td><td style="color:${statusColor};font-weight:700;">${status}</td></tr>`;
+    }).join('');
+  } else if(type==='purchases'){
+    title='Purchase History Report'+(fromDate?' ('+fromDate+' to '+(toDate||'today')+')':'');
+    let purs=[...allPurchases];
+    if(fromDate)purs=purs.filter(p=>p.date&&p.date>=fromDate);
+    if(toDate)purs=purs.filter(p=>p.date&&p.date<=toDate);
+    if(catFilter){
+      const catProductIds=allProducts.filter(p=>p.category===catFilter).map(p=>p.id);
+      purs=purs.filter(p=>catProductIds.includes(p.productId));
+    }
+    purs.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const total=purs.reduce((s,p)=>s+(p.totalCost||0),0);
+    headers='<tr><th>#</th><th>Date</th><th>Product</th><th>Supplier</th><th>Qty</th><th>Unit Cost</th><th>Total Cost</th></tr>';
+    rows=purs.map((p,i)=>`<tr><td>${i+1}</td><td>${p.date||''}</td><td><strong>${p.productName||''}</strong></td><td>${p.supplier||'—'}</td><td style="font-weight:700;">${p.qty||0}</td><td>₹${(p.unitCost||0).toFixed(2)}</td><td style="font-weight:800;color:#2d8a45;">₹${(p.totalCost||0).toFixed(2)}</td></tr>`).join('');
+    rows+=`<tr style="background:#f0fdf4;"><td colspan="6" style="text-align:right;font-weight:800;padding:10px 14px;">TOTAL</td><td style="font-weight:900;font-size:16px;color:#2d8a45;">₹${total.toFixed(2)}</td></tr>`;
+  } else if(type==='lowstock'){
+    title='Low Stock Alert Report';
+    let prods=allProducts.filter(p=>(p.stock||0)>0&&(p.stock||0)<10);
+    if(catFilter)prods=prods.filter(p=>p.category===catFilter);
+    prods.sort((a,b)=>(a.stock||0)-(b.stock||0));
+    headers='<tr><th>#</th><th>Product</th><th>Category</th><th>Branch</th><th>Stock (units)</th><th>Sell Price</th></tr>';
+    rows=prods.map((p,i)=>`<tr><td>${i+1}</td><td><strong>${p.name||''}</strong></td><td>${p.category||''}</td><td>${p.hostelName||'—'}</td><td style="font-weight:800;color:#d97706;">${p.stock||0}</td><td>₹${p.price||0}</td></tr>`).join('');
+  } else if(type==='zerostock'){
+    title='Out of Stock Report';
+    let prods=allProducts.filter(p=>(p.stock||0)<=0);
+    if(catFilter)prods=prods.filter(p=>p.category===catFilter);
+    prods.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    headers='<tr><th>#</th><th>Product</th><th>Category</th><th>Branch</th><th>Sell Price</th></tr>';
+    rows=prods.map((p,i)=>`<tr><td>${i+1}</td><td><strong>${p.name||''}</strong></td><td>${p.category||''}</td><td>${p.hostelName||'—'}</td><td>₹${p.price||0}</td></tr>`).join('');
+  }
+
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
+  <style>
+    *{font-family:'Segoe UI',sans-serif;box-sizing:border-box;}
+    body{margin:0;padding:24px;background:#fff;color:#111;}
+    h1{font-size:20px;font-weight:800;margin-bottom:4px;color:#1a5c2a;}
+    .meta{font-size:12px;color:#6b7280;margin-bottom:20px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{background:#1a5c2a;color:white;padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
+    td{padding:9px 12px;border-bottom:1px solid #e5e7eb;vertical-align:middle;}
+    tr:nth-child(even) td{background:#f9fafb;}
+    tr:hover td{background:#f0fdf4;}
+    .footer{margin-top:16px;font-size:11px;color:#9ca3af;text-align:right;}
+    @media print{body{padding:12px;}@page{margin:12mm;}}
+  </style></head><body>
+  <h1>🏪 Santhom Stores — ${title}</h1>
+  <div class="meta">Generated: ${now}${catFilter?' · Category: '+catFilter:''}</div>
+  <table><thead>${headers}</thead><tbody>${rows}</tbody></table>
+  <div class="footer">Santhom Stores Admin · ${now}</div>
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`;
+
+  const w=window.open('','_blank','width=900,height=700');
+  if(w){w.document.write(html);w.document.close();}
+  else showToast('Allow pop-ups to print the report');
+  closeModal('stock-report-modal');
+}
+
+function stockColorHex(stock){
+  if(stock<=0)return'#dc2626';
+  if(stock<10)return'#d97706';
+  return'#374151';
+}
 
 // ─── DATE FILTER ───
 function setDateFilter(mode,btn){
@@ -5697,10 +6046,11 @@ function navAdmin(page){
   document.querySelectorAll('.page-content').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
-  const titles={dashboard:'Dashboard',orders:'Order Management',products:'Products',categories:'Categories',preorder:'Pre-order',purchases:'Purchase Records',billing:'Billing',workers:'Workers',hostels:'Hostel Management',pickuppoints:'Pickup Points',customers:'Customers',analytics:'Analytics',promos:'Promo Codes',chats:'Support Chats',cms:'Content Management',settings:'Settings'};
+  const titles={dashboard:'Dashboard',orders:'Order Management',products:'Products',stock:'Stock Management',categories:'Categories',preorder:'Pre-order',purchases:'Purchase Records',billing:'Billing',workers:'Workers',hostels:'Hostel Management',pickuppoints:'Pickup Points',customers:'Customers',analytics:'Analytics',promos:'Promo Codes',chats:'Support Chats',cms:'Content Management',settings:'Settings'};
   document.getElementById('page-title').textContent=titles[page]||page;
   if(page==='orders'){renderOrdersTable();renderOrderChips();}
   if(page==='products')renderProductsAdmin();
+  if(page==='stock'){renderStockTable();renderStockSummary();}
   if(page==='purchases'){renderPurchases();refreshPurchaseSummary();loadAllBatches();}
   if(page==='workers'){renderWorkers();renderWorkerRoleChips();}
   if(page==='hostels')loadHostels();
