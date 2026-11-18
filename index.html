@@ -554,7 +554,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <button onclick="openAddProduct()" class="btn" style="display:flex;align-items:center;gap:5px;padding:9px 16px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:18px;">add</span>Add Product</button>
   </div>
   <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
-    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Product</th><th>Branch</th><th>Category</th><th>Sell Price</th><th>Cost Price</th><th>Margin</th><th>Stock</th><th>Rating</th><th style="text-align:right">Actions</th></tr></thead><tbody id="products-tbody"></tbody></table></div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Product</th><th>Branch</th><th>Category</th><th>Sell Price</th><th>Cost Price</th><th>Margin</th><th>Stock</th><th>Rating</th><th>Homepage</th><th style="text-align:right">Actions</th></tr></thead><tbody id="products-tbody"></tbody></table></div>
     <div id="products-empty" style="text-align:center;padding:40px;color:#9ca3af;display:none;"><span class="material-symbols-outlined ms" style="font-size:36px;display:block;margin-bottom:6px;">inventory_2</span><div style="font-weight:700;">No products yet</div></div>
   </div>
 </div>
@@ -1236,6 +1236,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       </div>
     </div>
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;"><input type="checkbox" id="p-visible" checked style="width:16px;height:16px;accent-color:#2d8a45;"> Show this product to customers</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;font-weight:600;color:#1a5c2a;cursor:pointer;padding:8px 10px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;"><input type="checkbox" id="p-featured-home" style="width:16px;height:16px;accent-color:#2d8a45;"> ⭐ Show in Homepage "Popular Products"</label>
     <input type="hidden" id="p-edit-id">
     <button onclick="saveProduct()" id="save-product-btn" class="btn" style="width:100%;margin-top:16px;padding:12px;background:#2d8a45;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;">Add Product</button>
   </div>
@@ -2821,6 +2822,7 @@ function renderProductsAdmin(){
       <td style="font-weight:700;color:${mc};">${margin?margin+'%':'<span style="color:#9ca3af">—</span>'}</td>
       <td style="font-weight:700;color:${(p.stock||0)<10?'#dc2626':'#374151'};">${p.stock||0}</td>
       <td style="font-size:12px;"><span class="material-symbols-outlined ms-fill" style="font-size:12px;color:#f59e0b;vertical-align:middle;">star</span> ${p.rating||4.5}</td>
+      <td><button onclick="toggleProductFeaturedHome('${p.id}')" class="btn" title="${p.featuredHome?'Remove from homepage':'Show on homepage'}" style="padding:5px 10px;border:none;border-radius:7px;font-size:11px;font-weight:700;background:${p.featuredHome?'#dcfce7':'#f3f4f6'};color:${p.featuredHome?'#15803d':'#9ca3af'};">${p.featuredHome?'⭐ Featured':'+ Add'}</button></td>
       <td style="text-align:right;"><div style="display:flex;justify-content:flex-end;gap:5px;"><button onclick="toggleProductHidden('${p.id}')" class="btn" style="padding:5px 10px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;font-size:11px;font-weight:700;">${p.hidden?'Show':'Hide'}</button><button onclick="openEditProduct('${p.id}')" class="btn" style="padding:5px 10px;background:#eff6ff;color:#2563eb;border:none;border-radius:7px;font-size:11px;font-weight:700;">Edit</button><button onclick="deleteProduct('${p.id}')" class="btn" style="padding:5px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:11px;font-weight:700;">Del</button></div></td>
     </tr>`;
   }).join('');
@@ -2969,6 +2971,7 @@ function openAddProduct(){
   document.getElementById('p-category').value='Chips';
   document.getElementById('p-rating').value='4.5';
   document.getElementById('p-visible').checked=true;
+  document.getElementById('p-featured-home').checked=false;
   document.getElementById('p-weight-based').checked=false;
   document.getElementById('p-weight-fields').style.display='none';
   _woptList=['500g','1kg'];
@@ -2993,6 +2996,7 @@ function openEditProduct(id){
   document.getElementById('p-badge').value=p.badge||'';
   document.getElementById('p-edit-id').value=id;
   document.getElementById('p-visible').checked=!p.hidden;
+  document.getElementById('p-featured-home').checked=!!p.featuredHome;
   // Weight-based fields
   const isWB=!!p.weightBased;
   document.getElementById('p-weight-based').checked=isWB;
@@ -3031,7 +3035,7 @@ async function saveProduct(){
   const weightOptions=weightBased?[..._woptList]:[];
   if(weightBased&&weightOptions.length===0){showToast('Add at least one weight option');return;}
   const btn=document.getElementById('save-product-btn');btn.textContent='Saving...';btn.disabled=true;
-  const data={name,category,price,costPrice,stock,hostelId:hostelId||'',hostelName:hostelName||'',imageUrl:document.getElementById('p-image').value.trim(),desc:document.getElementById('p-desc').value.trim(),rating:parseFloat(document.getElementById('p-rating').value)||4.5,badge:document.getElementById('p-badge').value.trim(),hidden:!document.getElementById('p-visible').checked,weightBased,pricePerKg:pricePerKg||null,weightOptions:weightBased?weightOptions:[],updatedAt:new Date().toISOString()};
+  const data={name,category,price,costPrice,stock,hostelId:hostelId||'',hostelName:hostelName||'',imageUrl:document.getElementById('p-image').value.trim(),desc:document.getElementById('p-desc').value.trim(),rating:parseFloat(document.getElementById('p-rating').value)||4.5,badge:document.getElementById('p-badge').value.trim(),hidden:!document.getElementById('p-visible').checked,featuredHome:!!document.getElementById('p-featured-home').checked,weightBased,pricePerKg:pricePerKg||null,weightOptions:weightBased?weightOptions:[],updatedAt:new Date().toISOString()};
   try{
     const{db,collection,addDoc,doc,updateDoc,serverTimestamp}=window._fb;
     if(editId){await updateDoc(doc(db,'products',editId),data);showToast('Product updated!');}
@@ -3046,6 +3050,16 @@ async function toggleProductHidden(id){
   const hide=!p.hidden;
   try{const{db,doc,updateDoc}=window._fb;await updateDoc(doc(db,'products',id),{hidden:hide,updatedAt:new Date().toISOString()});showToast(hide?'Product hidden from customers':'Product is now visible');}
   catch(e){showToast('Error: '+(e.message||'unknown'));}
+}
+
+async function toggleProductFeaturedHome(id){
+  const p=allProducts.find(x=>x.id===id);if(!p)return;
+  const featured=!p.featuredHome;
+  try{
+    const{db,doc,updateDoc}=window._fb;
+    await updateDoc(doc(db,'products',id),{featuredHome:featured,updatedAt:new Date().toISOString()});
+    showToast(featured?'⭐ Added to homepage Popular Products':'Removed from homepage Popular Products');
+  }catch(e){showToast('Error: '+(e.message||'unknown'));}
 }
 
 async function deleteProduct(id){
