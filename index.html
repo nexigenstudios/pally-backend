@@ -6780,11 +6780,24 @@ function renderEpoPreorderList() {
     </div>`).join('');
 }
 
+function _epoPreorderProductIds() {
+  // Returns the set of product IDs that belong to the currently active preorder window
+  if (!poState.open) return new Set();
+  if (poState.mode === 'categories') {
+    const selCatNames = new Set((allCategories || []).filter(c => poState.categories.includes(c.id)).map(c => c.name));
+    return new Set((allProducts || []).filter(p => !p.hidden && selCatNames.has(p.category)).map(p => p.id));
+  }
+  return new Set(poState.products || []);
+}
+
 function renderEpoSearch() {
   const q = (document.getElementById('epo-search').value || '').trim().toLowerCase();
   const container = document.getElementById('epo-search-results');
   if (!q) { container.innerHTML = ''; return; }
-  const matches = (allProducts || []).filter(p => (p.name || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)).slice(0, 12);
+  const preorderIds = _epoPreorderProductIds();
+  const matches = (allProducts || [])
+    .filter(p => !preorderIds.has(p.id) && (!q || (p.name || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)))
+    .slice(0, 12);
   if (!matches.length) { container.innerHTML = `<div style="padding:8px;font-size:12px;color:#9ca3af;">No products found</div>`; return; }
   container.innerHTML = matches.map(p => `
     <button onclick="epoAddProduct('${p.id}')" class="btn" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:white;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-weight:600;text-align:left;gap:8px;">
