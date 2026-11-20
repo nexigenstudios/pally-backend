@@ -1611,6 +1611,58 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
   </div>
 </div>
 
+<!-- ===== EDIT POS ORDER MODAL ===== -->
+<div class="modal-bd" id="edit-pos-modal" onclick="closeModal('edit-pos-modal')">
+  <div class="modal-box" style="max-width:580px;padding:22px;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;">
+      <div>
+        <h2 style="font-size:16px;font-weight:800;">✏ Edit POS Order</h2>
+        <p style="font-size:12px;color:#9ca3af;margin-top:2px;" id="epo-sub"></p>
+      </div>
+      <button onclick="closeModal('edit-pos-modal')" class="btn" style="width:34px;height:34px;min-height:0;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="material-symbols-outlined ms" style="font-size:18px;color:#6b7280;">close</span></button>
+    </div>
+
+    <!-- Customer name -->
+    <div style="margin-bottom:14px;">
+      <label class="lbl">Customer Name</label>
+      <input id="epo-cust-name" type="text" class="input-f" placeholder="Walk-in Customer">
+    </div>
+
+    <!-- Add product search -->
+    <div style="margin-bottom:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;">➕ Add Product / Custom Item</div>
+      <input id="epo-search" type="text" class="input-f" placeholder="Search products to add…" oninput="renderEpoSearch()" style="margin-bottom:8px;">
+      <div id="epo-search-results" style="display:flex;flex-direction:column;gap:5px;max-height:180px;overflow-y:auto;margin-bottom:10px;"></div>
+      <!-- Manual custom item row -->
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:6px;align-items:end;">
+        <div><label class="lbl">Custom Item Name</label><input id="epo-custom-name" type="text" class="input-f" placeholder="e.g. Carry bag"></div>
+        <div><label class="lbl">Qty</label><input id="epo-custom-qty" type="number" class="input-f" value="1" min="1"></div>
+        <div><label class="lbl">Price (₹)</label><input id="epo-custom-price" type="number" class="input-f" placeholder="0" min="0"></div>
+        <button onclick="epoAddCustomItem()" class="btn" style="padding:10px 12px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;">+ Add</button>
+      </div>
+    </div>
+
+    <!-- Current items list -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;">📋 Current Items</div>
+      <div id="epo-items-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;"></div>
+      <div id="epo-items-empty" style="text-align:center;padding:16px;color:#9ca3af;font-size:12px;display:none;">No items — add some above</div>
+    </div>
+
+    <!-- Totals row -->
+    <div id="epo-totals" style="background:#f0fdf4;border-radius:10px;padding:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;font-weight:700;color:#374151;" id="epo-items-count">0 items</span>
+      <span style="font-size:16px;font-weight:800;color:#1a5c2a;" id="epo-total-display">₹0.00</span>
+    </div>
+
+    <!-- Save button -->
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeModal('edit-pos-modal')" class="btn" style="flex:1;padding:12px;background:#f3f4f6;border:none;border-radius:10px;font-size:13px;font-weight:700;color:#374151;">Cancel</button>
+      <button onclick="saveEditPosOrder()" id="epo-save-btn" class="btn" style="flex:2;padding:12px;background:#1a5c2a;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== PRINTER SETUP (thermal / ESC-POS) ===== -->
 <div class="modal-bd" id="printer-setup-modal" style="z-index:260;" onclick="closeModal('printer-setup-modal')">
   <div class="modal-box" style="max-width:440px;padding:20px;" onclick="event.stopPropagation()">
@@ -2602,7 +2654,7 @@ function renderOrdersTable(){
       <td style="font-size:13px;font-weight:800;color:#1a5c2a;">₹${(o.total||0).toFixed(0)}</td>
       <td><select onchange="updateOrderStatus('${o.firestoreId}',this.value)" style="padding:5px 6px;border:1px solid #e5e7eb;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;background:white;outline:none;min-width:130px;">${ALL_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${adminDisplayStatus(s)}</option>`).join('')}</select></td>
       <td style="font-size:11px;color:#9ca3af;white-space:nowrap;">${o.date}</td>
-      <td><button onclick="openOrderDetail('${o.firestoreId}')" class="btn" style="padding:5px 10px;background:#e2f0e6;color:#1a5c2a;border:none;border-radius:7px;font-size:11px;font-weight:700;">View</button><button onclick="openOrderBill('${o.firestoreId}')" class="btn row-bill-btn">🧾 Bill</button></td>
+      <td><button onclick="openOrderDetail('${o.firestoreId}')" class="btn" style="padding:5px 10px;background:#e2f0e6;color:#1a5c2a;border:none;border-radius:7px;font-size:11px;font-weight:700;">View</button><button onclick="openOrderBill('${o.firestoreId}')" class="btn row-bill-btn">🧾 Bill</button>${o.source==='billing'?`<button onclick="openEditPosOrder('${o.firestoreId}')" class="btn" style="padding:5px 10px;background:#fef3c7;color:#92400e;border:none;border-radius:7px;font-size:11px;font-weight:700;margin-left:4px;">✏ Edit</button>`:''}</td>
     </tr>`;
   }).join('');
 }
@@ -6655,6 +6707,159 @@ function printOrderBillThermal(){
   _obm.fmt='thermal';try{localStorage.setItem('santhom_bill_fmt','thermal');}catch(e){}
   let done=false;const once=()=>{if(done)return;done=true;f.onload=null;go();};
   f.onload=once;renderOrderBill();setTimeout(once,700);
+}
+
+// ─── EDIT POS ORDER ──────────────────────────────────────────────────────────
+let _epo = { fid: null, items: [], origOrder: null };
+
+function openEditPosOrder(fid) {
+  const o = allOrders.find(x => x.firestoreId === fid);
+  if (!o) return;
+  _epo.fid = fid;
+  _epo.origOrder = o;
+  // Deep clone items so we can mutate locally
+  _epo.items = (o.items || []).map((i, idx) => ({ ...i, _epoKey: idx }));
+  document.getElementById('epo-sub').textContent = (o.orderId || 'Order') + ' · ' + (o.name || '');
+  document.getElementById('epo-cust-name').value = o.name || '';
+  document.getElementById('epo-search').value = '';
+  document.getElementById('epo-search-results').innerHTML = '';
+  document.getElementById('epo-custom-name').value = '';
+  document.getElementById('epo-custom-qty').value = '1';
+  document.getElementById('epo-custom-price').value = '';
+  renderEpoItems();
+  openModal('edit-pos-modal');
+}
+
+function renderEpoSearch() {
+  const q = (document.getElementById('epo-search').value || '').trim().toLowerCase();
+  const container = document.getElementById('epo-search-results');
+  if (!q) { container.innerHTML = ''; return; }
+  const matches = (allProducts || []).filter(p => (p.name || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)).slice(0, 12);
+  if (!matches.length) { container.innerHTML = `<div style="padding:8px;font-size:12px;color:#9ca3af;">No products found</div>`; return; }
+  container.innerHTML = matches.map(p => `
+    <button onclick="epoAddProduct('${p.id}')" class="btn" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:white;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-weight:600;text-align:left;gap:8px;">
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
+      <span style="color:#2d8a45;font-weight:800;flex-shrink:0;">₹${(p.price||0).toFixed(2)}</span>
+    </button>`).join('');
+}
+
+function epoAddProduct(productId) {
+  const p = allProducts.find(x => x.id === productId);
+  if (!p) return;
+  const existing = _epo.items.find(x => x.id === productId && x.isProduct);
+  if (existing) { existing.qty = (Number(existing.qty) || 0) + 1; }
+  else { _epo.items.push({ id: productId, name: p.name, price: Number(p.price) || 0, qty: 1, isProduct: true, category: p.category || 'Other', imageUrl: p.imageUrl || '', _epoKey: Date.now() }); }
+  document.getElementById('epo-search').value = '';
+  document.getElementById('epo-search-results').innerHTML = '';
+  renderEpoItems();
+  showToast(p.name + ' added');
+}
+
+function epoAddCustomItem() {
+  const name = (document.getElementById('epo-custom-name').value || '').trim();
+  const qty = Number(document.getElementById('epo-custom-qty').value) || 1;
+  const price = Number(document.getElementById('epo-custom-price').value) || 0;
+  if (!name) { showToast('Enter a custom item name'); return; }
+  _epo.items.push({ id: '', name, price, qty, isProduct: false, category: 'Other', imageUrl: '', _epoKey: Date.now() + Math.random() });
+  document.getElementById('epo-custom-name').value = '';
+  document.getElementById('epo-custom-qty').value = '1';
+  document.getElementById('epo-custom-price').value = '';
+  renderEpoItems();
+}
+
+function renderEpoItems() {
+  const list = document.getElementById('epo-items-list');
+  const empty = document.getElementById('epo-items-empty');
+  if (!_epo.items.length) { list.innerHTML = ''; empty.style.display = 'block'; updateEpoTotals(); return; }
+  empty.style.display = 'none';
+  list.innerHTML = _epo.items.map((item, idx) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:white;border:1px solid #e5e7eb;border-radius:10px;">
+      <div style="flex:1;min-width:0;">
+        <input type="text" value="${(item.name || '').replace(/"/g,'&quot;')}"
+          onchange="_epo.items[${idx}].name=this.value"
+          class="input-f" style="font-size:12px;padding:6px 8px;font-weight:600;margin-bottom:4px;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;">Qty</span>
+          <button onclick="epoChangeQty(${idx},-1)" style="width:26px;height:26px;border:1px solid #e5e7eb;border-radius:6px;background:#f3f4f6;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;">−</button>
+          <span style="min-width:24px;text-align:center;font-weight:700;font-size:13px;">${item.qty}</span>
+          <button onclick="epoChangeQty(${idx},1)" style="width:26px;height:26px;border:1px solid #e5e7eb;border-radius:6px;background:#f3f4f6;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;">+</button>
+          <span style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-left:4px;">Price ₹</span>
+          <input type="number" value="${item.price}" min="0" step="0.01"
+            onchange="_epo.items[${idx}].price=parseFloat(this.value)||0;updateEpoTotals()"
+            style="width:72px;padding:5px 7px;border:1px solid #e5e7eb;border-radius:7px;font-size:12px;font-weight:700;outline:none;font-family:inherit;">
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-weight:800;color:#1a5c2a;font-size:13px;">₹${(item.price * item.qty).toFixed(2)}</div>
+        <button onclick="epoRemoveItem(${idx})" style="margin-top:4px;padding:3px 8px;background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;">Remove</button>
+      </div>
+    </div>`).join('');
+  updateEpoTotals();
+}
+
+function epoChangeQty(idx, delta) {
+  _epo.items[idx].qty = Math.max(1, (Number(_epo.items[idx].qty) || 1) + delta);
+  renderEpoItems();
+}
+
+function epoRemoveItem(idx) {
+  _epo.items.splice(idx, 1);
+  renderEpoItems();
+}
+
+function updateEpoTotals() {
+  const total = _epo.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 0), 0);
+  const n = _epo.items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
+  document.getElementById('epo-items-count').textContent = _epo.items.length + ' item' + (_epo.items.length !== 1 ? 's' : '') + ' · ' + n + ' unit' + (n !== 1 ? 's' : '');
+  document.getElementById('epo-total-display').textContent = '₹' + total.toFixed(2);
+}
+
+async function saveEditPosOrder() {
+  if (!_epo.fid) return;
+  if (!_epo.items.length) { showToast('Add at least one item'); return; }
+  const btn = document.getElementById('epo-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const custName = (document.getElementById('epo-cust-name').value || '').trim() || 'Walk-in Customer';
+  const { db, doc, updateDoc } = window._fb;
+  const items = _epo.items.map(i => ({
+    id: i.id || '',
+    name: i.name || '',
+    price: Number(i.price) || 0,
+    qty: Number(i.qty) || 1,
+    isProduct: !!i.isProduct,
+    category: i.category || 'Other',
+    imageUrl: i.imageUrl || '',
+    ...(i.preorder ? { preorder: true } : {}),
+    ...(i.unit ? { unit: i.unit } : {})
+  }));
+  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  // Carry over existing discount/gst from original order
+  const o = _epo.origOrder;
+  const discountAmt = o.discountAmount || 0;
+  const gstPct = o.gstPct || 0;
+  const gstAmount = (subtotal - discountAmt) * gstPct / 100;
+  const total = subtotal - discountAmt + gstAmount;
+  try {
+    await updateDoc(doc(db, 'orders', _epo.fid), {
+      name: custName,
+      items,
+      subtotal,
+      gstAmount,
+      total,
+      editedAt: new Date().toISOString(),
+      editedBy: window._fb.auth?.currentUser?.email || ''
+    });
+    showToast('Order updated ✓');
+    closeModal('edit-pos-modal');
+    // Refresh the bill preview if it was open
+    if (_obm.order && _obm.order.firestoreId === _epo.fid) {
+      _obm.order = { ..._obm.order, name: custName, items, subtotal, gstAmount, total };
+    }
+  } catch (e) {
+    showToast('Save failed: ' + (e.message || 'unknown error'));
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Save Changes';
+  }
 }
 
 function openOrderBill(fid){
