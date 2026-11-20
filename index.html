@@ -1631,14 +1631,26 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <!-- Add product search -->
     <div style="margin-bottom:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:14px;">
       <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;">➕ Add Product / Custom Item</div>
-      <input id="epo-search" type="text" class="input-f" placeholder="Search products to add…" oninput="renderEpoSearch()" style="margin-bottom:8px;">
-      <div id="epo-search-results" style="display:flex;flex-direction:column;gap:5px;max-height:180px;overflow-y:auto;margin-bottom:10px;"></div>
-      <!-- Manual custom item row -->
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:6px;align-items:end;">
-        <div><label class="lbl">Custom Item Name</label><input id="epo-custom-name" type="text" class="input-f" placeholder="e.g. Carry bag"></div>
-        <div><label class="lbl">Qty</label><input id="epo-custom-qty" type="number" class="input-f" value="1" min="1"></div>
-        <div><label class="lbl">Price (₹)</label><input id="epo-custom-price" type="number" class="input-f" placeholder="0" min="0"></div>
-        <button onclick="epoAddCustomItem()" class="btn" style="padding:10px 12px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;">+ Add</button>
+      <!-- search tabs -->
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <button class="tab-btn active" id="epo-tab-products" onclick="switchEpoTab('products')" style="flex:1;padding:7px 10px;font-size:12px;">🛒 Products</button>
+        <button class="tab-btn" id="epo-tab-preorder" onclick="switchEpoTab('preorder')" style="flex:1;padding:7px 10px;font-size:12px;">📦 Pre-order</button>
+      </div>
+      <!-- Products panel -->
+      <div id="epo-panel-products">
+        <input id="epo-search" type="text" class="input-f" placeholder="Search products to add…" oninput="renderEpoSearch()" style="margin-bottom:8px;">
+        <div id="epo-search-results" style="display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;margin-bottom:10px;"></div>
+        <!-- Manual custom item row -->
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:6px;align-items:end;">
+          <div><label class="lbl">Custom Item Name</label><input id="epo-custom-name" type="text" class="input-f" placeholder="e.g. Carry bag"></div>
+          <div><label class="lbl">Qty</label><input id="epo-custom-qty" type="number" class="input-f" value="1" min="1"></div>
+          <div><label class="lbl">Price (₹)</label><input id="epo-custom-price" type="number" class="input-f" placeholder="0" min="0"></div>
+          <button onclick="epoAddCustomItem()" class="btn" style="padding:10px 12px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;">+ Add</button>
+        </div>
+      </div>
+      <!-- Preorder panel -->
+      <div id="epo-panel-preorder" style="display:none;">
+        <div id="epo-preorder-results" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;"></div>
       </div>
     </div>
 
@@ -6710,14 +6722,13 @@ function printOrderBillThermal(){
 }
 
 // ─── EDIT POS ORDER ──────────────────────────────────────────────────────────
-let _epo = { fid: null, items: [], origOrder: null };
+let _epo = { fid: null, items: [], origOrder: null, tab: 'products' };
 
 function openEditPosOrder(fid) {
   const o = allOrders.find(x => x.firestoreId === fid);
   if (!o) return;
   _epo.fid = fid;
   _epo.origOrder = o;
-  // Deep clone items so we can mutate locally
   _epo.items = (o.items || []).map((i, idx) => ({ ...i, _epoKey: idx }));
   document.getElementById('epo-sub').textContent = (o.orderId || 'Order') + ' · ' + (o.name || '');
   document.getElementById('epo-cust-name').value = o.name || '';
@@ -6726,8 +6737,47 @@ function openEditPosOrder(fid) {
   document.getElementById('epo-custom-name').value = '';
   document.getElementById('epo-custom-qty').value = '1';
   document.getElementById('epo-custom-price').value = '';
+  switchEpoTab('products');
   renderEpoItems();
   openModal('edit-pos-modal');
+}
+
+function switchEpoTab(tab) {
+  _epo.tab = tab;
+  document.getElementById('epo-tab-products').classList.toggle('active', tab === 'products');
+  document.getElementById('epo-tab-preorder').classList.toggle('active', tab === 'preorder');
+  document.getElementById('epo-panel-products').style.display = tab === 'products' ? '' : 'none';
+  document.getElementById('epo-panel-preorder').style.display = tab === 'preorder' ? '' : 'none';
+  if (tab === 'preorder') renderEpoPreorderList();
+}
+
+function renderEpoPreorderList() {
+  const el = document.getElementById('epo-preorder-results');
+  if (!poState.open) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;font-size:12px;color:#9ca3af;">📦 No pre-order window is open right now.<br>Open one from the Pre-order page first.</div>';
+    return;
+  }
+  let poProd = [];
+  if (poState.mode === 'categories') {
+    const selCatNames = new Set((allCategories || []).filter(c => poState.categories.includes(c.id)).map(c => c.name));
+    poProd = (allProducts || []).filter(p => !p.hidden && selCatNames.has(p.category));
+  } else {
+    poProd = (allProducts || []).filter(p => !p.hidden && poState.products.includes(p.id));
+  }
+  if (!poProd.length) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;font-size:12px;color:#9ca3af;">No products in this pre-order window.</div>';
+    return;
+  }
+  el.innerHTML = poProd.map(p => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#eff6ff;border-radius:8px;border:1.5px solid #93c5fd;">
+      ${p.imageUrl ? `<img src="${p.imageUrl}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:32px;height:32px;background:#dbeafe;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">📦</div>'}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:#1e40af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name || '—'}</div>
+        <div style="font-size:10px;color:#3b82f6;">${p.category || ''} · Pre-order</div>
+      </div>
+      <div style="font-size:12px;font-weight:800;color:#1d4ed8;flex-shrink:0;">₹${p.price || 0}</div>
+      <button onclick="epoAddPreorderProduct('${p.id}')" class="btn" style="padding:5px 10px;background:#1d4ed8;color:white;border:none;border-radius:7px;font-size:11px;font-weight:700;flex-shrink:0;">+ Add</button>
+    </div>`).join('');
 }
 
 function renderEpoSearch() {
@@ -6739,20 +6789,32 @@ function renderEpoSearch() {
   container.innerHTML = matches.map(p => `
     <button onclick="epoAddProduct('${p.id}')" class="btn" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:white;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-weight:600;text-align:left;gap:8px;">
       <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
-      <span style="color:#2d8a45;font-weight:800;flex-shrink:0;">₹${(p.price||0).toFixed(2)}</span>
+      <span style="color:#2d8a45;font-weight:800;flex-shrink:0;">₹${(p.price || 0).toFixed(2)}</span>
     </button>`).join('');
 }
 
 function epoAddProduct(productId) {
   const p = allProducts.find(x => x.id === productId);
   if (!p) return;
-  const existing = _epo.items.find(x => x.id === productId && x.isProduct);
+  // Match only non-preorder entries of the same product
+  const existing = _epo.items.find(x => x.id === productId && x.isProduct && !x.preorder);
   if (existing) { existing.qty = (Number(existing.qty) || 0) + 1; }
   else { _epo.items.push({ id: productId, name: p.name, price: Number(p.price) || 0, qty: 1, isProduct: true, category: p.category || 'Other', imageUrl: p.imageUrl || '', _epoKey: Date.now() }); }
   document.getElementById('epo-search').value = '';
   document.getElementById('epo-search-results').innerHTML = '';
   renderEpoItems();
   showToast(p.name + ' added');
+}
+
+function epoAddPreorderProduct(productId) {
+  const p = allProducts.find(x => x.id === productId);
+  if (!p) return;
+  // Match only preorder entries of the same product
+  const existing = _epo.items.find(x => x.id === productId && x.preorder);
+  if (existing) { existing.qty = (Number(existing.qty) || 0) + 1; }
+  else { _epo.items.push({ id: productId, name: p.name, price: Number(p.price) || 0, qty: 1, isProduct: true, preorder: true, category: p.category || 'Other', imageUrl: p.imageUrl || '', ...(p.unit ? { unit: p.unit } : {}), _epoKey: Date.now() }); }
+  renderEpoItems();
+  showToast(p.name + ' added as pre-order');
 }
 
 function epoAddCustomItem() {
@@ -6772,13 +6834,23 @@ function renderEpoItems() {
   const empty = document.getElementById('epo-items-empty');
   if (!_epo.items.length) { list.innerHTML = ''; empty.style.display = 'block'; updateEpoTotals(); return; }
   empty.style.display = 'none';
-  list.innerHTML = _epo.items.map((item, idx) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:white;border:1px solid #e5e7eb;border-radius:10px;">
+  list.innerHTML = _epo.items.map((item, idx) => {
+    const isPre = !!item.preorder;
+    const bg = isPre ? '#eff6ff' : 'white';
+    const border = isPre ? '1.5px solid #93c5fd' : '1px solid #e5e7eb';
+    const nameColor = isPre ? '#1e40af' : '#111827';
+    const totalColor = isPre ? '#1d4ed8' : '#1a5c2a';
+    const preBadge = isPre ? ' <span style="font-size:9px;font-weight:800;background:#1d4ed8;color:white;padding:1px 5px;border-radius:999px;vertical-align:middle;">PRE-ORDER</span>' : '';
+    return `
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:${bg};border:${border};border-radius:10px;">
       <div style="flex:1;min-width:0;">
-        <input type="text" value="${(item.name || '').replace(/"/g,'&quot;')}"
-          onchange="_epo.items[${idx}].name=this.value"
-          class="input-f" style="font-size:12px;padding:6px 8px;font-weight:600;margin-bottom:4px;">
-        <div style="display:flex;gap:6px;align-items:center;">
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+          <input type="text" value="${(item.name || '').replace(/"/g, '&quot;')}"
+            onchange="_epo.items[${idx}].name=this.value"
+            class="input-f" style="font-size:12px;padding:6px 8px;font-weight:600;color:${nameColor};flex:1;">
+          ${preBadge ? `<span style="font-size:9px;font-weight:800;background:#1d4ed8;color:white;padding:2px 6px;border-radius:999px;white-space:nowrap;">PRE-ORDER</span>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           <span style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;">Qty</span>
           <button onclick="epoChangeQty(${idx},-1)" style="width:26px;height:26px;border:1px solid #e5e7eb;border-radius:6px;background:#f3f4f6;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;">−</button>
           <span style="min-width:24px;text-align:center;font-weight:700;font-size:13px;">${item.qty}</span>
@@ -6790,10 +6862,11 @@ function renderEpoItems() {
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
-        <div style="font-weight:800;color:#1a5c2a;font-size:13px;">₹${(item.price * item.qty).toFixed(2)}</div>
+        <div style="font-weight:800;color:${totalColor};font-size:13px;">₹${(item.price * item.qty).toFixed(2)}</div>
         <button onclick="epoRemoveItem(${idx})" style="margin-top:4px;padding:3px 8px;background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;">Remove</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   updateEpoTotals();
 }
 
@@ -6810,7 +6883,11 @@ function epoRemoveItem(idx) {
 function updateEpoTotals() {
   const total = _epo.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 0), 0);
   const n = _epo.items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
-  document.getElementById('epo-items-count').textContent = _epo.items.length + ' item' + (_epo.items.length !== 1 ? 's' : '') + ' · ' + n + ' unit' + (n !== 1 ? 's' : '');
+  const hasPreorder = _epo.items.some(i => i.preorder);
+  document.getElementById('epo-items-count').textContent =
+    _epo.items.length + ' item' + (_epo.items.length !== 1 ? 's' : '') +
+    ' · ' + n + ' unit' + (n !== 1 ? 's' : '') +
+    (hasPreorder ? ' · 📦 includes pre-order' : '');
   document.getElementById('epo-total-display').textContent = '₹' + total.toFixed(2);
 }
 
@@ -6833,12 +6910,16 @@ async function saveEditPosOrder() {
     ...(i.unit ? { unit: i.unit } : {})
   }));
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-  // Carry over existing discount/gst from original order
   const o = _epo.origOrder;
   const discountAmt = o.discountAmount || 0;
   const gstPct = o.gstPct || 0;
   const gstAmount = (subtotal - discountAmt) * gstPct / 100;
   const total = subtotal - discountAmt + gstAmount;
+  // If any preorder items now exist, mark the order and stamp the window ID
+  const hasPreorder = items.some(i => i.preorder);
+  const preorderFields = hasPreorder
+    ? { preorder: true, preorderWindowId: poState.windowId || o.preorderWindowId || '' }
+    : { preorder: false, preorderWindowId: '' };
   try {
     await updateDoc(doc(db, 'orders', _epo.fid), {
       name: custName,
@@ -6846,14 +6927,14 @@ async function saveEditPosOrder() {
       subtotal,
       gstAmount,
       total,
+      ...preorderFields,
       editedAt: new Date().toISOString(),
       editedBy: window._fb.auth?.currentUser?.email || ''
     });
-    showToast('Order updated ✓');
+    showToast('Order updated ✓' + (hasPreorder ? ' · visible in Pre-order list' : ''));
     closeModal('edit-pos-modal');
-    // Refresh the bill preview if it was open
     if (_obm.order && _obm.order.firestoreId === _epo.fid) {
-      _obm.order = { ..._obm.order, name: custName, items, subtotal, gstAmount, total };
+      _obm.order = { ..._obm.order, name: custName, items, subtotal, gstAmount, total, ...preorderFields };
     }
   } catch (e) {
     showToast('Save failed: ' + (e.message || 'unknown error'));
