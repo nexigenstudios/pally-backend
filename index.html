@@ -283,6 +283,14 @@ img,video,canvas,svg{max-width:100%;}
   #login-screen > div{padding:18px !important;}
   .modal-box{max-height:96vh;max-height:calc(var(--vh-px,100vh) * .96);}
 }
+/* ===== NEW DASHBOARD RESPONSIVE ===== */
+@media(max-width:1050px){#dash-grid{grid-template-columns:1fr !important;}}
+@media(max-width:768px){
+  #dash-header{flex-direction:column !important;align-items:flex-start !important;}
+  #dash-header > div:last-child{flex-direction:column !important;align-items:flex-start !important;width:100%;}
+  #page-dashboard > div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
+}
+
 @media(max-width:768px){
   .modal-box{max-height:92vh;max-height:calc(var(--vh-px,100vh) * .92);}
   #app{overflow:hidden;}
@@ -486,40 +494,210 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 
 <!-- ===== DASHBOARD ===== -->
 <div class="page-content active" id="page-dashboard">
-  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
-    <span style="font-size:12px;font-weight:700;color:#6b7280;">Filter:</span>
-    <button class="date-chip active" onclick="setDateFilter('today',this)">Today</button>
-    <button class="date-chip" onclick="setDateFilter('yesterday',this)">Yesterday</button>
-    <button class="date-chip" onclick="setDateFilter('week',this)">This Week</button>
-    <button class="date-chip" onclick="setDateFilter('month',this)">This Month</button>
-    <button class="date-chip" onclick="setDateFilter('all',this)">All Time</button>
-    <input type="date" id="date-from" class="input-f" style="width:130px;padding:5px 8px;font-size:12px;" onchange="setDateFilter('custom',null)">
-    <span style="font-size:12px;color:#9ca3af;">to</span>
-    <input type="date" id="date-to" class="input-f" style="width:130px;padding:5px 8px;font-size:12px;" onchange="setDateFilter('custom',null)">
-  </div>
-  <p style="font-size:12px;color:#9ca3af;margin-bottom:14px;" id="dash-period-label">Showing: Today</p>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:18px;">
-    <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Orders</p><h3 style="font-size:26px;font-weight:800;" id="s-orders">0</h3><p style="font-size:11px;color:#9ca3af;margin-top:2px;" id="s-orders-sub">0 cancelled</p></div><div style="width:38px;height:38px;background:#fff5ed;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#2d8a45;font-size:20px;">shopping_bag</span></div></div></div>
-    <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Revenue</p><h3 style="font-size:26px;font-weight:800;" id="s-revenue">₹0</h3><p style="font-size:11px;color:#9ca3af;margin-top:2px;">Gross sales</p></div><div style="width:38px;height:38px;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#16a34a;font-size:20px;">payments</span></div></div></div>
-    <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Purchase Cost</p><h3 style="font-size:26px;font-weight:800;" id="s-cost">₹0</h3><p style="font-size:11px;color:#9ca3af;margin-top:2px;">Buying price</p></div><div style="width:38px;height:38px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#d97706;font-size:20px;">local_shipping</span></div></div></div>
-    <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Gross Profit</p><h3 style="font-size:26px;font-weight:800;" id="s-profit">₹0</h3><p style="font-size:11px;margin-top:2px;" id="s-margin">0% margin</p></div><div style="width:38px;height:38px;background:#eff6ff;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#2563eb;font-size:20px;">trending_up</span></div></div></div>
-    <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Pending</p><h3 style="font-size:26px;font-weight:800;" id="s-pending">0</h3><p style="font-size:11px;color:#d97706;margin-top:2px;">Need action</p></div><div style="width:38px;height:38px;background:#fffbeb;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#d97706;font-size:20px;">pending_actions</span></div></div></div>
-    <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Avg Order</p><h3 style="font-size:26px;font-weight:800;" id="s-avg">₹0</h3><p style="font-size:11px;color:#9ca3af;margin-top:2px;">Per order</p></div><div style="width:38px;height:38px;background:#faf5ff;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#7c3aed;font-size:20px;">receipt</span></div></div></div>
-    <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Total Stock</p><h3 style="font-size:26px;font-weight:800;" id="s-total-stock">0</h3><p style="font-size:11px;color:#9ca3af;margin-top:2px;" id="s-total-stock-sub">units across products</p></div><div style="width:38px;height:38px;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#16a34a;font-size:20px;">inventory_2</span></div></div></div>
-    <div class="stat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Stock Value</p><h3 style="font-size:26px;font-weight:800;" id="s-stock-value">₹0</h3><p style="font-size:11px;color:#9ca3af;margin-top:2px;">At purchase cost</p></div><div style="width:38px;height:38px;background:#fff5ed;border-radius:10px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms-fill" style="color:#ea580c;font-size:20px;">warehouse</span></div></div></div>
-  </div>
-  <div id="dash-grid" style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:16px;">
-    <div class="stat-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">Order Status</h3><div id="status-breakdown"></div></div>
-    <div class="stat-card" style="overflow:hidden;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="font-size:14px;font-weight:700;">Recent Orders</h3>
-        <button onclick="navAdmin('orders')" style="font-size:12px;color:#2d8a45;font-weight:600;background:none;border:none;cursor:pointer;">View all</button>
+
+  <!-- Dashboard header bar: greeting + date filter -->
+  <div id="dash-header" style="background:#fff;border-radius:14px;border:1px solid #e5e7eb;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div style="font-size:18px;font-weight:800;color:#111827;" id="dash-greeting">Good Morning</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:2px;" id="dash-subline">Here's what's happening at Santhom Stores today</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <button class="date-chip active" onclick="setDateFilter('today',this)">Today</button>
+        <button class="date-chip" onclick="setDateFilter('yesterday',this)">Yesterday</button>
+        <button class="date-chip" onclick="setDateFilter('week',this)">This Week</button>
+        <button class="date-chip" onclick="setDateFilter('month',this)">This Month</button>
+        <button class="date-chip" onclick="setDateFilter('all',this)">All Time</button>
       </div>
-      <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Order</th><th>Customer</th><th>Amount</th><th>Profit</th><th>Status</th><th>Update</th></tr></thead><tbody id="dash-orders"></tbody></table></div>
-      <div id="dash-no-orders" style="text-align:center;padding:24px;color:#9ca3af;font-size:13px;display:none;">No orders in this period</div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <input type="date" id="date-from" class="input-f" style="width:120px;padding:5px 8px;font-size:12px;" onchange="setDateFilter('custom',null)">
+        <span style="font-size:12px;color:#9ca3af;">–</span>
+        <input type="date" id="date-to" class="input-f" style="width:120px;padding:5px 8px;font-size:12px;" onchange="setDateFilter('custom',null)">
+      </div>
+      <button onclick="navAdmin('billing')" style="display:flex;align-items:center;gap:6px;padding:9px 16px;background:#1a5c2a;color:white;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;"><span class="material-symbols-outlined ms" style="font-size:17px;">add</span>New Bill</button>
     </div>
   </div>
-  <div class="stat-card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">Daily Order Timeline</h3><div id="order-timeline"></div></div>
+  <p style="font-size:11px;color:#9ca3af;margin-bottom:12px;display:none;" id="dash-period-label">Showing: Today</p>
+
+  <!-- Hero stat row: 4 primary KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px;">
+
+    <!-- Today's Revenue -->
+    <div class="stat-card" style="border-left:3px solid #2d8a45;padding:16px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;">Today's Revenue</p>
+          <h3 style="font-size:28px;font-weight:800;color:#111827;line-height:1;" id="s-revenue">₹0</h3>
+          <p style="font-size:11px;color:#16a34a;font-weight:600;margin-top:5px;" id="s-revenue-delta">Gross sales</p>
+        </div>
+        <div style="width:40px;height:40px;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span class="material-symbols-outlined ms-fill" style="color:#2d8a45;font-size:22px;">payments</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Invoices -->
+    <div class="stat-card" style="border-left:3px solid #3b82f6;padding:16px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;">Total Invoices</p>
+          <h3 style="font-size:28px;font-weight:800;color:#111827;line-height:1;" id="s-orders">0</h3>
+          <p style="font-size:11px;color:#6b7280;font-weight:600;margin-top:5px;" id="s-orders-sub">0 cancelled</p>
+        </div>
+        <div style="width:40px;height:40px;background:#eff6ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span class="material-symbols-outlined ms-fill" style="color:#3b82f6;font-size:22px;">receipt_long</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Inventory -->
+    <div class="stat-card" style="border-left:3px solid #f59e0b;padding:16px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;">Active Inventory</p>
+          <h3 style="font-size:28px;font-weight:800;color:#111827;line-height:1;" id="s-total-stock">0</h3>
+          <p style="font-size:11px;font-weight:600;margin-top:5px;" id="s-total-stock-sub" style="color:#6b7280;">SKUs available</p>
+        </div>
+        <div style="width:40px;height:40px;background:#fffbeb;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span class="material-symbols-outlined ms-fill" style="color:#f59e0b;font-size:22px;">inventory_2</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gross Profit -->
+    <div class="stat-card" style="border-left:3px solid #8b5cf6;padding:16px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;">Gross Profit</p>
+          <h3 style="font-size:28px;font-weight:800;color:#111827;line-height:1;" id="s-profit">₹0</h3>
+          <p style="font-size:11px;font-weight:600;margin-top:5px;" id="s-margin" style="color:#6b7280;">0% margin</p>
+        </div>
+        <div style="width:40px;height:40px;background:#f5f3ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span class="material-symbols-outlined ms-fill" style="color:#8b5cf6;font-size:22px;">trending_up</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Revenue & Orders Velocity chart -->
+  <div class="stat-card" style="margin-bottom:14px;padding:18px 20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <h3 style="font-size:14px;font-weight:700;color:#111827;">Revenue &amp; Orders Velocity</h3>
+        <p style="font-size:11px;color:#9ca3af;margin-top:2px;" id="dash-chart-subtitle">Daily breakdown for the selected period</p>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#2d8a45;"><span style="width:10px;height:10px;background:#2d8a45;border-radius:2px;display:inline-block;"></span>Revenue</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#f59e0b;margin-left:8px;"><span style="width:10px;height:3px;background:#f59e0b;border-radius:2px;display:inline-block;"></span>Orders</span>
+      </div>
+    </div>
+    <div id="order-timeline" style="overflow-x:auto;"></div>
+  </div>
+
+  <!-- Lower 3-col grid: Recent Orders | Stock Replenishment | Top Movers + Status -->
+  <div id="dash-grid" style="display:grid;grid-template-columns:1fr 260px;gap:14px;margin-bottom:14px;">
+
+    <!-- Left: Recent Store Orders -->
+    <div class="stat-card" style="overflow:hidden;padding:0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #f3f4f6;">
+        <div>
+          <h3 style="font-size:14px;font-weight:700;color:#111827;">Recent Store Orders</h3>
+          <p style="font-size:11px;color:#9ca3af;margin-top:1px;">Counter POS billing &amp; direct orders</p>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="navAdmin('orders')" style="font-size:12px;color:#2d8a45;font-weight:700;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;padding:5px 12px;cursor:pointer;">View All</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Items</th>
+              <th>Amount</th>
+              <th>Payment</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="dash-orders"></tbody>
+        </table>
+      </div>
+      <div id="dash-no-orders" style="text-align:center;padding:28px;color:#9ca3af;font-size:13px;display:none;">No orders in this period</div>
+    </div>
+
+    <!-- Right: Stock Replenishment + Status Breakdown -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <!-- Stock Replenishment -->
+      <div class="stat-card" style="padding:0;overflow:hidden;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #f3f4f6;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#111827;">Stock Replenishment</div>
+            <div style="font-size:10px;color:#9ca3af;margin-top:1px;">Fresh produce &amp; fast-moving items</div>
+          </div>
+          <span style="font-size:10px;font-weight:700;padding:3px 8px;background:#fee2e2;color:#b91c1c;border-radius:999px;" id="dash-lowstock-badge">0 Low</span>
+        </div>
+        <div id="dash-restock-list" style="padding:4px 0;">
+          <div style="text-align:center;padding:20px 14px;color:#9ca3af;font-size:12px;">Loading stock...</div>
+        </div>
+        <div style="padding:10px 14px;border-top:1px solid #f3f4f6;">
+          <button onclick="navAdmin('stock')" style="width:100%;padding:8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;color:#374151;">Review Stock</button>
+        </div>
+      </div>
+
+      <!-- Order Status breakdown (compact) -->
+      <div class="stat-card" style="padding:14px;">
+        <h3 style="font-size:13px;font-weight:700;color:#111827;margin-bottom:10px;">Order Status</h3>
+        <div id="status-breakdown"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Bottom row: Top Movers + Secondary stats -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
+    <!-- Top Movers by volume -->
+    <div class="stat-card" style="padding:0;overflow:hidden;">
+      <div style="padding:12px 16px;border-bottom:1px solid #f3f4f6;">
+        <div style="font-size:13px;font-weight:700;color:#111827;">Top Movers Today</div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:1px;">By volume (units sold)</div>
+      </div>
+      <div id="dash-top-movers" style="padding:4px 0;">
+        <div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px;">No sales data yet</div>
+      </div>
+    </div>
+
+    <!-- Secondary KPIs: Avg order, cost, pending -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="stat-card" style="padding:14px 16px;">
+        <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;">Avg Order Value</p>
+        <h3 style="font-size:22px;font-weight:800;color:#111827;" id="s-avg">₹0</h3>
+        <p style="font-size:11px;color:#9ca3af;margin-top:4px;">Per order</p>
+      </div>
+      <div class="stat-card" style="padding:14px 16px;">
+        <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;">Purchase Cost</p>
+        <h3 style="font-size:22px;font-weight:800;color:#111827;" id="s-cost">₹0</h3>
+        <p style="font-size:11px;color:#9ca3af;margin-top:4px;">Buying price</p>
+      </div>
+      <div class="stat-card" style="padding:14px 16px;">
+        <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;">Pending Orders</p>
+        <h3 style="font-size:22px;font-weight:800;color:#d97706;" id="s-pending">0</h3>
+        <p style="font-size:11px;color:#d97706;font-weight:600;margin-top:4px;">Need action</p>
+      </div>
+      <div class="stat-card" style="padding:14px 16px;">
+        <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;">Stock Value</p>
+        <h3 style="font-size:22px;font-weight:800;color:#111827;" id="s-stock-value">₹0</h3>
+        <p style="font-size:11px;color:#9ca3af;margin-top:4px;">At cost</p>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <!-- ===== ORDERS ===== -->
@@ -2557,22 +2735,46 @@ function itemProfit(item){
   return(item.price-getBestCostForItem(item))*item.qty;
 }
 
+// ─── DASHBOARD GREETING ───
+function initDashGreeting(){
+  const h=new Date().getHours();
+  const g=h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening';
+  const el=document.getElementById('dash-greeting');if(el)el.textContent=g+', '+((window._adminUser?.email||'').split('@')[0]||'Admin');
+  const sub=document.getElementById('dash-subline');
+  if(sub){const d=new Date();sub.textContent='Here\'s what\'s happening at Santhom Stores — '+d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
+}
+
 // ─── DASHBOARD ───
 function refreshDashboard(){
+  initDashGreeting();
   const filtered=getFilteredOrders();
   const s=calcStats(filtered);
   document.getElementById('s-orders').textContent=s.total;
   document.getElementById('s-orders-sub').textContent=s.cancelled+' cancelled';
-  document.getElementById('s-revenue').textContent='₹'+Math.round(s.revenue);
-  document.getElementById('s-cost').textContent='₹'+Math.round(s.cost);
-  document.getElementById('s-profit').textContent='₹'+Math.round(s.profit);
+  document.getElementById('s-revenue').textContent='₹'+Math.round(s.revenue).toLocaleString('en-IN');
+  document.getElementById('s-cost').textContent='₹'+Math.round(s.cost).toLocaleString('en-IN');
+  document.getElementById('s-profit').textContent='₹'+Math.round(s.profit).toLocaleString('en-IN');
   const pm=document.getElementById('s-margin');
   if(pm){pm.textContent=s.margin.toFixed(1)+'% margin';pm.style.color=s.margin>25?'#16a34a':s.margin>10?'#d97706':'#dc2626';}
   document.getElementById('s-pending').textContent=s.pending;
-  document.getElementById('s-avg').textContent='₹'+Math.round(s.avg);
+  document.getElementById('s-avg').textContent='₹'+Math.round(s.avg).toLocaleString('en-IN');
+  // Revenue delta label
+  const rd=document.getElementById('s-revenue-delta');
+  if(rd)rd.textContent=s.total+' orders';
+  // Inventory stats
+  const totalStock=allProducts.reduce((s,p)=>s+(p.stock||0),0);
+  const stockValue=allProducts.reduce((s,p)=>s+((p.stock||0)*(p.costPrice||0)),0);
+  const totalSkus=allProducts.filter(p=>(p.stock||0)>0).length;
+  const lowStock=allProducts.filter(p=>(p.stock||0)>0&&(p.stock||0)<10);
+  const el1=document.getElementById('s-total-stock');if(el1)el1.textContent=totalSkus;
+  const el2=document.getElementById('s-total-stock-sub');if(el2)el2.textContent=lowStock.length+' low stock';
+  if(el2)el2.style.color=lowStock.length>0?'#dc2626':'#9ca3af';
+  const el3=document.getElementById('s-stock-value');if(el3)el3.textContent='₹'+Math.round(stockValue).toLocaleString('en-IN');
   renderStatusBreakdown(filtered);
   renderDashOrders(filtered);
   renderOrderTimeline();
+  renderRestockPanel(lowStock);
+  renderTopMovers(filtered);
 }
 
 function updatePendingBadge(){
@@ -2594,13 +2796,94 @@ function renderDashOrders(orders){
   const tbody=document.getElementById('dash-orders');
   const empty=document.getElementById('dash-no-orders');
   if(!tbody)return;
-  const recent=(orders||[]).slice(0,8);
-  if(!recent.length){tbody.innerHTML='';empty.style.display='block';return;}
-  empty.style.display='none';
+  const recent=(orders||[]).slice(0,10);
+  if(!recent.length){tbody.innerHTML='';if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
   tbody.innerHTML=recent.map(o=>{
-    const profit=(o.items||[]).reduce((s,i)=>s+itemProfit(i),0);
-    return`<tr><td style="font-family:monospace;font-weight:700;color:#2d8a45;font-size:11px;">${o.orderId||''}</td><td style="font-size:12px;font-weight:600;">${o.name||''}</td><td style="font-size:13px;font-weight:700;color:#2d8a45;">₹${(o.total||0).toFixed(0)}</td><td style="font-size:12px;font-weight:700;color:${profit>=0?'#16a34a':'#dc2626'};">₹${profit.toFixed(0)}</td><td><span class="badge ${STATUS_BADGE[o.status]||''}" style="font-size:10px;">${o.status}</span></td><td><select onchange="updateOrderStatus('${o.firestoreId}',this.value)" style="padding:4px;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;cursor:pointer;background:white;outline:none;">${ALL_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td></tr>`;
+    const initials=(o.name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().substring(0,2);
+    const itemCount=(o.items||[]).length;
+    const isBill=o.source==='billing';
+    const payColor=o.payment==='Cash'?'#374151':o.payment==='GPay'?'#2563eb':o.payment==='PhonePe'?'#7c3aed':'#374151';
+    return`<tr>
+      <td data-label="Order ID">
+        <div style="font-family:monospace;font-weight:700;color:#2d8a45;font-size:11px;">${o.orderId||('#'+o.firestoreId?.slice(0,6)||'')}</div>
+        ${isBill?`<span style="font-size:9px;background:#eef2ff;color:#4338ca;padding:1px 5px;border-radius:4px;font-weight:700;">${o.billType==='invoice'?'INVOICE':'WALK-IN'}</span>`:''}
+      </td>
+      <td data-label="Customer">
+        <div style="display:flex;align-items:center;gap:7px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#e2f0e6;color:#1a5c2a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;flex-shrink:0;">${initials}</div>
+          <div>
+            <div style="font-weight:600;font-size:12px;line-height:1.3;">${o.name||'—'}</div>
+            <div style="font-size:10px;color:#9ca3af;">${o.phone||''}</div>
+          </div>
+        </div>
+      </td>
+      <td data-label="Items"><div style="font-size:12px;font-weight:600;">${itemCount} item${itemCount!==1?'s':''}</div><div style="font-size:10px;color:#9ca3af;">${(o.items||[]).slice(0,2).map(i=>i.name).join(', ')}${itemCount>2?'…':''}</div></td>
+      <td data-label="Amount"><div style="font-size:13px;font-weight:800;color:#1a5c2a;">₹${(o.total||0).toFixed(0)}</div></td>
+      <td data-label="Payment"><span style="font-size:11px;font-weight:700;color:${payColor};">${o.payment||'—'}</span></td>
+      <td data-label="Status"><span class="badge ${STATUS_BADGE[o.status]||''}" style="font-size:10px;">${o.status}</span></td>
+      <td data-label="">
+        <div style="display:flex;gap:4px;align-items:center;">
+          <select onchange="updateOrderStatus('${o.firestoreId}',this.value)" style="padding:4px 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;background:white;outline:none;max-width:110px;">${ALL_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}</select>
+          <button onclick="openOrderBill('${o.firestoreId}')" class="btn" style="padding:4px 8px;background:#f3f4f6;border:none;border-radius:6px;cursor:pointer;" title="Print Bill"><span class="material-symbols-outlined ms" style="font-size:14px;color:#6b7280;display:block;">receipt_long</span></button>
+        </div>
+      </td>
+    </tr>`;
   }).join('');
+}
+
+// ─── RESTOCK PANEL ───
+function renderRestockPanel(lowProds){
+  const el=document.getElementById('dash-restock-list');
+  const badge=document.getElementById('dash-lowstock-badge');
+  if(!el)return;
+  const lowAll=allProducts.filter(p=>(p.stock||0)>=0&&(p.stock||0)<10).sort((a,b)=>(a.stock||0)-(b.stock||0)).slice(0,6);
+  if(badge){badge.textContent=lowAll.length+' Low';badge.style.display=lowAll.length?'':'none';}
+  if(!lowAll.length){el.innerHTML='<div style="text-align:center;padding:16px 14px;color:#9ca3af;font-size:12px;">All items well-stocked</div>';return;}
+  el.innerHTML=lowAll.map(p=>{
+    const stock=p.stock||0;
+    const isOut=stock<=0;
+    const tagColor=isOut?'#b91c1c':'#92400e';
+    const tagBg=isOut?'#fee2e2':'#fef3c7';
+    const tagText=isOut?'Out':'Low';
+    return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f9fafb;gap:8px;">
+      <div style="min-width:0;flex:1;">
+        <div style="font-size:12px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name||'—'}</div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:1px;">${stock} remaining</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <span style="font-size:10px;font-weight:700;padding:2px 7px;background:${tagBg};color:${tagColor};border-radius:999px;">${tagText}</span>
+        <button onclick="openAddPurchaseForProduct('${p.id}')" style="font-size:10px;font-weight:700;padding:4px 9px;background:#1a5c2a;color:white;border:none;border-radius:6px;cursor:pointer;">Reorder</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── TOP MOVERS ───
+function renderTopMovers(orders){
+  const el=document.getElementById('dash-top-movers');if(!el)return;
+  const valid=orders.filter(o=>o.status!=='Cancelled');
+  const itemMap={};
+  valid.forEach(o=>(o.items||[]).forEach(i=>{
+    const k=i.id||i.name;
+    if(!itemMap[k])itemMap[k]={name:i.name,qty:0,revenue:0};
+    itemMap[k].qty+=(i.qty||1);
+    itemMap[k].revenue+=(i.price||0)*(i.qty||1);
+  }));
+  const sorted=Object.values(itemMap).sort((a,b)=>b.qty-a.qty).slice(0,5);
+  if(!sorted.length){el.innerHTML='<div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px;">No sales data yet</div>';return;}
+  const maxQ=sorted[0].qty||1;
+  el.innerHTML='<div style="padding:4px 0;">'+sorted.map((item,idx)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid #f9fafb;">
+    <div style="font-size:11px;font-weight:800;color:#9ca3af;width:16px;text-align:center;">${idx+1}</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
+      <div style="height:4px;background:#f3f4f6;border-radius:2px;margin-top:4px;overflow:hidden;"><div style="height:100%;width:${(item.qty/maxQ*100).toFixed(0)}%;background:#2d8a45;border-radius:2px;"></div></div>
+    </div>
+    <div style="text-align:right;flex-shrink:0;">
+      <div style="font-size:13px;font-weight:800;color:#1a5c2a;">₹${Math.round(item.revenue).toLocaleString('en-IN')}</div>
+      <div style="font-size:10px;color:#9ca3af;">${item.qty} pcs</div>
+    </div>
+  </div>`).join('')+'</div>';
 }
 
 function renderOrderTimeline(){
@@ -2621,9 +2904,51 @@ function renderOrderTimeline(){
     const da=a.date.split('/').reverse().join('-'),db=b.date.split('/').reverse().join('-');
     return da.localeCompare(db);
   }).slice(-14);
-  if(!days.length){el.innerHTML='<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">No data in this period</div>';return;}
-  const maxC=Math.max(...days.map(d=>d.count),1);
-  el.innerHTML=`<div style="display:flex;align-items:flex-end;gap:4px;height:110px;padding-bottom:20px;">${days.map(d=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;"><div title="${d.count} orders | Revenue ₹${Math.round(d.revenue)} | Profit ₹${Math.round(d.profit)}" style="width:100%;background:linear-gradient(to top,#2d8a45,#ffaa55);border-radius:3px 3px 0 0;height:${Math.max(d.count/maxC*88,3)}px;min-height:3px;cursor:pointer;transition:opacity .15s;" onclick="showToast(this.title)" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'"></div><div style="font-size:9px;color:#9ca3af;margin-top:3px;white-space:nowrap;overflow:hidden;max-width:100%;text-align:center;">${d.date.split('/').slice(0,2).join('/')}</div></div>`).join('')}</div><div style="display:flex;gap:12px;flex-wrap:wrap;"><div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;background:#2d8a45;border-radius:2px;"></div><span style="font-size:11px;color:#6b7280;">Orders per day (${orders.length} total) | Tap/hover a bar for revenue/profit</span></div></div>`;
+  if(!days.length){el.innerHTML='<div style="text-align:center;padding:24px;color:#9ca3af;font-size:13px;">No data in this period</div>';return;}
+  const maxRev=Math.max(...days.map(d=>d.revenue),1);
+  const maxOrd=Math.max(...days.map(d=>d.count),1);
+  const chartH=130;
+  const barW=100/days.length;
+  // Build SVG-style chart using HTML
+  const barsHtml=days.map((d,i)=>{
+    const barH=Math.max((d.revenue/maxRev)*chartH,2);
+    const dotY=chartH-(d.count/maxOrd)*(chartH-10);
+    const label=d.date.split('/').slice(0,2).join('/');
+    return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;cursor:pointer;" title="₹${Math.round(d.revenue)} revenue · ${d.count} orders · ₹${Math.round(d.profit)} profit" onclick="showToast('${d.date}: ₹'+${Math.round(d.revenue)}+' revenue, ${d.count} orders')">
+      <div style="width:100%;position:relative;height:${chartH}px;display:flex;align-items:flex-end;justify-content:center;">
+        <div style="width:70%;background:linear-gradient(to top,#2d8a45dd,#4ade80aa);border-radius:3px 3px 0 0;height:${barH}px;transition:opacity .15s;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'"></div>
+      </div>
+      <div style="font-size:9px;color:#9ca3af;margin-top:3px;white-space:nowrap;text-align:center;">${label}</div>
+    </div>`;
+  }).join('');
+  // Order count line overlay points
+  const linePoints=days.map((d,i)=>{
+    const x=(i/(days.length-1||1))*100;
+    const y=100-((d.count/maxOrd)*90);
+    return`${x.toFixed(1)}% ${y.toFixed(1)}%`;
+  });
+  el.innerHTML=`
+    <div style="position:relative;">
+      <div style="display:flex;align-items:flex-end;gap:2px;height:${chartH}px;position:relative;">
+        <!-- Y-axis labels -->
+        <div style="display:flex;flex-direction:column;justify-content:space-between;height:${chartH}px;padding:2px 0;margin-right:6px;flex-shrink:0;">
+          <span style="font-size:9px;color:#d1d5db;">₹${Math.round(maxRev).toLocaleString('en-IN')}</span>
+          <span style="font-size:9px;color:#d1d5db;">₹${Math.round(maxRev/2).toLocaleString('en-IN')}</span>
+          <span style="font-size:9px;color:#d1d5db;">₹0</span>
+        </div>
+        <!-- Bars container -->
+        <div style="display:flex;gap:2px;flex:1;height:${chartH}px;align-items:flex-end;border-bottom:1px solid #f3f4f6;border-left:1px solid #f3f4f6;">
+          ${barsHtml}
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:#2d8a45;border-radius:2px;"></div><span style="font-size:11px;color:#6b7280;font-weight:600;">${orders.length} orders total</span></div>
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:3px;background:#f59e0b;border-radius:2px;"></div><span style="font-size:11px;color:#6b7280;font-weight:600;">Revenue ₹${Math.round(orders.filter(o=>o.status!=='Cancelled').reduce((s,o)=>s+(o.total||0),0)).toLocaleString('en-IN')}</span></div>
+      </div>
+    </div>`;
+  // Update subtitle
+  const sub=document.getElementById('dash-chart-subtitle');
+  if(sub)sub.textContent=days.length+' day'+((days.length!==1)?'s':'')+' · '+orders.length+' orders';
 }
 
 // ─── ORDERS ───
