@@ -6581,7 +6581,7 @@ function printOrderBill(){
   }
 }
 
-// ─── COPY BILL: thermal receipt as a PNG image on the clipboard ───────────────
+// ─── COPY BILL: renders active tab layout to PNG and copies / shares ──────────
 function _loadHtml2Canvas(){
   if(window.html2canvas)return Promise.resolve(window.html2canvas);
   return new Promise((res,rej)=>{
@@ -6592,37 +6592,48 @@ function _loadHtml2Canvas(){
     document.head.appendChild(sc);
   });
 }
-// Renders the thermal bill (always thermal layout, whatever tab is open) to a PNG blob
-async function _thermalBillBlob(o){
+
+// Renders the bill in whichever format is currently active (thermal / receipt / invoice)
+// to a PNG blob.
+// - thermal & receipt: narrow iframe, capture .paper element (compact strip)
+// - invoice: wide iframe, capture .paper element (A4 card)
+async function _billBlob(o, fmt){
   const h2c=await _loadHtml2Canvas();
   const fr=document.createElement('iframe');
   fr.setAttribute('aria-hidden','true');
-  fr.style.cssText='position:fixed;left:-9999px;top:0;width:480px;height:1400px;border:0;visibility:hidden;';
+  const isNarrow = fmt==='thermal' || fmt==='receipt'; // both use ~400px paper width
+  fr.style.cssText=isNarrow
+    ? 'position:fixed;left:-9999px;top:0;width:480px;height:1400px;border:0;visibility:hidden;'
+    : 'position:fixed;left:-9999px;top:0;width:900px;height:1400px;border:0;visibility:hidden;';
   document.body.appendChild(fr);
   try{
-    await new Promise(r=>{fr.onload=r;fr.srcdoc=buildThermalBillHtml(o,getThermalWidth(),false);setTimeout(r,1500);});
+    const html = buildOrderBillHtml(o, fmt); // same builder as the preview tab
+    await new Promise(r=>{fr.onload=r;fr.srcdoc=html;setTimeout(r,1500);});
     const doc=fr.contentDocument;
     if(doc.fonts&&doc.fonts.ready)await doc.fonts.ready;
-    const paper=doc.querySelector('.paper');
-    if(!paper)throw new Error('Bill not ready');
-    paper.style.margin='0';
-    const canvas=await h2c(paper,{backgroundColor:'#ffffff',scale:3,useCORS:true,logging:false});
+    const target=doc.querySelector('.paper');
+    if(!target)throw new Error('Bill not ready');
+    target.style.margin='0';
+    const canvas=await h2c(target,{backgroundColor:'#ffffff',scale:isNarrow?3:2,useCORS:true,logging:false});
     return await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('Image failed')),'image/png'));
   }finally{fr.remove();}
 }
+
 async function copyOrderBillImage(){
   const o=_obm.order; if(!o)return;
   const btn=document.getElementById('obm-copy-btn'),lbl=document.getElementById('obm-copy-label');
   if(btn.disabled)return;
+  const fmt=_obm.fmt||'thermal';  // honour the active tab: invoice / receipt / thermal
   const setL=t=>{if(lbl)lbl.textContent=t;};
   btn.disabled=true;setL('Copying…');
   const name='bill-'+String(o.orderId||o.firestoreId||'order').replace(/[^\w-]+/g,'')+'.png';
   try{
-    const blobP=_thermalBillBlob(o);
+    const blobP=_billBlob(o,fmt);
     if(navigator.clipboard&&window.ClipboardItem){
       // promise passed directly so Safari keeps the click's permission while the image renders
       await navigator.clipboard.write([new ClipboardItem({'image/png':blobP})]);
-      showToast('Bill image copied – paste it in WhatsApp');
+      const fmtLabel=fmt==='thermal'?'Thermal receipt':fmt==='receipt'?'Receipt':'Invoice';
+      showToast(fmtLabel+' image copied – paste it in WhatsApp');
       setL('Copied ✓');
     }else{
       const blob=await blobP;
@@ -6641,7 +6652,7 @@ async function copyOrderBillImage(){
     else{
       // clipboard blocked: fall back to downloading the image
       try{
-        const blob=await _thermalBillBlob(o);
+        const blob=await _billBlob(o,fmt);
         const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
         document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
         showToast('Could not copy – bill image downloaded instead');
