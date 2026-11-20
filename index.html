@@ -5131,7 +5131,7 @@ function addToBillCartPreorder(productId){
   if(!p)return;
   const existing=billCart.find(x=>x.id===productId&&x.preorder);
   if(existing){existing.qty++;}
-  else{billCart.push({id:productId,name:p.name,price:p.price||0,qty:1,isProduct:true,preorder:true});}
+  else{billCart.push({id:productId,name:p.name,price:p.price||0,qty:1,isProduct:true,preorder:true,...(p.unit?{unit:p.unit}:{})});}
   renderBillCart();
   showToast('📦 '+p.name+' added as pre-order');
 }
@@ -5290,7 +5290,7 @@ async function commitBill(orderId){
   const hasPreorder=billCart.some(i=>i.preorder);
   const items=billCart.map(i=>{
     const p=i.isProduct?allProducts.find(x=>x.id===i.id):null;
-    return{id:i.isProduct?i.id:'',name:i.name,price:Number(i.price)||0,qty:Number(i.qty)||0,category:p?.category||'Other',imageUrl:p?.imageUrl||'',isProduct:!!i.isProduct,...(i.preorder?{preorder:true}:{})};
+    return{id:i.isProduct?i.id:'',name:i.name,price:Number(i.price)||0,qty:Number(i.qty)||0,category:p?.category||'Other',imageUrl:p?.imageUrl||'',isProduct:!!i.isProduct,...(i.preorder?{preorder:true}:{}),...(i.unit?{unit:i.unit}:{})};
   });
   const firstP=stockItems.length?allProducts.find(x=>x.id===stockItems[0].id):null;
   const hostelId=scopedHostel?scopedHostel.hostelId:(firstP?.hostelId||'');
@@ -5898,15 +5898,16 @@ function renderPreorderAdmin(){
   const wid=sel.value;
   const rows=pre.filter(o=>o.preorderWindowId===wid&&o.status!=='Cancelled');
   const agg={};
-  rows.forEach(o=>(o.items||[]).filter(i=>i.preorder).forEach(i=>{const k=(i.name||'')+'|'+(i.unit||'');const a=(agg[k]=agg[k]||{name:i.name,unit:i.unit||'',qty:0,orders:0,rev:0,cost:0,nocost:false,category:'',productId:'',costPrice:0});const q=Number(i.qty)||0,pr=allProducts.find(x=>x.id===i.id);a.qty+=q;a.orders++;a.rev+=(Number(i.price)||0)*q;a.cost+=(pr?.costPrice||0)*q;if(!pr?.costPrice)a.nocost=true;if(pr?.category&&!a.category)a.category=pr.category;if(pr?.id&&!a.productId)a.productId=pr.id;if(pr?.costPrice&&!a.costPrice)a.costPrice=pr.costPrice;}));
+  rows.forEach(o=>(o.items||[]).filter(i=>i.preorder).forEach(i=>{const k=(i.name||'');const pr=allProducts.find(x=>x.id===i.id);const isWB=!!(pr?.weightBased);const a=(agg[k]=agg[k]||{name:i.name,unit:isWB?'kg':'',weightBased:isWB,qty:0,orders:0,rev:0,cost:0,nocost:false,category:'',productId:'',costPrice:0});const orderedQty=Number(i.qty)||0;let addQty=orderedQty;if(isWB){const grams=woptToGrams(i.unit||'');const kgPerUnit=grams>=1000?(grams/1000):1;addQty=orderedQty*kgPerUnit;}a.qty+=addQty;a.orders++;a.rev+=(Number(i.price)||0)*orderedQty;a.cost+=(pr?.costPrice||0)*orderedQty;if(!pr?.costPrice)a.nocost=true;if(pr?.category&&!a.category)a.category=pr.category;if(pr?.id&&!a.productId)a.productId=pr.id;if(pr?.costPrice&&!a.costPrice)a.costPrice=pr.costPrice;}));
   const T=list0=>list0.reduce((t,r)=>({rev:t.rev+r.rev,cost:t.cost+r.cost,nocost:t.nocost||r.nocost}),{rev:0,cost:0,nocost:false});
   const list=Object.values(agg).sort((a,b)=>a.name.localeCompare(b.name));
   window._poList=list;window._poWid=wid;
   const tt=T(list),profit=tt.rev-tt.cost,mg=tt.rev>0?(profit/tt.rev*100):0;
   const card=(l,v,c)=>`<div style="flex:1;min-width:110px;background:#f9fafb;border-radius:10px;padding:10px 12px;"><div style="font-size:11px;color:#6b7280;font-weight:600;">${l}</div><div style="font-size:18px;font-weight:800;color:${c||'#111827'};">${v}</div></div>`;
   document.getElementById('po-summary').innerHTML=card('Orders',rows.length)+card('Revenue','₹'+Math.round(tt.rev))+card('Purchase cost','₹'+Math.round(tt.cost))+card('Profit','₹'+Math.round(profit)+' · '+mg.toFixed(0)+'%',profit>=0?'#16a34a':'#dc2626')+(tt.nocost?'<div style="width:100%;font-size:11px;color:#b45309;">Some fruits have no Cost Price set in Products, so purchase cost and profit are understated.</div>':'');
-  const tblHeader=`<tr style="text-align:left;color:#6b7280;font-size:11px;"><th style="padding:6px 4px;">Item</th><th>Unit</th><th style="text-align:right;">Total qty</th><th style="text-align:right;">Revenue</th><th style="text-align:right;">Cost</th><th style="text-align:right;">Orders</th></tr>`;
-  const tblRow=r=>`<tr style="border-top:1px solid #f3f4f6;"><td style="padding:8px 4px;font-weight:700;">${_poEsc(r.name)}</td><td>${_poEsc(r.unit)}</td><td style="text-align:right;font-weight:800;">${r.qty}</td><td style="text-align:right;">₹${Math.round(r.rev)}</td><td style="text-align:right;">${r.nocost?'—':'₹'+Math.round(r.cost)}</td><td style="text-align:right;">${r.orders}</td></tr>`;
+  const tblHeader=`<tr style="text-align:left;color:#6b7280;font-size:11px;"><th style="padding:6px 4px;">Item</th><th style="text-align:right;">Total qty</th><th style="text-align:right;">Revenue</th><th style="text-align:right;">Cost</th><th style="text-align:right;">Orders</th></tr>`;
+  const _fmtPoQty=r=>{if(r.weightBased){const n=Math.round(r.qty*100)/100;return n+'kg';}return r.qty;};
+  const tblRow=r=>`<tr style="border-top:1px solid #f3f4f6;"><td style="padding:8px 4px;font-weight:700;">${_poEsc(r.name)}</td><td style="text-align:right;font-weight:800;">${_fmtPoQty(r)}</td><td style="text-align:right;">₹${Math.round(r.rev)}</td><td style="text-align:right;">${r.nocost?'—':'₹'+Math.round(r.cost)}</td><td style="text-align:right;">${r.orders}</td></tr>`;
   let poListHtml='';
   if(list.length){
     if((window._poMode||'products')==='categories'){
@@ -6123,9 +6124,9 @@ function _poText(){
   const header='Fruit order list – '+_poWinLabel(window._poWid);
   if(mode==='categories'){
     const groups=_poGroupedByCat(l);
-    return header+'\n\n'+groups.map(g=>`[${g.cat}]\n`+g.items.map(r=>`  ${r.name}${r.unit?' ('+r.unit+')':''}: ${r.qty}`).join('\n')).join('\n\n');
+    return header+'\n\n'+groups.map(g=>`[${g.cat}]\n`+g.items.map(r=>`  ${r.name}: ${r.weightBased?(Math.round(r.qty*100)/100)+'kg':r.qty}`).join('\n')).join('\n\n');
   }
-  return header+'\n'+l.map(r=>`${r.name}${r.unit?' ('+r.unit+')':''}: ${r.qty}`).join('\n');
+  return header+'\n'+l.map(r=>`${r.name}: ${r.weightBased?(Math.round(r.qty*100)/100)+'kg':r.qty}`).join('\n');
 }
 function poCopy(){if(!(window._poList||[]).length){showToast('Nothing to copy');return;}navigator.clipboard.writeText(_poText()).then(()=>showToast('Copied – paste into WhatsApp'),()=>showToast('Copy failed'));}
 function poPrint(){
