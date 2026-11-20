@@ -1003,6 +1003,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <button class="tab-btn" id="bill-tab-invoice" onclick="switchBillMode('invoice')">📄 Invoice Generator</button>
     <div class="bill-actions" style="margin-left:auto;display:flex;gap:8px;">
       <button onclick="clearBillCart()" class="btn" style="padding:7px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:12px;font-weight:700;">🗑 Clear</button>
+      <button onclick="openLastBillPreview()" id="bill-copy-btn" class="btn" style="padding:7px 14px;background:#0f766e;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:none;"><span class="material-symbols-outlined ms" style="font-size:15px;vertical-align:-3px;">content_copy</span> Copy Bill</button>
       <button onclick="saveBill()" id="bill-save-btn" class="btn bill-save-btn" style="padding:7px 18px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">💾 Save</button>
       <button onclick="printBill()" id="bill-print-btn" class="btn bill-print-btn" style="padding:7px 18px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">🖨 Save &amp; Print</button>
     </div>
@@ -1020,8 +1021,20 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
           <label class="lbl">Customer Name <span style="font-weight:400;color:#9ca3af;text-transform:none;letter-spacing:0;">(optional)</span></label>
           <input id="pos-cust-name" type="text" class="input-f" placeholder="Leave blank for Walk-in Customer">
         </div>
-        <input id="bill-search" type="text" class="input-f" placeholder="Search by name or category…" oninput="renderBillSearch()" style="margin-bottom:10px;">
-        <div id="bill-search-results" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
+        <!-- POS search tabs -->
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <button class="tab-btn active" id="bill-tab-products" onclick="switchBillSearchTab('products')" style="flex:1;">🛒 Products</button>
+          <button class="tab-btn" id="bill-tab-preorder" onclick="switchBillSearchTab('preorder')" style="flex:1;">📦 Pre-order</button>
+        </div>
+        <!-- Products tab -->
+        <div id="bill-search-products-panel">
+          <input id="bill-search" type="text" class="input-f" placeholder="Search by name or category…" oninput="renderBillSearch()" style="margin-bottom:10px;">
+          <div id="bill-search-results" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
+        </div>
+        <!-- Pre-order tab -->
+        <div id="bill-search-preorder-panel" style="display:none;">
+          <div id="bill-preorder-results" style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto;"></div>
+        </div>
       </div>
 
       <!-- Invoice: customer + bill details -->
@@ -1138,6 +1151,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <!-- Mobile checkout bar (billing page only) -->
     <div id="bill-mobile-bar">
       <div class="bmb-info"><div class="bmb-count" id="bill-mobile-count">0 items</div><div class="bmb-total" id="bill-mobile-total">₹0.00</div></div>
+      <button class="btn" id="bill-mobile-copy-btn" onclick="openLastBillPreview()" style="background:#0f766e;color:#fff;display:none;min-height:46px;padding:0 12px;border:none;border-radius:12px;font-size:13px;font-weight:700;">📋</button>
       <button class="btn bill-save-btn" onclick="saveBill()">💾 Save</button>
       <button class="btn bill-print-btn" onclick="printBill()">🖨 Save &amp; Print</button>
     </div>
@@ -5011,6 +5025,48 @@ function switchBillMode(mode){
   renderBillCart();
 }
 
+let billSearchTab='products'; // 'products' | 'preorder'
+
+function switchBillSearchTab(tab){
+  billSearchTab=tab;
+  document.getElementById('bill-tab-products').classList.toggle('active',tab==='products');
+  document.getElementById('bill-tab-preorder').classList.toggle('active',tab==='preorder');
+  document.getElementById('bill-search-products-panel').style.display=tab==='products'?'':'none';
+  document.getElementById('bill-search-preorder-panel').style.display=tab==='preorder'?'':'none';
+  if(tab==='preorder') renderBillPreorderSearch();
+  else renderBillSearch();
+}
+
+function renderBillPreorderSearch(){
+  const el=document.getElementById('bill-preorder-results');
+  if(!el)return;
+  if(!poState.open){
+    el.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:#9ca3af;"><span style="font-size:28px;display:block;margin-bottom:6px;">📦</span>No pre-order window is open right now.<br><span style="font-size:12px;">Open a pre-order window from the Pre-order page first.</span></div>';
+    return;
+  }
+  let poProd=[];
+  if(poState.mode==='categories'){
+    const selCatNames=new Set((allCategories||[]).filter(c=>poState.categories.includes(c.id)).map(c=>c.name));
+    poProd=(allProducts||[]).filter(p=>!p.hidden&&selCatNames.has(p.category));
+  } else {
+    poProd=(allProducts||[]).filter(p=>!p.hidden&&poState.products.includes(p.id));
+  }
+  if(!poProd.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:#9ca3af;">No products in this pre-order window.</div>';
+    return;
+  }
+  el.innerHTML=poProd.map(p=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#eff6ff;border-radius:8px;border:1.5px solid #93c5fd;">
+      ${p.imageUrl?`<img src="${p.imageUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;">`:'<div style="width:36px;height:36px;background:#dbeafe;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">📦</div>'}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:#1e40af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name||'—'}</div>
+        <div style="font-size:11px;color:#3b82f6;">${p.category||''} · Pre-order (no stock limit)</div>
+      </div>
+      <div style="font-size:13px;font-weight:800;color:#1d4ed8;flex-shrink:0;">₹${p.price||0}</div>
+      <button onclick="addToBillCartPreorder('${p.id}')" class="btn" style="padding:5px 12px;background:#1d4ed8;color:white;border:none;border-radius:7px;font-size:12px;font-weight:700;flex-shrink:0;">+ Add</button>
+    </div>`).join('');
+}
+
 function initBillingPage(){
   try{_initPosPrintStyle();}catch(e){}
   // Pre-fill invoice number with date-based default
@@ -5030,6 +5086,12 @@ function initBillingPage(){
     if(sp&&phoneEl)sp.textContent=phoneEl.value||'';
     if(sh&&hoursEl)sh.textContent=hoursEl.value||'';
   }catch(e){}
+  billSearchTab='products';
+  if(document.getElementById('bill-tab-products'))document.getElementById('bill-tab-products').classList.add('active');
+  if(document.getElementById('bill-tab-preorder'))document.getElementById('bill-tab-preorder').classList.remove('active');
+  if(document.getElementById('bill-search-products-panel'))document.getElementById('bill-search-products-panel').style.display='';
+  if(document.getElementById('bill-search-preorder-panel'))document.getElementById('bill-search-preorder-panel').style.display='none';
+  _showBillCopyBtn(false);
   renderBillSearch();
   renderBillCart();
 }
@@ -5064,6 +5126,16 @@ function addToBillCart(productId){
   showToast(p.name+' added to bill');
 }
 
+function addToBillCartPreorder(productId){
+  const p=allProducts.find(x=>x.id===productId);
+  if(!p)return;
+  const existing=billCart.find(x=>x.id===productId&&x.preorder);
+  if(existing){existing.qty++;}
+  else{billCart.push({id:productId,name:p.name,price:p.price||0,qty:1,isProduct:true,preorder:true});}
+  renderBillCart();
+  showToast('📦 '+p.name+' added as pre-order');
+}
+
 function addManualBillItem(){
   const name=document.getElementById('inv-item-name').value.trim();
   const qty=parseInt(document.getElementById('inv-item-qty').value)||1;
@@ -5076,21 +5148,21 @@ function addManualBillItem(){
   renderBillCart();
 }
 
-function updateBillQty(id,delta){
-  const item=billCart.find(x=>x.id===id);
+function updateBillQty(id,delta,isPreorder){
+  const item=billCart.find(x=>x.id===id&&!!x.preorder===!!isPreorder);
   if(!item)return;
-  if(delta>0&&item.isProduct){
+  if(delta>0&&item.isProduct&&!item.preorder){
     const p=allProducts.find(x=>x.id===id);
     const available=p?(p.stock||0):0;
     if(item.qty+delta>available){showToast('Only '+available+' in stock for '+item.name);return;}
   }
   item.qty+=delta;
-  if(item.qty<=0)billCart=billCart.filter(x=>x.id!==id);
+  if(item.qty<=0)billCart=billCart.filter(x=>!(x.id===id&&!!x.preorder===!!isPreorder));
   renderBillCart();
 }
 
-function removeBillItem(id){
-  billCart=billCart.filter(x=>x.id!==id);
+function removeBillItem(id,isPreorder){
+  billCart=billCart.filter(x=>!(x.id===id&&!!x.preorder===!!isPreorder));
   renderBillCart();
 }
 
@@ -5135,16 +5207,16 @@ function renderBillCart(){
   emptyEl.style.display='none';totalsEl.style.display='';
   countEl.textContent=billCart.length+' item'+(billCart.length>1?'s':'');
   cartEl.innerHTML=billCart.map(item=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;background:#f9fafb;border-radius:8px;">
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;background:${item.preorder?'#eff6ff':'#f9fafb'};border-radius:8px;${item.preorder?'border:1px solid #bfdbfe;':''}">
       <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
+        <div style="font-size:12px;font-weight:700;color:${item.preorder?'#1e40af':'#111827'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}${item.preorder?' <span style="font-size:10px;font-weight:800;background:#1d4ed8;color:white;padding:1px 6px;border-radius:999px;vertical-align:middle;">PRE-ORDER</span>':''}</div>
         <div style="font-size:11px;color:#6b7280;">₹${item.price} × ${item.qty} = <b>₹${(item.price*item.qty).toFixed(2)}</b></div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;">
-        <button onclick="updateBillQty('${item.id}',-1)" class="btn" style="width:24px;height:24px;border-radius:6px;border:1px solid #e5e7eb;background:white;font-size:14px;display:flex;align-items:center;justify-content:center;">−</button>
+        <button onclick="updateBillQty('${item.id}',-1,${!!item.preorder})" class="btn" style="width:24px;height:24px;border-radius:6px;border:1px solid #e5e7eb;background:white;font-size:14px;display:flex;align-items:center;justify-content:center;">−</button>
         <span style="font-size:12px;font-weight:700;min-width:20px;text-align:center;">${item.qty}</span>
-        <button onclick="updateBillQty('${item.id}',1)" class="btn" style="width:24px;height:24px;border-radius:6px;border:1px solid #e5e7eb;background:white;font-size:14px;display:flex;align-items:center;justify-content:center;">+</button>
-        <button onclick="removeBillItem('${item.id}')" class="btn" style="width:24px;height:24px;border-radius:6px;border:none;background:#fee2e2;color:#dc2626;font-size:14px;display:flex;align-items:center;justify-content:center;">×</button>
+        <button onclick="updateBillQty('${item.id}',1,${!!item.preorder})" class="btn" style="width:24px;height:24px;border-radius:6px;border:1px solid #e5e7eb;background:white;font-size:14px;display:flex;align-items:center;justify-content:center;">+</button>
+        <button onclick="removeBillItem('${item.id}',${!!item.preorder})" class="btn" style="width:24px;height:24px;border-radius:6px;border:none;background:#fee2e2;color:#dc2626;font-size:14px;display:flex;align-items:center;justify-content:center;">×</button>
       </div>
     </div>`).join('');
   const{subtotal,discount,gstPct,gst,total}=getBillTotals();
@@ -5214,10 +5286,11 @@ async function commitBill(orderId){
   const payMode=g('bill-pay-mode')||'Cash';
   const payStatus=inv?(g('inv-pay-status')||'Paid'):'Paid';
   const paid=payStatus==='Paid'&&payMode!=='Credit';
-  const stockItems=billCart.filter(i=>i.isProduct);
+  const stockItems=billCart.filter(i=>i.isProduct&&!i.preorder);
+  const hasPreorder=billCart.some(i=>i.preorder);
   const items=billCart.map(i=>{
     const p=i.isProduct?allProducts.find(x=>x.id===i.id):null;
-    return{id:i.isProduct?i.id:'',name:i.name,price:Number(i.price)||0,qty:Number(i.qty)||0,category:p?.category||'Other',imageUrl:p?.imageUrl||'',isProduct:!!i.isProduct};
+    return{id:i.isProduct?i.id:'',name:i.name,price:Number(i.price)||0,qty:Number(i.qty)||0,category:p?.category||'Other',imageUrl:p?.imageUrl||'',isProduct:!!i.isProduct,...(i.preorder?{preorder:true}:{})};
   });
   const firstP=stockItems.length?allProducts.find(x=>x.id===stockItems[0].id):null;
   const hostelId=scopedHostel?scopedHostel.hostelId:(firstP?.hostelId||'');
@@ -5239,6 +5312,7 @@ async function commitBill(orderId){
     notes:g('bill-notes'),
     invoiceNo:inv?orderId:'',invoiceDate:inv?g('inv-date'):'',dueDate:inv?g('inv-due'):'',
     hostelId,hostelName,
+    ...(hasPreorder?{preorder:true,preorderWindowId:poState.windowId||''}:{}),
     createdAt:serverTimestamp(),createdBy:auth?.currentUser?.email||''
   };
   try{
@@ -5265,6 +5339,19 @@ async function commitBill(orderId){
   return{id:orderRef.id,order};
 }
 
+function _showBillCopyBtn(show){
+  const btn=document.getElementById('bill-copy-btn');
+  const mbtn=document.getElementById('bill-mobile-copy-btn');
+  if(btn)btn.style.display=show?'':'none';
+  if(mbtn)mbtn.style.display=show?'':'none';
+}
+
+function openLastBillPreview(){
+  if(!_obm.order){showToast('No saved bill yet — save a bill first');return;}
+  renderOrderBill();
+  openModal('order-bill-modal');
+}
+
 async function saveBill(){
   if(billBusy)return;
   const id=prepareBillId();if(!id)return;
@@ -5273,12 +5360,18 @@ async function saveBill(){
     const res=await commitBill(id);
     if(!res)return;
     _usedBillNos.add(id);
-    // FIFO batch deduction for walk-in bill stock items
+    // Populate _obm so Copy Bill button works immediately
+    const now=new Date();
+    _obm.order={...res.order,firestoreId:res.id,createdAt:null,dateObj:now,date:now.toLocaleDateString('en-IN'),time:now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})};
+    if(getPosPrintStyle().startsWith('thermal'))_obm.fmt='thermal';
+    document.getElementById('obm-sub').textContent=(id||'Bill')+' · '+(res.order.name||'');
+    _showBillCopyBtn(true);
+    // FIFO batch deduction — skip preorder items (no stock held)
     const billQtyById={};
-    billCart.filter(i=>i.isProduct&&i.id).forEach(i=>{billQtyById[i.id]=(billQtyById[i.id]||0)+(Number(i.qty)||0);});
+    billCart.filter(i=>i.isProduct&&i.id&&!i.preorder).forEach(i=>{billQtyById[i.id]=(billQtyById[i.id]||0)+(Number(i.qty)||0);});
     if(Object.keys(billQtyById).length)applyFifoBatchDeduction(billQtyById,false).catch(e=>console.warn('Bill FIFO:',e));
     resetBill();
-    showToast('Bill '+id+' saved · stock, orders & revenue updated');
+    showToast('Bill '+id+' saved · tap Copy Bill to share');
   }finally{ setBillBusy(false); }
 }
 
@@ -5289,6 +5382,7 @@ function openSavedBillPreview(res){
   _obm.order=o;
   if(getPosPrintStyle().startsWith('thermal'))_obm.fmt='thermal';
   document.getElementById('obm-sub').textContent=(o.orderId||'Bill')+' · '+(o.name||'');
+  _showBillCopyBtn(true);
   renderOrderBill();
   openModal('order-bill-modal');
 }
@@ -5324,9 +5418,9 @@ async function printBill(){
     }
     else if(win){ win.document.write(html); win.document.close(); }
     else openSavedBillPreview(res);
-    // FIFO batch deduction for walk-in bill stock items
+    // FIFO batch deduction — skip preorder items (no stock held)
     const pBillQtyById={};
-    billCart.filter(i=>i.isProduct&&i.id).forEach(i=>{pBillQtyById[i.id]=(pBillQtyById[i.id]||0)+(Number(i.qty)||0);});
+    billCart.filter(i=>i.isProduct&&i.id&&!i.preorder).forEach(i=>{pBillQtyById[i.id]=(pBillQtyById[i.id]||0)+(Number(i.qty)||0);});
     if(Object.keys(pBillQtyById).length)applyFifoBatchDeduction(pBillQtyById,false).catch(e=>console.warn('PrintBill FIFO:',e));
     resetBill();
     showToast('Bill '+id+' saved · stock, orders & revenue updated');
@@ -6485,6 +6579,7 @@ function buildOrderBillHtml(o,fmt){
   const cancelled=/cancel/i.test(d.status);
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${billEsc(d.billNo)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Plus Jakarta Sans','Segoe UI',system-ui,-apple-system,sans-serif;background:#f3f4f6;color:#111827;padding:14px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -6608,9 +6703,10 @@ async function _billBlob(o, fmt){
   document.body.appendChild(fr);
   try{
     const html = buildOrderBillHtml(o, fmt); // same builder as the preview tab
-    await new Promise(r=>{fr.onload=r;fr.srcdoc=html;setTimeout(r,1500);});
+    await new Promise(r=>{fr.onload=r;fr.srcdoc=html;setTimeout(r,2500);});
     const doc=fr.contentDocument;
     if(doc.fonts&&doc.fonts.ready)await doc.fonts.ready;
+    await new Promise(r=>setTimeout(r,200)); // small buffer after fonts settle
     const target=doc.querySelector('.paper');
     if(!target)throw new Error('Bill not ready');
     target.style.margin='0';
