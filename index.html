@@ -624,7 +624,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button onclick="poCopy()" class="btn" style="padding:8px 14px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;">Copy for supplier</button>
         <button onclick="poPrint()" class="btn" style="padding:8px 14px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:12px;font-weight:700;">Print</button>
-        <button onclick="poManualRecordPurchases()" class="btn" id="po-record-btn" style="padding:8px 14px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:8px;font-size:12px;font-weight:700;">📥 Add to Purchase</button>
+        <button onclick="poManualRecordPurchases()" class="btn" id="po-record-btn" style="padding:8px 14px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:8px;font-size:12px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">download</span> Add to Purchase</button>
       </div>
     </div>
     <div id="po-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
@@ -646,8 +646,8 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <div style="margin-bottom:14px;">
       <label class="lbl" style="margin-bottom:6px;display:block;">Selection mode</label>
       <div style="display:flex;gap:6px;">
-        <button class="tab-btn active" id="po-mode-products" onclick="switchPoMode('products')" style="flex:1;">🛒 By Products</button>
-        <button class="tab-btn" id="po-mode-categories" onclick="switchPoMode('categories')" style="flex:1;">📦 By Categories</button>
+        <button class="tab-btn active" id="po-mode-products" onclick="switchPoMode('products')" style="flex:1;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">shopping_cart</span> By Products</button>
+        <button class="tab-btn" id="po-mode-categories" onclick="switchPoMode('categories')" style="flex:1;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">category</span> By Categories</button>
       </div>
     </div>
     <!-- Product picker -->
@@ -849,7 +849,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 
     <!-- ── MY ACCOUNT ── -->
     <div class="stat-card" style="border-left:3px solid #2d8a45;">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;">👤 My Account</h3>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">person</span> My Account</h3>
       <p style="font-size:12px;color:#9ca3af;margin-bottom:14px;">Signed in as <span id="s-my-email" style="font-weight:700;color:#374151;"></span></p>
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px;">
@@ -871,7 +871,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 
     <!-- ── ADMIN ACCOUNTS ── -->
     <div class="stat-card" id="s-admin-accounts-card" style="border-left:3px solid #1a5c2a;">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;">🛡️ Admin Accounts</h3>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">shield</span> Admin Accounts</h3>
       <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Super-admins who can access this full dashboard.</p>
       <div id="s-admin-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;min-height:32px;"></div>
       <div style="border-top:1px solid #e5e7eb;padding-top:12px;">
@@ -887,7 +887,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 
     <!-- ── WEEKLY REPORT ── -->
     <div class="stat-card" style="border-left:3px solid #7c3aed;">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;">📊 Orders Report</h3>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">bar_chart</span> Orders Report</h3>
       <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Download orders between any two dates as CSV or PDF.</p>
       <div style="display:flex;flex-direction:column;gap:9px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -910,7 +910,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 
     <!-- ── PACKING LIST (date-range) ── -->
     <div class="stat-card" style="border-left:3px solid #c2410c;">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;">📦 Packing List</h3>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">inventory_2</span> Packing List</h3>
       <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Aggregate item quantities across orders in a date range — for packing before Sunday delivery.</p>
       <div style="display:flex;flex-direction:column;gap:9px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -934,7 +934,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 
     <!-- ── NOTIFICATION PREFERENCES ── -->
     <div class="stat-card" style="border-left:3px solid #0891b2;">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;">🔔 Notification Preferences</h3>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:3px;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">notifications</span> Notification Preferences</h3>
       <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Control how you get alerted about new orders and activity.</p>
       <div style="display:flex;flex-direction:column;gap:10px;">
         <label style="display:flex;align-items:center;justify-content:space-between;background:#f9fafb;border-radius:9px;padding:10px 12px;cursor:pointer;">
@@ -999,13 +999,13 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 <div class="page-content" id="page-billing">
   <!-- Mode tabs -->
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-    <button class="tab-btn active" id="bill-tab-pos" onclick="switchBillMode('pos')">🧾 POS Billing</button>
-    <button class="tab-btn" id="bill-tab-invoice" onclick="switchBillMode('invoice')">📄 Invoice Generator</button>
+    <button class="tab-btn active" id="bill-tab-pos" onclick="switchBillMode('pos')"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">receipt_long</span> POS Billing</button>
+    <button class="tab-btn" id="bill-tab-invoice" onclick="switchBillMode('invoice')"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">description</span> Invoice Generator</button>
     <div class="bill-actions" style="margin-left:auto;display:flex;gap:8px;">
-      <button onclick="clearBillCart()" class="btn" style="padding:7px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:12px;font-weight:700;">🗑 Clear</button>
+      <button onclick="clearBillCart()" class="btn" style="padding:7px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:12px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">delete</span> Clear</button>
       <button onclick="openLastBillPreview()" id="bill-copy-btn" class="btn" style="padding:7px 14px;background:#0f766e;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;display:none;"><span class="material-symbols-outlined ms" style="font-size:15px;vertical-align:-3px;">content_copy</span> Copy Bill</button>
-      <button onclick="saveBill()" id="bill-save-btn" class="btn bill-save-btn" style="padding:7px 18px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">💾 Save</button>
-      <button onclick="printBill()" id="bill-print-btn" class="btn bill-print-btn" style="padding:7px 18px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">🖨 Save &amp; Print</button>
+      <button onclick="saveBill()" id="bill-save-btn" class="btn bill-save-btn" style="padding:7px 18px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">save</span> Save</button>
+      <button onclick="printBill()" id="bill-print-btn" class="btn bill-print-btn" style="padding:7px 18px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">print</span> Save &amp; Print</button>
     </div>
   </div>
 
@@ -1023,8 +1023,8 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
         </div>
         <!-- POS search tabs -->
         <div style="display:flex;gap:6px;margin-bottom:10px;">
-          <button class="tab-btn active" id="bill-tab-products" onclick="switchBillSearchTab('products')" style="flex:1;">🛒 Products</button>
-          <button class="tab-btn" id="bill-tab-preorder" onclick="switchBillSearchTab('preorder')" style="flex:1;">📦 Pre-order</button>
+          <button class="tab-btn active" id="bill-tab-products" onclick="switchBillSearchTab('products')" style="flex:1;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">shopping_cart</span> Products</button>
+          <button class="tab-btn" id="bill-tab-preorder" onclick="switchBillSearchTab('preorder')" style="flex:1;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">category</span> Pre-order</button>
         </div>
         <!-- Products tab -->
         <div id="bill-search-products-panel">
@@ -1151,9 +1151,9 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <!-- Mobile checkout bar (billing page only) -->
     <div id="bill-mobile-bar">
       <div class="bmb-info"><div class="bmb-count" id="bill-mobile-count">0 items</div><div class="bmb-total" id="bill-mobile-total">₹0.00</div></div>
-      <button class="btn" id="bill-mobile-copy-btn" onclick="openLastBillPreview()" style="background:#0f766e;color:#fff;display:none;min-height:46px;padding:0 12px;border:none;border-radius:12px;font-size:13px;font-weight:700;">📋</button>
-      <button class="btn bill-save-btn" onclick="saveBill()">💾 Save</button>
-      <button class="btn bill-print-btn" onclick="printBill()">🖨 Save &amp; Print</button>
+      <button class="btn" id="bill-mobile-copy-btn" onclick="openLastBillPreview()" style="background:#0f766e;color:#fff;display:none;min-height:46px;padding:0 12px;border:none;border-radius:12px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">content_copy</span></button>
+      <button class="btn bill-save-btn" onclick="saveBill()"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">save</span> Save</button>
+      <button class="btn bill-print-btn" onclick="printBill()"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">print</span> Save &amp; Print</button>
     </div>
   </main>
 </div><!-- /app -->
@@ -1597,7 +1597,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <div style="display:flex;gap:6px;margin-bottom:10px;">
       <button class="tab-btn active" id="obm-fmt-invoice" onclick="setOrderBillFormat('invoice')">Invoice (A4)</button>
       <button class="tab-btn" id="obm-fmt-receipt" onclick="setOrderBillFormat('receipt')">Receipt</button>
-      <button class="tab-btn" id="obm-fmt-thermal" onclick="setOrderBillFormat('thermal')">🧾 Thermal</button>
+      <button class="tab-btn" id="obm-fmt-thermal" onclick="setOrderBillFormat('thermal')"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">receipt_long</span> Thermal</button>
       <select id="obm-thermal-w" class="input-f" style="display:none;width:auto;padding:7px 28px 7px 10px;min-height:0;" onchange="setThermalWidth(this.value)"><option value="80">80 mm roll</option><option value="58">58 mm roll</option></select>
     </div>
     <iframe id="order-bill-frame" title="Bill preview" style="width:100%;height:58vh;border:1px solid #e5e7eb;border-radius:12px;background:#f3f4f6;"></iframe>
@@ -1616,7 +1616,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
   <div class="modal-box" style="max-width:580px;padding:22px;" onclick="event.stopPropagation()">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;">
       <div>
-        <h2 style="font-size:16px;font-weight:800;">✏ Edit POS Order</h2>
+        <h2 style="font-size:16px;font-weight:800;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">edit</span> Edit POS Order</h2>
         <p style="font-size:12px;color:#9ca3af;margin-top:2px;" id="epo-sub"></p>
       </div>
       <button onclick="closeModal('edit-pos-modal')" class="btn" style="width:34px;height:34px;min-height:0;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="material-symbols-outlined ms" style="font-size:18px;color:#6b7280;">close</span></button>
@@ -1630,11 +1630,11 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 
     <!-- Add product search -->
     <div style="margin-bottom:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:14px;">
-      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;">➕ Add Product / Custom Item</div>
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">add_circle</span> Add Product / Custom Item</div>
       <!-- search tabs -->
       <div style="display:flex;gap:6px;margin-bottom:8px;">
-        <button class="tab-btn active" id="epo-tab-products" onclick="switchEpoTab('products')" style="flex:1;padding:7px 10px;font-size:12px;">🛒 Products</button>
-        <button class="tab-btn" id="epo-tab-preorder" onclick="switchEpoTab('preorder')" style="flex:1;padding:7px 10px;font-size:12px;">📦 Pre-order</button>
+        <button class="tab-btn active" id="epo-tab-products" onclick="switchEpoTab('products')" style="flex:1;padding:7px 10px;font-size:12px;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">shopping_cart</span> Products</button>
+        <button class="tab-btn" id="epo-tab-preorder" onclick="switchEpoTab('preorder')" style="flex:1;padding:7px 10px;font-size:12px;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">category</span> Pre-order</button>
       </div>
       <!-- Products panel -->
       <div id="epo-panel-products">
@@ -1656,7 +1656,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 
     <!-- Current items list -->
     <div style="margin-bottom:14px;">
-      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;">📋 Current Items</div>
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">list_alt</span> Current Items</div>
       <div id="epo-items-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;"></div>
       <div id="epo-items-empty" style="text-align:center;padding:16px;color:#9ca3af;font-size:12px;display:none;">No items — add some above</div>
     </div>
@@ -1670,7 +1670,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
     <!-- Save button -->
     <div style="display:flex;gap:8px;">
       <button onclick="closeModal('edit-pos-modal')" class="btn" style="flex:1;padding:12px;background:#f3f4f6;border:none;border-radius:10px;font-size:13px;font-weight:700;color:#374151;">Cancel</button>
-      <button onclick="saveEditPosOrder()" id="epo-save-btn" class="btn" style="flex:2;padding:12px;background:#1a5c2a;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;">💾 Save Changes</button>
+      <button onclick="saveEditPosOrder()" id="epo-save-btn" class="btn" style="flex:2;padding:12px;background:#1a5c2a;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">save</span> Save Changes</button>
     </div>
   </div>
 </div>
@@ -1679,7 +1679,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 <div class="modal-bd" id="printer-setup-modal" style="z-index:260;" onclick="closeModal('printer-setup-modal')">
   <div class="modal-box" style="max-width:440px;padding:20px;" onclick="event.stopPropagation()">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div><h2 style="font-size:15px;font-weight:800;">🖨 Printer Setup</h2><p style="font-size:11px;color:#9ca3af;">Thermal receipt printer - saved on this device</p></div>
+      <div><h2 style="font-size:15px;font-weight:800;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">print</span> Printer Setup</h2><p style="font-size:11px;color:#9ca3af;">Thermal receipt printer - saved on this device</p></div>
       <button onclick="closeModal('printer-setup-modal')" class="btn" style="width:28px;height:28px;min-height:0;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms" style="font-size:16px;color:#6b7280;">close</span></button>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;">
@@ -1711,7 +1711,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
 <div class="modal-bd" id="packing-modal" onclick="closeModal('packing-modal')">
   <div class="modal-box" style="max-width:420px;padding:20px;" onclick="event.stopPropagation()">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div><h2 style="font-size:15px;font-weight:800;">📦 Packing List</h2><p style="font-size:11px;color:#9ca3af;">Select date range then download</p></div>
+      <div><h2 style="font-size:15px;font-weight:800;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">inventory_2</span> Packing List</h2><p style="font-size:11px;color:#9ca3af;">Select date range then download</p></div>
       <button onclick="closeModal('packing-modal')" class="btn" style="width:28px;height:28px;min-height:0;border-radius:50%;background:#f3f4f6;border:none;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined ms" style="font-size:16px;color:#6b7280;">close</span></button>
     </div>
     <div style="display:flex;flex-direction:column;gap:9px;">
@@ -1842,7 +1842,7 @@ function enterAdminApp(user){
 function applyHostelScopeUI(){
   const banner=document.getElementById('scoped-hostel-banner');
   if(scopedHostel){
-    if(banner){banner.textContent='📍 '+scopedHostel.hostelName;banner.style.display='block';}
+    if(banner){banner.textContent='● '+scopedHostel.hostelName;banner.style.display='block';}
     // A branch admin manages only their own branch — hide global hostels/pickup-points/CMS/promos,
     // plus Customers (not scoped per-branch, would leak other branches' customer identities).
     // Support Chats and Settings ARE shown: chats are filtered to their own branch, and Settings
@@ -2088,7 +2088,7 @@ function refreshEffectiveStatus(){
   }
   if(effectivelyOn){
     el.style.background='#f0fdf4';el.style.color='#15803d';
-    el.textContent='✓ Customers see: Room delivery available right now';
+    el.textContent='Customers see: Room delivery available right now';
   } else {
     el.style.background='#fef2f2';el.style.color='#b91c1c';
     el.textContent='⚠ Customers see: Pickup-only right now'+reason;
@@ -2462,7 +2462,7 @@ function printStockReport(){
     .footer{margin-top:16px;font-size:11px;color:#9ca3af;text-align:right;}
     @media print{body{padding:12px;}@page{margin:12mm;}}
   </style></head><body>
-  <h1>🏪 Santhom Stores — ${title}</h1>
+  <h1>Santhom Stores — ${title}</h1>
   <div class="meta">Generated: ${now}${catFilter?' · Category: '+catFilter:''}</div>
   <table><thead>${headers}</thead><tbody>${rows}</tbody></table>
   <div class="footer">Santhom Stores Admin · ${now}</div>
@@ -2657,16 +2657,16 @@ function renderOrdersTable(){
     const initials=(o.name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().substring(0,2);
     const isPickup=true; // store is always pickup
     return`<tr>
-      <td style="font-family:monospace;font-weight:700;color:#2d8a45;font-size:11px;">${o.orderId||o.firestoreId?.substring(0,8)||''}<div style="font-size:10px;color:#9ca3af;font-family:inherit;">${o.date} ${o.time}</div>${o.source==='billing'?'<div><span class="badge" style="background:#eef2ff;color:#4338ca;font-size:9px;margin-top:3px;">🧾 '+(o.billType==='invoice'?'INVOICE':'WALK-IN')+'</span></div>':''}</td>
+      <td style="font-family:monospace;font-weight:700;color:#2d8a45;font-size:11px;">${o.orderId||o.firestoreId?.substring(0,8)||''}<div style="font-size:10px;color:#9ca3af;font-family:inherit;">${o.date} ${o.time}</div>${o.source==='billing'?'<div><span class="badge" style="background:#eef2ff;color:#4338ca;font-size:9px;margin-top:3px;">'+(o.billType==='invoice'?'INVOICE':'WALK-IN')+'</span></div>':''}</td>
       <td><div style="display:flex;align-items:center;gap:7px;"><div style="width:28px;height:28px;border-radius:50%;background:#e2f0e6;color:#1a5c2a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0;">${initials}</div><div><div style="font-weight:600;font-size:12px;">${o.name||''}</div><div style="font-size:10px;color:#9ca3af;">${o.phone||''}</div></div></div></td>
-      <td>${o.source==='billing'?'<span class="badge" style="background:#eef2ff;color:#4338ca;">🧾 Walk-in Bill</span>':'<span class="badge" style="background:#f0fdf4;color:#16a34a;">🏪 Store Pickup</span>'}</td>
+      <td>${o.source==='billing'?'<span class="badge" style="background:#eef2ff;color:#4338ca;">Walk-in Bill</span>':'<span class="badge" style="background:#f0fdf4;color:#16a34a;">Store Pickup</span>'}</td>
       <td style="font-size:11px;"><span style="color:#16a34a;font-weight:700;">${o.pickupLocation||'Store Counter'}</span></td>
       <td style="font-size:12px;font-weight:600;">${(o.items||[]).length} item(s)<br><button onclick="openOrderDetail('${o.firestoreId}')" style="font-size:10px;color:#1a5c2a;background:none;border:none;cursor:pointer;font-weight:700;padding:0;">Details</button></td>
       <td style="font-size:12px;font-weight:600;">${o.payment||''}</td>
       <td style="font-size:13px;font-weight:800;color:#1a5c2a;">₹${(o.total||0).toFixed(0)}</td>
       <td><select onchange="updateOrderStatus('${o.firestoreId}',this.value)" style="padding:5px 6px;border:1px solid #e5e7eb;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;background:white;outline:none;min-width:130px;">${ALL_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${adminDisplayStatus(s)}</option>`).join('')}</select></td>
       <td style="font-size:11px;color:#9ca3af;white-space:nowrap;">${o.date}</td>
-      <td><button onclick="openOrderDetail('${o.firestoreId}')" class="btn" style="padding:5px 10px;background:#e2f0e6;color:#1a5c2a;border:none;border-radius:7px;font-size:11px;font-weight:700;">View</button><button onclick="openOrderBill('${o.firestoreId}')" class="btn row-bill-btn">🧾 Bill</button>${o.source==='billing'?`<button onclick="openEditPosOrder('${o.firestoreId}')" class="btn" style="padding:5px 10px;background:#fef3c7;color:#92400e;border:none;border-radius:7px;font-size:11px;font-weight:700;margin-left:4px;">✏ Edit</button>`:''}</td>
+      <td><button onclick="openOrderDetail('${o.firestoreId}')" class="btn" style="padding:5px 10px;background:#e2f0e6;color:#1a5c2a;border:none;border-radius:7px;font-size:11px;font-weight:700;">View</button><button onclick="openOrderBill('${o.firestoreId}')" class="btn row-bill-btn"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">receipt_long</span> Bill</button>${o.source==='billing'?`<button onclick="openEditPosOrder('${o.firestoreId}')" class="btn" style="padding:5px 10px;background:#fef3c7;color:#92400e;border:none;border-radius:7px;font-size:11px;font-weight:700;margin-left:4px;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">edit</span> Edit</button>`:''}</td>
     </tr>`;
   }).join('');
 }
@@ -2776,7 +2776,7 @@ function openOrderDetail(fid){
   const totalProfit=(o.items||[]).reduce((s,i)=>s+itemProfit(i),0);
   document.getElementById('od-content').innerHTML=`
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      ${o.source==='billing'?'<span class="badge" style="background:#eef2ff;color:#4338ca;font-size:11px;">🧾 WALK-IN BILL</span>':'<span class="badge" style="background:#f0fdf4;color:#16a34a;font-size:11px;">🏪 STORE PICKUP</span>'}
+      ${o.source==='billing'?'<span class="badge" style="background:#eef2ff;color:#4338ca;font-size:11px;">WALK-IN BILL</span>':'<span class="badge" style="background:#f0fdf4;color:#16a34a;font-size:11px;">STORE PICKUP</span>'}
       
     </div>
     ${isPickup?(()=>{
@@ -2784,7 +2784,7 @@ function openOrderDetail(fid){
         return `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;margin-bottom:12px;">
           <span style="color:#16a34a;font-size:10px;font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">Pickup Location</span>
           <strong style="color:#15803d;font-size:13px;">${o.pickupLocation||'Not set at time of order'}</strong>
-          ${receptionist?`<div style="font-size:11px;color:#166534;margin-top:5px;">📱 Handled by <b>${receptionist.name}</b> (${receptionist.loginEmail||'no login email on file'})</div>`
+          ${receptionist?`<div style="font-size:11px;color:#166534;margin-top:5px;">Handled by <b>${receptionist.name}</b> (${receptionist.loginEmail||'no login email on file'})</div>`
             :o.pickupPointId?`<div style="font-size:11px;color:#b45309;margin-top:5px;">⚠ No Reception login assigned to this point yet</div>`:''}
         </div>`;
       })()
@@ -3521,7 +3521,7 @@ function renderWorkers(){
     const initials=(w.name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().substring(0,2);
     const color=ROLE_COLORS[w.role]||'#6b7280';
     return`<tr>
-      <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:34px;height:34px;border-radius:50%;background:${color}18;color:${color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">${initials}</div><div><div style="font-weight:700;font-size:13px;">${w.name||''}${w.authUid?'<span title="Has app login" style="margin-left:5px;font-size:10px;">📱</span>':''}</div><div style="font-size:11px;color:#9ca3af;">${w.email||''}</div></div></div></td>
+      <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:34px;height:34px;border-radius:50%;background:${color}18;color:${color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">${initials}</div><div><div style="font-weight:700;font-size:13px;">${w.name||''}${w.authUid?'<span title="Has app login" style="margin-left:5px;font-size:10px;">&#9679;</span>':''}</div><div style="font-size:11px;color:#9ca3af;">${w.email||''}</div></div></div></td>
       <td>${w.hostelId?`<span class="badge" style="background:#eff6ff;color:#2563eb;">${w.hostelName||'Assigned'}</span>`:'<span class="badge" style="background:#fee2e2;color:#dc2626;">⚠ No branch</span>'}</td>
       <td><span class="badge" style="background:${color}15;color:${color};">${w.role||''}</span></td>
       <td style="font-size:12px;">${w.phone||'—'}</td>
@@ -3904,7 +3904,7 @@ async function changeMyPassword(){
     document.getElementById('s-cur-pw').value='';
     document.getElementById('s-new-pw').value='';
     document.getElementById('s-cnf-pw').value='';
-    showToast('✅ Password updated successfully');
+    showToast('Password updated successfully');
   }catch(e){
     const m={'auth/wrong-password':'Current password is incorrect','auth/invalid-credential':'Current password is incorrect','auth/too-many-requests':'Too many attempts, try later','auth/requires-recent-login':'Please sign out and sign back in first'};
     showToast(m[e.code]||('Error: '+(e.message||e.code)));
@@ -3917,7 +3917,7 @@ async function sendMyPasswordReset(){
   try{
     const{auth,sendPasswordResetEmail}=window._fb;
     await sendPasswordResetEmail(auth,user.email);
-    showToast('✅ Reset email sent to '+user.email);
+    showToast('Reset email sent to '+user.email);
   }catch(e){showToast('Error: '+(e.message||e.code));}
 }
 
@@ -3966,7 +3966,7 @@ async function addNewAdmin(){
     document.getElementById('s-new-admin-name').value='';
     document.getElementById('s-new-admin-email').value='';
     document.getElementById('s-new-admin-pw').value='';
-    showToast('✅ Admin account created for '+email);
+    showToast('Admin account created for '+email);
     loadAdminList();
   }catch(e){
     const m={'auth/email-already-in-use':'That email is already registered','auth/invalid-email':'Invalid email address','auth/weak-password':'Password is too weak (min 6 chars)'};
@@ -3980,7 +3980,7 @@ async function sendAdminPasswordReset(email){
   try{
     const{auth,sendPasswordResetEmail}=window._fb;
     await sendPasswordResetEmail(auth,email);
-    showToast('✅ Reset email sent to '+email);
+    showToast('Reset email sent to '+email);
   }catch(e){showToast('Error: '+(e.message||e.code));}
 }
 
@@ -3989,7 +3989,7 @@ async function removeAdminAccess(uid,label){
   try{
     const{db,doc,deleteDoc}=window._fb;
     await deleteDoc(doc(db,'admin',uid));
-    showToast('✅ Admin access removed for '+label);
+    showToast('Admin access removed for '+label);
     loadAdminList();
   }catch(e){showToast('Error: '+(e.message||e.code));}
 }
@@ -4164,7 +4164,7 @@ function _printReportPDF(fromStr,toStr,type){
   tr:nth-child(even) td{background:#f9fafb;}
   .footer{margin-top:16px;font-size:10px;color:#9ca3af;text-align:center;}
   @page{size:A4;margin:0;}@media print{body{padding:10mm;}}</style></head><body>
-  <h1>📊 Orders Report</h1>
+  <h1><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">bar_chart</span> Orders Report</h1>
   <p>${fmtDate(fromStr)} → ${fmtDate(toStr)} &nbsp;·&nbsp; Generated ${new Date().toLocaleString('en-IN')}</p>
   <div class="meta">
     <div><b>${non.length}</b>Total Orders</div>
@@ -4493,7 +4493,7 @@ async function togglePushNotif(enable){
   if(!('Notification' in window)){showToast('Browser notifications not supported');return;}
   if(enable){
     const result=await Notification.requestPermission();
-    if(result==='granted'){showToast('✅ Browser notifications enabled');new Notification('Santhom Stores Admin',{body:'You will now get order alerts here.',icon:''});}
+    if(result==='granted'){showToast('Browser notifications enabled');new Notification('Santhom Stores Admin',{body:'You will now get order alerts here.',icon:''});}
     else{showToast('Permission denied — enable in browser settings');document.getElementById('s-notif-push').checked=false;}
   }else{showToast('To fully disable, revoke permissions in browser settings');}
   updatePushNotifStatus();
@@ -4520,7 +4520,7 @@ async function bulkAcceptPendingOrders(){
   for(const o of pending){
     try{await updateDoc(doc(db,'orders',o.firestoreId),{status:'Accepted'});done++;}catch(e){}
   }
-  showToast(`✅ Accepted ${done} orders`);
+  showToast(`Accepted ${done} orders`);
 }
 
 function exportAllOrdersCSV(){
@@ -4793,7 +4793,7 @@ function renderHostels(){
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:14px;">${h.name||''}</div>
           <div style="font-size:11px;color:${h.active!==false?'#16a34a':'#9ca3af'};font-weight:600;margin-top:2px;">${h.active!==false?'● Active — visible to customers':'○ Inactive — hidden from customers'}</div>
-          <div style="font-size:11px;color:#6b7280;margin-top:2px;">${h.adminUid?`📱 Branch admin: <b>${h.adminEmail||'—'}</b>`:'No branch admin login yet'}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">${h.adminUid?`Branch admin: <b>${h.adminEmail||'—'}</b>`:'No branch admin login yet'}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
@@ -4965,7 +4965,7 @@ function renderPickupPoints(){
           ${p.hostelId?`<span class="badge" style="background:#eff6ff;color:#2563eb;font-size:10px;">${p.hostelName||'Branch'}</span>`:`<span class="badge" style="background:#fee2e2;color:#dc2626;font-size:10px;">⚠ No branch</span>`}
         </div>
         <div style="font-size:11px;color:${p.active!==false?'#16a34a':'#9ca3af'};font-weight:600;margin-top:2px;">${p.active!==false?'● Active — visible at checkout':'○ Inactive — hidden from customers'}</div>
-        <div style="font-size:11px;color:#6b7280;margin-top:2px;">${receptionist?`📱 Reception login: <b>${receptionist.name}</b> (${receptionist.loginEmail||'—'})`:'No Reception login assigned yet'}</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px;">${receptionist?`Reception login: <b>${receptionist.name}</b> (${receptionist.loginEmail||'—'})`:'No Reception login assigned yet'}</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
@@ -5105,7 +5105,7 @@ function renderBillPreorderSearch(){
   const el=document.getElementById('bill-preorder-results');
   if(!el)return;
   if(!poState.open){
-    el.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:#9ca3af;"><span style="font-size:28px;display:block;margin-bottom:6px;">📦</span>No pre-order window is open right now.<br><span style="font-size:12px;">Open a pre-order window from the Pre-order page first.</span></div>';
+    el.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:#9ca3af;"><span style="font-size:20px;display:block;margin-bottom:6px;">&#9632;</span>No pre-order window is open right now.<br><span style="font-size:12px;">Open a pre-order window from the Pre-order page first.</span></div>';
     return;
   }
   let poProd=[];
@@ -5121,7 +5121,7 @@ function renderBillPreorderSearch(){
   }
   el.innerHTML=poProd.map(p=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#eff6ff;border-radius:8px;border:1.5px solid #93c5fd;">
-      ${p.imageUrl?`<img src="${p.imageUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;">`:'<div style="width:36px;height:36px;background:#dbeafe;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">📦</div>'}
+      ${p.imageUrl?`<img src="${p.imageUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;">`:'<div style="width:36px;height:36px;background:#dbeafe;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">&#9632;</div>'}
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:700;color:#1e40af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name||'—'}</div>
         <div style="font-size:11px;color:#3b82f6;">${p.category||''} · Pre-order (no stock limit)</div>
@@ -5197,7 +5197,7 @@ function addToBillCartPreorder(productId){
   if(existing){existing.qty++;}
   else{billCart.push({id:productId,name:p.name,price:p.price||0,qty:1,isProduct:true,preorder:true,...(p.unit?{unit:p.unit}:{})});}
   renderBillCart();
-  showToast('📦 '+p.name+' added as pre-order');
+  showToast(p.name+' added as pre-order');
 }
 
 function addManualBillItem(){
@@ -5520,8 +5520,8 @@ function buildBillHtml(billNo){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
         <div>
           <div style="font-size:28px;font-weight:900;color:#111827;letter-spacing:-1px;">${storeName}</div>
-          ${storePhone?`<div style="font-size:12px;color:#6b7280;margin-top:2px;">📞 ${storePhone}</div>`:''}
-          ${storeHours?`<div style="font-size:12px;color:#6b7280;">🕐 ${storeHours}</div>`:''}
+          ${storePhone?`<div style="font-size:12px;color:#6b7280;margin-top:2px;">Tel: ${storePhone}</div>`:''}
+          ${storeHours?`<div style="font-size:12px;color:#6b7280;">Hours: ${storeHours}</div>`:''}
         </div>
         <div style="text-align:right;">
           <div style="font-size:22px;font-weight:900;color:#1a5c2a;letter-spacing:-0.5px;">INVOICE</div>
@@ -5607,7 +5607,7 @@ function buildBillHtml(billNo){
   </div>
   ${extraHtml}
   <div style="margin-top:20px;text-align:center;">
-    <button onclick="window.print()" style="padding:10px 28px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🖨 Print / Save as PDF</button>
+    <button onclick="window.print()" style="padding:10px 28px;background:#1a5c2a;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">print</span> Print / Save as PDF</button>
   </div>
 </div>
 </body></html>`;
@@ -5683,9 +5683,9 @@ function renderCategoriesAdmin(){
         <div style="font-size:13px;font-weight:800;color:#111827;margin-bottom:2px;">${cat.name}${cat.hidden?' <span class="badge" style="background:#f3f4f6;color:#6b7280;margin-left:4px;">Hidden</span>':''}</div>
         <div style="font-size:11px;color:#9ca3af;">Order: ${cat.sortOrder??0}</div>
         <div style="display:flex;gap:6px;margin-top:8px;">
-          <button onclick="toggleCategoryHidden('${cat.id}')" class="btn" style="flex:1;padding:6px;background:#f3f4f6;border:none;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">${cat.hidden?'👁 Show':'🚫 Hide'}</button>
-          <button onclick="openEditCategory('${cat.id}')" class="btn" style="flex:1;padding:6px;background:#f3f4f6;border:none;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">✏ Edit</button>
-          <button onclick="deleteCategory('${cat.id}')" class="btn" style="flex:1;padding:6px;background:#fee2e2;border:none;border-radius:7px;font-size:11px;font-weight:700;color:#dc2626;">🗑 Delete</button>
+          <button onclick="toggleCategoryHidden('${cat.id}')" class="btn" style="flex:1;padding:6px;background:#f3f4f6;border:none;border-radius:7px;font-size:11px;font-weight:700;color:#374151;">${cat.hidden?'Show':'Hide'}</button>
+          <button onclick="openEditCategory('${cat.id}')" class="btn" style="flex:1;padding:6px;background:#f3f4f6;border:none;border-radius:7px;font-size:11px;font-weight:700;color:#374151;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">edit</span> Edit</button>
+          <button onclick="deleteCategory('${cat.id}')" class="btn" style="flex:1;padding:6px;background:#fee2e2;border:none;border-radius:7px;font-size:11px;font-weight:700;color:#dc2626;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">delete</span> Delete</button>
         </div>
       </div>
     </div>`).join('');
@@ -5801,7 +5801,7 @@ async function _poAutoExpireNow(){
   try{
     await setDoc(doc(db,'settings','preorder'),{open:false},{merge:true});
     poState.open=false;
-    showToast('⏰ Pre-order window closed automatically — products hidden from customers');
+    showToast('Pre-order window closed automatically — products hidden from customers');
     renderPreorderAdmin();
     await poAutoRecordPurchases(poState.windowId);
   }catch(e){console.error('Auto-close timer failed:',e);}
@@ -5854,7 +5854,7 @@ function renderPoCategoryPicker(){
   sel.style.display=selCats.length?'flex':'none';
   sel.innerHTML=selCats.map(c=>`
     <span style="display:inline-flex;align-items:center;gap:5px;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;color:#1e40af;">
-      📦 ${_poEsc(c.name)}
+      ${_poEsc(c.name)}
       <button type="button" onclick="poToggleCategory('${c.id}')" style="background:none;border:none;cursor:pointer;color:#2563eb;font-size:15px;line-height:1;padding:0;" aria-label="Remove">×</button>
     </span>`).join('');
   const unselected=(allCategories||[]).filter(c=>!window._poSelectedCatIds.has(c.id)&&!c.hidden);
@@ -5870,7 +5870,7 @@ function renderPoCategoryPicker(){
     const count=(allProducts||[]).filter(p=>!p.hidden&&p.category===c.name).length;
     return `<div onclick="poToggleCategory('${c.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #f3f4f6;cursor:pointer;font-size:13px;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">
       <div>
-        <span style="font-weight:700;">📦 ${_poEsc(c.name)}</span>
+        <span style="font-weight:700;">${_poEsc(c.name)}</span>
         <span style="color:#9ca3af;font-size:11px;margin-left:6px;">${count} product${count!==1?'s':''}</span>
       </div>
       <span style="color:#2563eb;font-size:18px;font-weight:700;">+</span>
@@ -5977,7 +5977,7 @@ function renderPreorderAdmin(){
     if((window._poMode||'products')==='categories'){
       const groups=_poGroupedByCat(list);
       poListHtml=groups.map(g=>`
-        <div style="font-size:12px;font-weight:800;color:#1a5c2a;background:#f0fdf4;padding:6px 8px;border-radius:6px;margin-top:12px;margin-bottom:4px;">📦 ${_poEsc(g.cat)}</div>
+        <div style="font-size:12px;font-weight:800;color:#1a5c2a;background:#f0fdf4;padding:6px 8px;border-radius:6px;margin-top:12px;margin-bottom:4px;">${_poEsc(g.cat)}</div>
         <table style="width:100%;border-collapse:collapse;font-size:13px;">${tblHeader}${g.items.map(tblRow).join('')}</table>`).join('');
     } else {
       poListHtml=`<table style="width:100%;border-collapse:collapse;font-size:13px;">${tblHeader}${list.map(tblRow).join('')}</table>`;
@@ -6105,7 +6105,7 @@ async function poManualRecordPurchases(){
   modal.innerHTML=`
     <div style="background:white;border-radius:14px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <div style="font-size:15px;font-weight:800;">📥 Add to Purchase</div>
+        <div style="font-size:15px;font-weight:800;"><span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;">download</span> Add to Purchase</div>
         <button onclick="document.getElementById('po-confirm-modal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;">✕</button>
       </div>
       <div style="font-size:12px;color:#6b7280;margin-bottom:14px;">Window: <b>${_poWinLabel(wid)}</b> · Recorded as purchased &amp; already sold (stock = 0). Adjust unit costs if needed.</div>
@@ -6135,7 +6135,7 @@ async function poManualRecordPurchases(){
       </div>
       <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
         <button onclick="document.getElementById('po-confirm-modal').remove()" style="padding:9px 18px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Cancel</button>
-        <button onclick="poConfirmRecordPurchases()" style="padding:9px 18px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">✅ Confirm &amp; Save to Purchases</button>
+        <button onclick="poConfirmRecordPurchases()" style="padding:9px 18px;background:#2d8a45;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Confirm &amp; Save to Purchases</button>
       </div>
     </div>`;
   window._poConfirmRows=rows.map((r,i)=>({...r,idx:i}));
@@ -6201,7 +6201,7 @@ function poPrint(){
   if(mode==='categories'){
     const groups=_poGroupedByCat(l);
     body=groups.map(g=>`
-      <h3 style="margin:18px 0 6px;font-size:15px;color:#1a5c2a;border-bottom:2px solid #d1fae5;padding-bottom:4px;">📦 ${g.cat}</h3>
+      <h3 style="margin:18px 0 6px;font-size:15px;color:#1a5c2a;border-bottom:2px solid #d1fae5;padding-bottom:4px;">${g.cat}</h3>
       <table><tr><th>Item</th><th>Unit</th><th>Total qty</th></tr>
       ${g.items.map(r=>`<tr><td>${_poEsc(r.name)}</td><td>${_poEsc(r.unit)}</td><td>${r.qty}</td></tr>`).join('')}
       </table>`).join('');
@@ -6675,8 +6675,8 @@ td.b{font-weight:700;}.n{display:inline-block;min-width:20px;color:#9ca3af;}
 ${cancelled?'<div class="cancel">CANCELLED</div>':''}
 <div class="head">
   <div><div class="store">${billEsc(d.store.name)}</div>
-    ${d.store.phone?`<div class="muted">📞 ${billEsc(d.store.phone)}</div>`:''}
-    ${d.store.hours?`<div class="muted">🕐 ${billEsc(d.store.hours)}</div>`:''}</div>
+    ${d.store.phone?`<div class="muted">Tel: ${billEsc(d.store.phone)}</div>`:''}
+    ${d.store.hours?`<div class="muted">Hours: ${billEsc(d.store.hours)}</div>`:''}</div>
   <div class="title"><h2>${rec?'RECEIPT':'INVOICE'}</h2>
     <div style="font-size:13px;font-weight:700;">${billEsc(d.billNo)}</div>
     <div class="muted">${billEsc(d.date)} ${billEsc(d.time)}</div></div>
@@ -6754,7 +6754,7 @@ function switchEpoTab(tab) {
 function renderEpoPreorderList() {
   const el = document.getElementById('epo-preorder-results');
   if (!poState.open) {
-    el.innerHTML = '<div style="text-align:center;padding:16px;font-size:12px;color:#9ca3af;">📦 No pre-order window is open right now.<br>Open one from the Pre-order page first.</div>';
+    el.innerHTML = '<div style="text-align:center;padding:16px;font-size:12px;color:#9ca3af;">No pre-order window is open right now.<br>Open one from the Pre-order page first.</div>';
     return;
   }
   let poProd = [];
@@ -6770,7 +6770,7 @@ function renderEpoPreorderList() {
   }
   el.innerHTML = poProd.map(p => `
     <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#eff6ff;border-radius:8px;border:1.5px solid #93c5fd;">
-      ${p.imageUrl ? `<img src="${p.imageUrl}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:32px;height:32px;background:#dbeafe;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">📦</div>'}
+      ${p.imageUrl ? `<img src="${p.imageUrl}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:32px;height:32px;background:#dbeafe;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">&#9632;</div>'}
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:700;color:#1e40af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name || '—'}</div>
         <div style="font-size:10px;color:#3b82f6;">${p.category || ''} · Pre-order</div>
@@ -6900,7 +6900,7 @@ function updateEpoTotals() {
   document.getElementById('epo-items-count').textContent =
     _epo.items.length + ' item' + (_epo.items.length !== 1 ? 's' : '') +
     ' · ' + n + ' unit' + (n !== 1 ? 's' : '') +
-    (hasPreorder ? ' · 📦 includes pre-order' : '');
+    (hasPreorder ? ' · includes pre-order' : '');
   document.getElementById('epo-total-display').textContent = '₹' + total.toFixed(2);
 }
 
@@ -6952,7 +6952,7 @@ async function saveEditPosOrder() {
   } catch (e) {
     showToast('Save failed: ' + (e.message || 'unknown error'));
   } finally {
-    btn.disabled = false; btn.textContent = '💾 Save Changes';
+    btn.disabled = false; btn.textContent = 'Save Changes';
   }
 }
 
