@@ -1532,6 +1532,21 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
           <option value="">All Categories</option>
         </select>
       </div>
+      <div id="sr-preorder-toggle" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f5f3ff;border-radius:8px;border:1px solid #ede9fe;">
+        <input type="checkbox" id="sr-exclude-preorder" style="accent-color:#7c3aed;width:15px;height:15px;cursor:pointer;">
+        <label for="sr-exclude-preorder" style="font-size:13px;font-weight:600;color:#5b21b6;cursor:pointer;">Exclude pre-order products from report</label>
+      </div>
+      <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+          <span style="font-size:12px;font-weight:700;color:#374151;">Exclude specific products</span>
+          <span id="sr-excluded-count" style="font-size:11px;color:#9ca3af;">None excluded</span>
+        </div>
+        <div style="padding:8px 10px;border-bottom:1px solid #f3f4f6;">
+          <input id="sr-exclude-search" type="text" placeholder="Search products to exclude…" oninput="renderSrExcludeList()" class="input-f" style="margin:0;font-size:12px;padding:6px 10px;">
+        </div>
+        <div id="sr-exclude-chips" style="display:flex;flex-wrap:wrap;gap:5px;padding:7px 10px;min-height:28px;max-height:60px;overflow-y:auto;border-bottom:1px solid #f3f4f6;"></div>
+        <div id="sr-exclude-list" style="max-height:120px;overflow-y:auto;"></div>
+      </div>
     </div>
     <div style="display:flex;gap:8px;">
       <button onclick="closeModal('stock-report-modal')" class="btn" style="flex:1;padding:11px;background:#f3f4f6;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#374151;">Cancel</button>
@@ -2553,7 +2568,10 @@ function openAddPurchaseForProduct(productId){
 }
 
 // ─── STOCK REPORT (print) ───
+let srExcludedIds=new Set();
+
 function openStockReport(){
+  srExcludedIds=new Set();
   // Populate category dropdown
   const cats=[...new Set(allProducts.map(p=>p.category).filter(Boolean))].sort();
   const catSel=document.getElementById('sr-category');
@@ -2565,8 +2583,56 @@ function openStockReport(){
   const firstDay=new Date(today.getFullYear(),today.getMonth(),1).toISOString().slice(0,10);
   if(document.getElementById('sr-from'))document.getElementById('sr-from').value=firstDay;
   if(document.getElementById('sr-to'))document.getElementById('sr-to').value=today.toISOString().slice(0,10);
+  if(document.getElementById('sr-exclude-search'))document.getElementById('sr-exclude-search').value='';
+  renderSrExcludeList();
   onStockReportTypeChange();
   openModal('stock-report-modal');
+}
+
+function renderSrExcludeList(){
+  const q=(document.getElementById('sr-exclude-search')?.value||'').toLowerCase().trim();
+  const listEl=document.getElementById('sr-exclude-list');
+  const chipsEl=document.getElementById('sr-exclude-chips');
+  const countEl=document.getElementById('sr-excluded-count');
+  if(!listEl)return;
+
+  // Chips (selected products)
+  if(chipsEl){
+    if(srExcludedIds.size===0){
+      chipsEl.innerHTML='<span style="font-size:11px;color:#d1d5db;font-style:italic;">No products excluded</span>';
+    } else {
+      chipsEl.innerHTML=[...srExcludedIds].map(id=>{
+        const p=allProducts.find(x=>x.id===id);
+        const name=p?.name||id;
+        return`<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px 3px 9px;background:#fee2e2;border:1px solid #fca5a5;border-radius:999px;font-size:11px;font-weight:600;color:#dc2626;">
+          ${name}
+          <button onclick="srToggleExclude('${id}')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:13px;line-height:1;padding:0;margin-left:1px;">×</button>
+        </span>`;
+      }).join('');
+    }
+  }
+  if(countEl)countEl.textContent=srExcludedIds.size===0?'None excluded':`${srExcludedIds.size} excluded`;
+
+  // Product list (filtered, not yet excluded shown first)
+  const prods=[...allProducts].sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const filtered=q?prods.filter(p=>(p.name||'').toLowerCase().includes(q)):prods;
+  if(!filtered.length){listEl.innerHTML='<div style="padding:10px 12px;font-size:12px;color:#9ca3af;">No products found</div>';return;}
+  listEl.innerHTML=filtered.map(p=>{
+    const excluded=srExcludedIds.has(p.id);
+    return`<div onclick="srToggleExclude('${p.id}')" style="display:flex;align-items:center;gap:9px;padding:7px 12px;cursor:pointer;border-bottom:1px solid #f9fafb;background:${excluded?'#fef2f2':'white'};" onmouseover="this.style.background='${excluded?'#fee2e2':'#f9fafb'}'" onmouseout="this.style.background='${excluded?'#fef2f2':'white'}'">
+      <span style="width:15px;height:15px;border-radius:4px;border:1.5px solid ${excluded?'#dc2626':'#d1d5db'};background:${excluded?'#dc2626':'white'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        ${excluded?'<span style="color:white;font-size:10px;line-height:1;">✓</span>':''}
+      </span>
+      <span style="font-size:12px;font-weight:${excluded?'700':'500'};color:${excluded?'#dc2626':'#374151'};flex:1;">${p.name||'—'}</span>
+      <span style="font-size:10px;color:#9ca3af;">${p.category||''}</span>
+    </div>`;
+  }).join('');
+}
+
+function srToggleExclude(id){
+  if(srExcludedIds.has(id))srExcludedIds.delete(id);
+  else srExcludedIds.add(id);
+  renderSrExcludeList();
 }
 
 function onStockReportTypeChange(){
@@ -2575,81 +2641,169 @@ function onStockReportTypeChange(){
   if(dateRange)dateRange.style.display=(type==='purchases')?'grid':'none';
 }
 
-function printStockReport(){
+async function printStockReport(){
   const type=document.getElementById('sr-type').value;
   const catFilter=document.getElementById('sr-category')?.value||'';
   const fromDate=document.getElementById('sr-from')?.value||'';
   const toDate=document.getElementById('sr-to')?.value||'';
+  const excludePreorder=document.getElementById('sr-exclude-preorder')?.checked||false;
+  // Build set of product IDs that came from pre-order purchases
+  const preorderProductIds=new Set(
+    (allPurchases||[]).filter(p=>p.preorderWindowId||p.fullyUsed).map(p=>p.productId).filter(Boolean)
+  );
 
-  let title='', rows='', headers='';
-  const now=new Date().toLocaleString('en-IN');
+  // ── Build data ──
+  let reportTitle='',tableHead=[],tableBody=[],tableFootArr=null,totalRow=null;
 
   if(type==='current'){
-    title='Current Stock Report';
+    reportTitle='Current Stock Report';
     let prods=[...allProducts];
     if(catFilter)prods=prods.filter(p=>p.category===catFilter);
+    if(excludePreorder)prods=prods.filter(p=>!preorderProductIds.has(p.id));
+    if(srExcludedIds.size)prods=prods.filter(p=>!srExcludedIds.has(p.id));
     prods.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-    headers='<tr><th>#</th><th>Product</th><th>Category</th><th>Branch</th><th>Stock (units)</th><th>Sell Price</th><th>Status</th></tr>';
-    rows=prods.map((p,i)=>{
+    tableHead=['#','Product','Category','Branch','Stock','Price (Rs.)','Status'];
+    const totalStockUnits=prods.reduce((s,p)=>s+(p.stock||0),0);
+    tableBody=prods.map((p,i)=>{
       const stock=p.stock||0;
       const status=stock<=0?'Out of Stock':stock<10?'Low Stock':'In Stock';
-      const statusColor=stock<=0?'#dc2626':stock<10?'#d97706':'#16a34a';
-      return`<tr><td>${i+1}</td><td><strong>${p.name||''}</strong></td><td>${p.category||''}</td><td>${p.hostelName||'—'}</td><td style="font-weight:800;color:${stockColorHex(stock)};">${stock}</td><td>₹${p.price||0}</td><td style="color:${statusColor};font-weight:700;">${status}</td></tr>`;
-    }).join('');
+      return[i+1,p.name||'',p.category||'',p.hostelName||'—',stock,'Rs. '+_inr(p.price||0),status];
+    });
+    tableFootArr=[[{content:'TOTAL STOCK UNITS',colSpan:4,styles:{halign:'right'}},{content:String(totalStockUnits),styles:{halign:'center',fontStyle:'bold'}},{content:''},{content:''}]];
   } else if(type==='purchases'){
-    title='Purchase History Report'+(fromDate?' ('+fromDate+' to '+(toDate||'today')+')':'');
+    reportTitle='Purchase History Report';
     let purs=[...allPurchases];
     if(fromDate)purs=purs.filter(p=>p.date&&p.date>=fromDate);
     if(toDate)purs=purs.filter(p=>p.date&&p.date<=toDate);
-    if(catFilter){
-      const catProductIds=allProducts.filter(p=>p.category===catFilter).map(p=>p.id);
-      purs=purs.filter(p=>catProductIds.includes(p.productId));
-    }
+    if(catFilter){const ids=allProducts.filter(p=>p.category===catFilter).map(p=>p.id);purs=purs.filter(p=>ids.includes(p.productId));}
+    if(excludePreorder)purs=purs.filter(p=>!p.preorderWindowId&&!p.fullyUsed);
+    if(srExcludedIds.size)purs=purs.filter(p=>!srExcludedIds.has(p.productId));
     purs.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     const total=purs.reduce((s,p)=>s+(p.totalCost||0),0);
-    headers='<tr><th>#</th><th>Date</th><th>Product</th><th>Supplier</th><th>Qty</th><th>Unit Cost</th><th>Total Cost</th></tr>';
-    rows=purs.map((p,i)=>`<tr><td>${i+1}</td><td>${p.date||''}</td><td><strong>${p.productName||''}</strong></td><td>${p.supplier||'—'}</td><td style="font-weight:700;">${p.qty||0}</td><td>₹${(p.unitCost||0).toFixed(2)}</td><td style="font-weight:800;color:#2d8a45;">₹${(p.totalCost||0).toFixed(2)}</td></tr>`).join('');
-    rows+=`<tr style="background:#f0fdf4;"><td colspan="6" style="text-align:right;font-weight:800;padding:10px 14px;">TOTAL</td><td style="font-weight:900;font-size:16px;color:#2d8a45;">₹${total.toFixed(2)}</td></tr>`;
+    tableHead=['#','Date','Product','Supplier','Qty','Unit Cost','Total Cost'];
+    tableBody=purs.map((p,i)=>[i+1,p.date||'',p.productName||'',p.supplier||'—',p.qty||0,'Rs. '+_inr(p.unitCost||0),'Rs. '+_inr(p.totalCost||0)]);
+    tableFootArr=[[{content:'TOTAL',colSpan:6,styles:{halign:'right'}},{content:'Rs. '+_inr(total),styles:{halign:'right',fontStyle:'bold'}}]];
   } else if(type==='lowstock'){
-    title='Low Stock Alert Report';
+    reportTitle='Low Stock Alert Report';
     let prods=allProducts.filter(p=>(p.stock||0)>0&&(p.stock||0)<10);
     if(catFilter)prods=prods.filter(p=>p.category===catFilter);
+    if(excludePreorder)prods=prods.filter(p=>!preorderProductIds.has(p.id));
+    if(srExcludedIds.size)prods=prods.filter(p=>!srExcludedIds.has(p.id));
     prods.sort((a,b)=>(a.stock||0)-(b.stock||0));
-    headers='<tr><th>#</th><th>Product</th><th>Category</th><th>Branch</th><th>Stock (units)</th><th>Sell Price</th></tr>';
-    rows=prods.map((p,i)=>`<tr><td>${i+1}</td><td><strong>${p.name||''}</strong></td><td>${p.category||''}</td><td>${p.hostelName||'—'}</td><td style="font-weight:800;color:#d97706;">${p.stock||0}</td><td>₹${p.price||0}</td></tr>`).join('');
+    tableHead=['#','Product','Category','Branch','Stock','Price (Rs.)'];
+    tableBody=prods.map((p,i)=>[i+1,p.name||'',p.category||'',p.hostelName||'—',p.stock||0,'Rs. '+_inr(p.price||0)]);
+    tableFootArr=[[{content:'LOW STOCK ITEMS: '+prods.length,colSpan:6,styles:{halign:'right'}}]];
   } else if(type==='zerostock'){
-    title='Out of Stock Report';
+    reportTitle='Out of Stock Report';
     let prods=allProducts.filter(p=>(p.stock||0)<=0);
     if(catFilter)prods=prods.filter(p=>p.category===catFilter);
+    if(excludePreorder)prods=prods.filter(p=>!preorderProductIds.has(p.id));
+    if(srExcludedIds.size)prods=prods.filter(p=>!srExcludedIds.has(p.id));
     prods.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-    headers='<tr><th>#</th><th>Product</th><th>Category</th><th>Branch</th><th>Sell Price</th></tr>';
-    rows=prods.map((p,i)=>`<tr><td>${i+1}</td><td><strong>${p.name||''}</strong></td><td>${p.category||''}</td><td>${p.hostelName||'—'}</td><td>₹${p.price||0}</td></tr>`).join('');
+    tableHead=['#','Product','Category','Branch','Price (Rs.)'];
+    tableBody=prods.map((p,i)=>[i+1,p.name||'',p.category||'',p.hostelName||'—','Rs. '+_inr(p.price||0)]);
+    tableFootArr=[[{content:'OUT OF STOCK ITEMS: '+prods.length,colSpan:5,styles:{halign:'right'}}]];
   }
 
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
-  <style>
-    *{font-family:'Segoe UI',sans-serif;box-sizing:border-box;}
-    body{margin:0;padding:24px;background:#fff;color:#111;}
-    h1{font-size:20px;font-weight:800;margin-bottom:4px;color:#1a5c2a;}
-    .meta{font-size:12px;color:#6b7280;margin-bottom:20px;}
-    table{width:100%;border-collapse:collapse;font-size:13px;}
-    th{background:#1a5c2a;color:white;padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
-    td{padding:9px 12px;border-bottom:1px solid #e5e7eb;vertical-align:middle;}
-    tr:nth-child(even) td{background:#f9fafb;}
-    tr:hover td{background:#f0fdf4;}
-    .footer{margin-top:16px;font-size:11px;color:#9ca3af;text-align:right;}
-    @media print{body{padding:12px;}@page{margin:12mm;}}
-  </style></head><body>
-  <h1>Santhom Stores — ${title}</h1>
-  <div class="meta">Generated: ${now}${catFilter?' · Category: '+catFilter:''}</div>
-  <table><thead>${headers}</thead><tbody>${rows}</tbody></table>
-  <div class="footer">Santhom Stores Admin · ${now}</div>
-  <script>window.onload=()=>window.print();<\/script>
-  </body></html>`;
+  if(!tableBody.length){showToast('No data for this report');closeModal('stock-report-modal');return;}
+  showToast('Preparing PDF...');
 
-  const w=window.open('','_blank','width=900,height=700');
-  if(w){w.document.write(html);w.document.close();}
-  else showToast('Allow pop-ups to print the report');
+  try{
+    await _ensurePdfLibs();
+    const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    doc.setProperties({title:reportTitle,author:_pdfStoreInfo().name});
+
+    // ── Light-blue palette ──
+    const LB=[173,216,230],LB2=[193,228,240],LB3=[209,236,245],LBDK=[70,130,160];
+    const DARK=[40,40,40],GREY=[120,130,140],LINE=[180,200,210];
+    const W=210,M=10,TW=W-2*M;
+    const store=_pdfStoreInfo();
+    const generated=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+    function drawStockPageHeader(){
+      const TOP_BAR_H=5,GAP1=4,BOX_Y=TOP_BAR_H+GAP1,BOX_H=16,BOX_L_W=120,BOX_R_W=60,GAP2=4;
+      const SEP_Y=BOX_Y+BOX_H+GAP2,SEP_H=1.5;
+      doc.setFillColor(...LB);doc.rect(0,0,W,TOP_BAR_H,'F');
+      doc.setFillColor(...LB2);doc.roundedRect(M,BOX_Y,BOX_L_W,BOX_H,2,2,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...LBDK);
+      doc.text(store.name.toUpperCase(),M+5,BOX_Y+7);
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GREY);
+      doc.text(store.phone?'Tel: '+store.phone:'Grocery & Daily Needs',M+5,BOX_Y+13);
+      const rxStart=M+BOX_L_W+4;
+      doc.setFillColor(...LB2);doc.roundedRect(rxStart,BOX_Y,BOX_R_W,BOX_H,2,2,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...LBDK);
+      doc.text('STOCK REPORT',rxStart+BOX_R_W/2,BOX_Y+7,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...GREY);
+      doc.text(generated,rxStart+BOX_R_W/2,BOX_Y+13,{align:'center'});
+      doc.setFillColor(...LB);doc.rect(M,SEP_Y,TW,SEP_H,'F');
+      return SEP_Y+SEP_H+3;
+    }
+
+    const startY=drawStockPageHeader();
+
+    // ── Report title below header ──
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...LBDK);
+    doc.text(reportTitle.toUpperCase()+(catFilter?' — '+catFilter:''),M,startY+1);
+    doc.setDrawColor(...LB);doc.setLineWidth(.8);doc.line(M,startY+3,M+50,startY+3);
+
+    // Column widths based on report type
+    let colStyles={};
+    if(type==='current'){
+      colStyles={0:{cellWidth:10,halign:'center',textColor:GREY},1:{cellWidth:'auto',fontStyle:'bold'},2:{cellWidth:28},3:{cellWidth:28},4:{cellWidth:18,halign:'center',fontStyle:'bold',textColor:LBDK},5:{cellWidth:26,halign:'right'},6:{cellWidth:24,halign:'center'}};
+    } else if(type==='purchases'){
+      colStyles={0:{cellWidth:10,halign:'center',textColor:GREY},1:{cellWidth:20},2:{cellWidth:'auto',fontStyle:'bold'},3:{cellWidth:28},4:{cellWidth:14,halign:'center',fontStyle:'bold',textColor:LBDK},5:{cellWidth:26,halign:'right'},6:{cellWidth:28,halign:'right',fontStyle:'bold',textColor:LBDK}};
+    } else if(type==='lowstock'){
+      colStyles={0:{cellWidth:10,halign:'center',textColor:GREY},1:{cellWidth:'auto',fontStyle:'bold'},2:{cellWidth:32},3:{cellWidth:32},4:{cellWidth:18,halign:'center',fontStyle:'bold',textColor:[217,119,6]},5:{cellWidth:28,halign:'right'}};
+    } else {
+      colStyles={0:{cellWidth:10,halign:'center',textColor:GREY},1:{cellWidth:'auto',fontStyle:'bold'},2:{cellWidth:36},3:{cellWidth:36},4:{cellWidth:30,halign:'right'}};
+    }
+
+    doc.autoTable({
+      startY:startY+6,
+      margin:{left:M,right:M,top:16,bottom:22},
+      theme:'grid',
+      head:[tableHead],
+      body:tableBody,
+      foot:tableFootArr||undefined,
+      showHead:'everyPage',
+      showFoot:'lastPage',
+      styles:{font:'helvetica',fontSize:8.5,cellPadding:{top:2.4,bottom:2.4,left:3,right:3},textColor:DARK,lineColor:LINE,lineWidth:.2,valign:'middle'},
+      headStyles:{fillColor:LB3,textColor:LBDK,fontStyle:'bold',fontSize:7.5,lineColor:LINE},
+      footStyles:{fillColor:LB3,textColor:LBDK,fontStyle:'bold',fontSize:8.5,lineColor:LINE},
+      columnStyles:colStyles,
+      didDrawPage:data=>{
+        if(data.pageNumber>1){drawStockPageHeader();}
+      }
+    });
+
+    // ── Grand total box (like Items PDF) ──
+    if(type==='current'){
+      const totalStockUnits=tableBody.reduce((s,r)=>s+(Number(r[4])||0),0);
+      const totY=doc.lastAutoTable.finalY+4;
+      if(totY<280){
+        doc.setFillColor(...LB3);doc.roundedRect(M,totY,TW,8,1,1,'F');
+        doc.setDrawColor(...LB);doc.setLineWidth(.4);doc.rect(M,totY,TW,8,'S');
+        doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...LBDK);
+        doc.text('TOTAL STOCK UNITS',M+5,totY+5.5);
+        doc.text(String(totalStockUnits),W-M-5,totY+5.5,{align:'right'});
+      }
+    }
+
+    // ── Footers ──
+    const n=doc.getNumberOfPages();
+    for(let p=1;p<=n;p++){
+      doc.setPage(p);
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GREY);
+      doc.text(store.name+'  |  Stock Report  |  '+generated,M,291);
+      doc.text('Page '+p+' of '+n,W-M,291,{align:'right'});
+    }
+
+    doc.save(`stock-report-${type}-${new Date().toISOString().slice(0,10)}.pdf`);
+    showToast('PDF downloaded');
+  }catch(e){
+    console.error(e);
+    showToast('Could not create PDF - check internet connection');
+  }
   closeModal('stock-report-modal');
 }
 
@@ -4596,7 +4750,7 @@ function _pdfSectionTitle(doc,y,text){
   return y+7;
 }
 
-// ── PDF 1: total quantity of every item, grouped by category ──
+// ── PDF 1: Professional packing list — light-blue reference style ──
 function _buildItemsPDF(doc,rows,fromStr,toStr){
   const map={};
   rows.forEach(o=>(o.items||[]).forEach(i=>{
@@ -4604,68 +4758,196 @@ function _buildItemsPDF(doc,rows,fromStr,toStr){
     if(!map[k])map[k]={name:_pdfT(i.name)||'Item',cat:_pdfT(i.category)||'Other',qty:0,orders:new Set()};
     map[k].qty+=q;map[k].orders.add(o.firestoreId||o.orderId);
   }));
-  const items=Object.values(map);
-  const totalUnits=items.reduce((s,i)=>s+i.qty,0);
-  const cats={};items.forEach(it=>{(cats[it.cat]=cats[it.cat]||[]).push(it);});
-  const catNames=Object.keys(cats).sort((a,b)=>a.localeCompare(b));
+  const allItems=Object.values(map).sort((a,b)=>a.name.localeCompare(b.name));
+  const totalUnits=allItems.reduce((s,i)=>s+i.qty,0);
 
-  let y=_pdfHeader(doc,'PACKING LIST - ITEM TOTALS',fromStr,toStr);
-  y=_pdfStats(doc,y,[
-    {label:'Orders',value:rows.length},
-    {label:'Unique Items',value:items.length},
-    {label:'Categories',value:catNames.length},
-    {label:'Total Units to Pack',value:totalUnits}
-  ]);
-  y=_pdfSectionTitle(doc,y+1,'Items to Pack');
+  // ── Palette — light blue reference style ──
+  const LB   =[173,216,230]; // light blue — top bar, separator, header fill
+  const LB2  =[193,228,240]; // slightly lighter for header boxes bg
+  const LB3  =[209,236,245]; // table header row fill
+  const LBDK =[70,130,160];  // darker blue for text in header
+  const DARK =[40, 40, 40];
+  const GREY =[120,130,140];
+  const LINE =[180,200,210]; // grid lines
+  const WHITE=[255,255,255];
 
-  const body=[],itemRowIdx=new Set();let sn=0;
-  catNames.forEach(c=>{
-    const list=cats[c].sort((a,b)=>a.name.localeCompare(b.name));
-    const sub=list.reduce((s,i)=>s+i.qty,0);
-    body.push([
-      {content:c.toUpperCase()+'  ('+list.length+(list.length===1?' item':' items')+')',colSpan:2,styles:{fillColor:_PDF_TINT,textColor:_PDF_GREEN,fontStyle:'bold',fontSize:8.5,halign:'left'}},
-      {content:'Subtotal: '+sub+' units',colSpan:3,styles:{fillColor:_PDF_TINT,textColor:_PDF_GREEN,fontStyle:'bold',fontSize:8.5,halign:'right'}}
-    ]);
-    list.forEach(it=>{
-      sn++;itemRowIdx.add(body.length);
-      body.push([sn,it.name,it.qty,it.orders.size,'']);
-    });
-  });
+  const W=210,H=297,M=10; // A4, margin
+  const store=_pdfStoreInfo();
+  const fmt=s=>s?new Date(s+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):s;
+  const period=fromStr===toStr?fmt(fromStr):(fmt(fromStr)+' – '+fmt(toStr));
+  const generated=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
 
-  doc.autoTable({
-    startY:y,margin:{left:14,right:14,top:16,bottom:20},theme:'grid',
-    head:[['#','Item Description','Total Qty','In Orders','Packed']],
-    body,
-    foot:[[{content:'GRAND TOTAL',colSpan:2,styles:{halign:'right'}},{content:String(totalUnits),styles:{halign:'center'}},{content:'',colSpan:2}]],
-    showHead:'everyPage',showFoot:'lastPage',
-    styles:{font:'helvetica',fontSize:9.5,cellPadding:{top:3,bottom:3,left:3,right:3},textColor:_PDF_DARK,lineColor:_PDF_LINE,lineWidth:.2,valign:'middle'},
-    headStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:8.5,halign:'center',lineColor:_PDF_GREEN},
-    footStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:10,lineColor:_PDF_GREEN},
-    columnStyles:{
-      0:{cellWidth:14,halign:'center',textColor:_PDF_GREY},
-      1:{cellWidth:'auto',fontStyle:'bold'},
-      2:{cellWidth:28,halign:'center',fontStyle:'bold',fontSize:12,textColor:_PDF_GREEN},
-      3:{cellWidth:24,halign:'center',textColor:_PDF_GREY},
-      4:{cellWidth:22,halign:'center'}
-    },
-    didDrawCell:d=>{
-      if(d.section==='body'&&d.column.index===4&&itemRowIdx.has(d.row.index)){
-        doc.setDrawColor(55,65,81);doc.setLineWidth(.4);
-        doc.rect(d.cell.x+d.cell.width/2-2.5,d.cell.y+d.cell.height/2-2.5,5,5);
-      }
+  // ─ Layout constants ─
+  const TOP_BAR_H=5;        // thin top blue stripe
+  const GAP1=4;             // gap after top bar
+  const BOX_Y=TOP_BAR_H+GAP1;
+  const BOX_H=16;           // header boxes height
+  const BOX_L_W=120;        // left box width
+  const BOX_R_W=60;         // right box width
+  const GAP2=4;             // gap after boxes
+  const SEP_Y=BOX_Y+BOX_H+GAP2;
+  const SEP_H=1.5;          // blue separator bar
+  const TABLE_Y=SEP_Y+SEP_H+3; // table starts here
+  const FOOTER_Y=H-14;
+  const TABLE_H=FOOTER_Y-TABLE_Y;
+
+  // Column widths (table spans M to W-M = 190mm)
+  const TW=W-2*M; // 190mm total
+  const C0=10,C1_L=68,C1_R=68; // #, item-left, item-right
+  const CQTY=14,CORD=14,CPACKED=10; // shared cols
+  // Two-halves: left half and right half each have #, item, qty, in-orders, packed
+  // Total per half: C0+C_ITEM+CQTY+CORD+CPACKED = 10+68+14+14+10 = 116 -> but we have 190
+  // Split table in half: left half = 95mm, right half = 95mm
+  const HALF=TW/2; // 95mm each
+  // Within each half: col widths
+  const H_SN=8, H_ITEM=HALF-H_SN-13-14-10, H_QTY=13, H_ORD=14, H_PACKED=10;
+  // H_ITEM = 95-8-13-14-10 = 50mm
+
+  const ROW_H=7;
+  const HEAD_H=10;
+  const usableRows=Math.floor((TABLE_H-HEAD_H)/ROW_H);
+  const itemsPerPage=usableRows*2; // left + right col
+
+  function drawPage(pgItems){
+    // ── thin top bar ──
+    doc.setFillColor(...LB);doc.rect(0,0,W,TOP_BAR_H,'F');
+
+    // ── two header boxes ──
+    // left box: store name + subtitle
+    doc.setFillColor(...LB2);doc.roundedRect(M,BOX_Y,BOX_L_W,BOX_H,2,2,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...LBDK);
+    doc.text(store.name.toUpperCase(),M+5,BOX_Y+7);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GREY);
+    doc.text(store.phone?'Tel: '+store.phone:'Grocery & Daily Needs',M+5,BOX_Y+13);
+
+    // right box: title + date
+    const rxStart=M+BOX_L_W+4;
+    doc.setFillColor(...LB2);doc.roundedRect(rxStart,BOX_Y,BOX_R_W,BOX_H,2,2,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...LBDK);
+    doc.text('PACKING LIST',rxStart+BOX_R_W/2,BOX_Y+7,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...GREY);
+    doc.text(period,rxStart+BOX_R_W/2,BOX_Y+13,{align:'center'});
+
+    // ── blue separator ──
+    doc.setFillColor(...LB);doc.rect(M,SEP_Y,TW,SEP_H,'F');
+
+    // ── table outer border ──
+    doc.setDrawColor(...LINE);doc.setLineWidth(.3);
+    doc.rect(M,TABLE_Y,TW,HEAD_H+pgItems.leftRows.length>pgItems.rightRows.length?pgItems.leftRows.length*ROW_H:pgItems.rightRows.length*ROW_H,'S');
+
+    // ── table header row ──
+    doc.setFillColor(...LB3);doc.rect(M,TABLE_Y,TW,HEAD_H,'F');
+    // vertical column dividers in header
+    function hdrDividers(xBase){
+      let cx=xBase+H_SN;
+      [H_ITEM,H_QTY,H_ORD,H_PACKED].forEach(cw=>{
+        doc.setDrawColor(...LINE);doc.setLineWidth(.3);
+        doc.line(cx,TABLE_Y,cx,TABLE_Y+HEAD_H);
+        cx+=cw;
+      });
     }
-  });
-  const fy=doc.lastAutoTable.finalY+12;
-  if(fy<268){
-    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(..._PDF_GREY);
-    doc.setDrawColor(..._PDF_GREY);doc.setLineWidth(.3);
-    doc.line(14,fy+10,74,fy+10);doc.text('Packed by',14,fy+14);
-    doc.line(136,fy+10,196,fy+10);doc.text('Checked by',136,fy+14);
+    hdrDividers(M);
+    hdrDividers(M+HALF);
+    // center divider (full table height)
+    const totalRowCount=Math.max(pgItems.leftRows.length,pgItems.rightRows.length);
+    doc.setDrawColor(...LB);doc.setLineWidth(.8);
+    doc.line(M+HALF,TABLE_Y,M+HALF,TABLE_Y+HEAD_H+totalRowCount*ROW_H);
+
+    // header labels — left half
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...LBDK);
+    const hy=TABLE_Y+HEAD_H-3;
+    doc.text('#',M+H_SN/2,hy,{align:'center'});
+    doc.text('ITEM DESCRIPTION',M+H_SN+H_ITEM/2,hy,{align:'center'});
+    doc.text('QTY',M+H_SN+H_ITEM+H_QTY/2,hy,{align:'center'});
+    doc.text('ORDERS',M+H_SN+H_ITEM+H_QTY+H_ORD/2,hy,{align:'center'});
+    doc.text('PACKED',M+H_SN+H_ITEM+H_QTY+H_ORD+H_PACKED/2,hy,{align:'center'});
+    // header labels — right half
+    const rx=M+HALF;
+    doc.text('#',rx+H_SN/2,hy,{align:'center'});
+    doc.text('ITEM DESCRIPTION',rx+H_SN+H_ITEM/2,hy,{align:'center'});
+    doc.text('QTY',rx+H_SN+H_ITEM+H_QTY/2,hy,{align:'center'});
+    doc.text('ORDERS',rx+H_SN+H_ITEM+H_QTY+H_ORD/2,hy,{align:'center'});
+    doc.text('PACKED',rx+H_SN+H_ITEM+H_QTY+H_ORD+H_PACKED/2,hy,{align:'center'});
+
+    // ── draw rows ──
+    function drawRows(rowList,xBase){
+      rowList.forEach((it,r)=>{
+        const ry=TABLE_Y+HEAD_H+r*ROW_H;
+        // row bg: white (no alternating to match reference clean look)
+        doc.setFillColor(...WHITE);doc.rect(xBase,ry,HALF,ROW_H,'F');
+        // horizontal grid line
+        doc.setDrawColor(...LINE);doc.setLineWidth(.2);
+        doc.line(xBase,ry+ROW_H,xBase+HALF,ry+ROW_H);
+        // vertical col dividers
+        let cx=xBase+H_SN;
+        [H_ITEM,H_QTY,H_ORD,H_PACKED].forEach(cw=>{
+          doc.line(cx,ry,cx,ry+ROW_H);cx+=cw;
+        });
+        // content
+        const ty=ry+ROW_H-2.2;
+        doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GREY);
+        doc.text(String(it.sn),xBase+H_SN/2,ty,{align:'center'});
+        doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...DARK);
+        const nameStr=doc.splitTextToSize(it.name,H_ITEM-3)[0];
+        doc.text(nameStr,xBase+H_SN+2,ty);
+        doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...LBDK);
+        doc.text(String(it.qty),xBase+H_SN+H_ITEM+H_QTY/2,ty,{align:'center'});
+        doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GREY);
+        doc.text(String(it.orders),xBase+H_SN+H_ITEM+H_QTY+H_ORD/2,ty,{align:'center'});
+        // packed checkbox
+        doc.setDrawColor(...GREY);doc.setLineWidth(.35);
+        doc.rect(xBase+H_SN+H_ITEM+H_QTY+H_ORD+(H_PACKED-4)/2,ry+(ROW_H-4)/2,4,4);
+      });
+    }
+    drawRows(pgItems.leftRows,M);
+    drawRows(pgItems.rightRows,M+HALF);
+
+    // outer table border (redraw over everything)
+    doc.setDrawColor(...LINE);doc.setLineWidth(.4);
+    doc.rect(M,TABLE_Y,TW,HEAD_H+totalRowCount*ROW_H,'S');
+
+    // ── footer ──
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GREY);
+    doc.text(store.name+' — Packing List  |  '+generated,M,FOOTER_Y+5);
+    doc.text('Page '+doc.getNumberOfPages(),W-M,FOOTER_Y+5,{align:'right'});
+    // signature lines
+    doc.setDrawColor(...LINE);doc.setLineWidth(.3);
+    doc.line(M,FOOTER_Y+10,M+40,FOOTER_Y+10);
+    doc.line(W-M-40,FOOTER_Y+10,W-M,FOOTER_Y+10);
+    doc.setFontSize(6);
+    doc.text('Packed by',M,FOOTER_Y+13);
+    doc.text('Checked by',W-M-40,FOOTER_Y+13);
   }
-  _pdfFooters(doc,'Packing List - Item Totals');
+
+  // ── Paginate items into left/right columns ──
+  const flatRows=allItems.map((it,i)=>({sn:i+1,name:it.name,qty:it.qty,orders:it.orders.size}));
+  const colRows=usableRows; // rows per column per page
+  const totalPages=Math.max(1,Math.ceil(flatRows.length/(colRows*2)));
+
+  for(let pg=0;pg<totalPages;pg++){
+    if(pg>0)doc.addPage();
+    const start=pg*colRows*2;
+    const leftRows=flatRows.slice(start,start+colRows);
+    const rightRows=flatRows.slice(start+colRows,start+colRows*2);
+    drawPage({leftRows,rightRows});
+  }
+
+  // grand total row on last page
+  const lastTotal=Math.max(
+    flatRows.slice((totalPages-1)*colRows*2,(totalPages-1)*colRows*2+colRows).length,
+    flatRows.slice((totalPages-1)*colRows*2+colRows).length
+  );
+  const totY=TABLE_Y+HEAD_H+lastTotal*ROW_H+4;
+  if(totY<FOOTER_Y-6){
+    doc.setFillColor(...LB3);doc.roundedRect(M,totY,TW,8,1,1,'F');
+    doc.setDrawColor(...LB);doc.setLineWidth(.4);doc.rect(M,totY,TW,8,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...LBDK);
+    doc.text('TOTAL UNITS TO PACK',M+5,totY+5.5);
+    doc.text(String(totalUnits),W-M-5,totY+5.5,{align:'right'});
+  }
 }
 
-// ── PDF 2: each customer, the products they added, and the price ──
+// ── PDF 2: Customer-wise packing list — two-column A4 (left + right halves) ──
 function _buildCustomersPDF(doc,rows,fromStr,toStr){
   const sorted=[...rows].sort((a,b)=>_pdfT(a.name).localeCompare(_pdfT(b.name))||(a.dateObj-b.dateObj));
   const custKey=o=>(o.phone||_pdfT(o.name)||o.firestoreId||'').toString().replace(/\s+/g,'').toLowerCase();
@@ -4679,80 +4961,237 @@ function _buildCustomersPDF(doc,rows,fromStr,toStr){
   });
   const custCount=Object.keys(summary).length;
 
-  let y=_pdfHeader(doc,'PACKING LIST - CUSTOMER WISE',fromStr,toStr);
-  y=_pdfStats(doc,y,[
-    {label:'Customers',value:custCount},
-    {label:'Orders',value:rows.length},
-    {label:'Total Units',value:totalUnits},
-    {label:'Grand Total',value:'Rs. '+_inr(grand)}
-  ]);
+  // ── Light-blue palette ──
+  const LB   =[173,216,230];
+  const LB2  =[193,228,240];
+  const LB3  =[209,236,245];
+  const LBDK =[70,130,160];
+  const DARK =[40,40,40];
+  const GREY =[120,130,140];
+  const LINE =[180,200,210];
 
-  sorted.forEach((o,idx)=>{
+  const W=210,H=297,M=8;
+  const store=_pdfStoreInfo();
+  const fmt=s=>s?new Date(s+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):s;
+  const period=fromStr===toStr?fmt(fromStr):(fmt(fromStr)+' – '+fmt(toStr));
+  const generated=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const TW=W-2*M; // 194mm
+
+  // Two-column layout constants
+  const COL_GAP=3;         // gap between left and right column
+  const COL_W=(TW-COL_GAP)/2; // ~95.5mm per column
+  const COL_L=M;           // left col x-start
+  const COL_R=M+COL_W+COL_GAP; // right col x-start
+
+  // Page header height
+  const HDR_H=29; // approx: top bar(5)+gap(4)+box(16)+gap(4)=29; +sep(1.5)+gap(3) = content at ~33.5
+  const FOOTER_TOP=H-13;
+  const CONTENT_TOP=33; // y where order cards start
+  const CONTENT_BOT=FOOTER_TOP-2;
+
+  // ── Shared page header ──
+  function drawPageHeader(){
+    const TOP_BAR_H=5,BOX_Y=TOP_BAR_H+4,BOX_H=16,BOX_L_W=120,BOX_R_W=60;
+    const SEP_Y=BOX_Y+BOX_H+4,SEP_H=1.5;
+    doc.setFillColor(...LB);doc.rect(0,0,W,TOP_BAR_H,'F');
+    doc.setFillColor(...LB2);doc.roundedRect(M,BOX_Y,BOX_L_W,BOX_H,2,2,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...LBDK);
+    doc.text(store.name.toUpperCase(),M+5,BOX_Y+7);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GREY);
+    doc.text(store.phone?'Tel: '+store.phone:'Grocery & Daily Needs',M+5,BOX_Y+13);
+    const rxStart=M+BOX_L_W+4;
+    doc.setFillColor(...LB2);doc.roundedRect(rxStart,BOX_Y,BOX_R_W,BOX_H,2,2,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...LBDK);
+    doc.text('CUSTOMER LIST',rxStart+BOX_R_W/2,BOX_Y+7,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...GREY);
+    doc.text(period,rxStart+BOX_R_W/2,BOX_Y+13,{align:'center'});
+    doc.setFillColor(...LB);doc.rect(M,SEP_Y,TW,SEP_H,'F');
+    // vertical divider between columns
+    doc.setDrawColor(...LB);doc.setLineWidth(.6);
+    doc.line(COL_R-COL_GAP/2,CONTENT_TOP,COL_R-COL_GAP/2,CONTENT_BOT);
+    return SEP_Y+SEP_H+3;
+  }
+
+  // ── Stats strip on first page only ──
+  function drawStatsStrip(y){
+    const stats=[
+      {label:'CUSTOMERS',value:custCount},
+      {label:'ORDERS',value:rows.length},
+      {label:'TOTAL UNITS',value:totalUnits},
+      {label:'GRAND TOTAL',value:'Rs. '+_inr(grand)}
+    ];
+    const gap=2,n=stats.length,w=(TW-gap*(n-1))/n,h=12;
+    stats.forEach((s,i)=>{
+      const x=M+i*(w+gap);
+      doc.setFillColor(...LB2);doc.roundedRect(x,y,w,h,2,2,'F');
+      doc.setDrawColor(...LB);doc.setLineWidth(.3);doc.roundedRect(x,y,w,h,2,2,'S');
+      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...LBDK);
+      doc.text(String(s.value),x+w/2,y+5,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(...GREY);
+      doc.text(s.label,x+w/2,y+10,{align:'center'});
+    });
+    return y+h+3;
+  }
+
+  // ── Footer ──
+  function drawFooter(){
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GREY);
+    doc.text(store.name+' — Packing List (Customer Wise)  |  '+generated,M,FOOTER_TOP+5);
+    doc.text('Page '+doc.getNumberOfPages(),W-M,FOOTER_TOP+5,{align:'right'});
+    doc.setDrawColor(...LINE);doc.setLineWidth(.3);
+    doc.line(M,FOOTER_TOP+8,M+35,FOOTER_TOP+8);
+    doc.line(W-M-35,FOOTER_TOP+8,W-M,FOOTER_TOP+8);
+    doc.setFontSize(6);
+    doc.text('Packed by',M,FOOTER_TOP+11);
+    doc.text('Checked by',W-M-35,FOOTER_TOP+11);
+  }
+
+  // ── Render a single order card into one column ──
+  // Returns the new y after drawing. Uses doc.autoTable with margin set to column.
+  function drawOrderCard(o,idx,colX,y){
     const d=getOrderBillData(o);
-    if(y>240){doc.addPage();y=16;}
-    // customer header strip
-    doc.setFillColor(..._PDF_TINT);doc.roundedRect(14,y,182,14,2,2,'F');
-    doc.setFillColor(..._PDF_GREEN);doc.rect(14,y+2,1.6,10,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(..._PDF_DARK);
-    doc.text((idx+1)+'.  '+(_pdfT(o.name)||'Customer'),19,y+5.8);
-    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(..._PDF_GREY);
-    const sub=[o.phone?('Ph: '+_pdfT(o.phone)):'',o.payment?_pdfT(o.payment):'',_pdfT(o.pickupLocation||'Store Counter')].filter(Boolean).join('   |   ');
-    doc.text(sub,19,y+10.8);
-    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(..._PDF_GREEN);
-    doc.text('Order #'+_pdfT(o.orderId||String(o.firestoreId||'').slice(0,8)),192,y+5.8,{align:'right'});
-    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(..._PDF_GREY);
-    doc.text(_pdfT((o.date||'')+(o.time?'  '+o.time:'')),192,y+10.8,{align:'right'});
+    // ── Customer strip ──
+    doc.setFillColor(...LB3);doc.roundedRect(colX,y,COL_W,10,2,2,'F');
+    doc.setFillColor(...LB);doc.rect(colX,y+2,2,6,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...LBDK);
+    const nameStr=doc.splitTextToSize((idx+1)+'.  '+(_pdfT(o.name)||'Customer'),COL_W-50)[0];
+    doc.text(nameStr,colX+4,y+4.5);
+    doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...GREY);
+    const sub=[o.phone?('Ph: '+_pdfT(o.phone)):'',o.payment?_pdfT(o.payment):''].filter(Boolean).join(' | ');
+    doc.text(sub,colX+4,y+8.5);
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(...LBDK);
+    doc.text('#'+_pdfT(o.orderId||String(o.firestoreId||'').slice(0,8)),colX+COL_W-2,y+4.5,{align:'right'});
+    doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(...GREY);
+    doc.text(_pdfT(o.date||''),colX+COL_W-2,y+8.5,{align:'right'});
+    y+=11;
 
+    // ── Items table ──
     const qty=d.items.reduce((s,i)=>s+i.qty,0);
     const adj=Math.abs(d.discount)>=.01||Math.abs(d.gst)>=.01||Math.abs(d.other)>=.01;
-    const fs={fillColor:_PDF_TINT,textColor:_PDF_DARK,fontStyle:'bold',fontSize:9};
+    const fs={fillColor:LB3,textColor:LBDK,fontStyle:'bold',fontSize:7};
     const foot=[[
-      {content:adj?'Items Total':'ORDER TOTAL',colSpan:2,styles:{halign:'right'}},
-      {content:String(qty),styles:{halign:'center'}},{content:''},
+      {content:adj?'Items Total':'TOTAL',colSpan:2,styles:{halign:'right'}},
+      {content:String(qty),styles:{halign:'center'}},
       {content:_inr(adj?d.subtotal:d.total),styles:{halign:'right'}}
     ]];
-    if(Math.abs(d.discount)>=.01)foot.push([{content:'Discount',colSpan:4,styles:{halign:'right',fontStyle:'normal'}},{content:'- '+_inr(d.discount),styles:{halign:'right',fontStyle:'normal'}}]);
-    if(Math.abs(d.gst)>=.01)foot.push([{content:'GST'+(d.gstPct?' ('+d.gstPct+'%)':''),colSpan:4,styles:{halign:'right',fontStyle:'normal'}},{content:_inr(d.gst),styles:{halign:'right',fontStyle:'normal'}}]);
-    if(Math.abs(d.other)>=.01)foot.push([{content:'Delivery / Other',colSpan:4,styles:{halign:'right',fontStyle:'normal'}},{content:_inr(d.other),styles:{halign:'right',fontStyle:'normal'}}]);
-    if(adj)foot.push([{content:'NET PAYABLE',colSpan:4,styles:{halign:'right',fillColor:_PDF_GREEN,textColor:255,fontSize:10}},{content:'Rs. '+_inr(d.total),styles:{halign:'right',fillColor:_PDF_GREEN,textColor:255,fontSize:10}}]);
+    if(Math.abs(d.discount)>=.01)foot.push([{content:'Discount',colSpan:3,styles:{halign:'right',fontStyle:'normal',textColor:GREY}},{content:'- '+_inr(d.discount),styles:{halign:'right',fontStyle:'normal',textColor:GREY}}]);
+    if(Math.abs(d.gst)>=.01)foot.push([{content:'GST'+(d.gstPct?' ('+d.gstPct+'%)':''),colSpan:3,styles:{halign:'right',fontStyle:'normal',textColor:GREY}},{content:_inr(d.gst),styles:{halign:'right',fontStyle:'normal',textColor:GREY}}]);
+    if(Math.abs(d.other)>=.01)foot.push([{content:'Delivery',colSpan:3,styles:{halign:'right',fontStyle:'normal',textColor:GREY}},{content:_inr(d.other),styles:{halign:'right',fontStyle:'normal',textColor:GREY}}]);
+    if(adj)foot.push([{content:'NET PAYABLE',colSpan:3,styles:{halign:'right',fillColor:LB,textColor:LBDK,fontSize:7.5,fontStyle:'bold'}},{content:'Rs. '+_inr(d.total),styles:{halign:'right',fillColor:LB,textColor:LBDK,fontSize:7.5,fontStyle:'bold'}}]);
 
     doc.autoTable({
-      startY:y+16,margin:{left:14,right:14,top:16,bottom:20},theme:'grid',
-      head:[['#','Product','Qty','Rate (Rs.)','Amount (Rs.)']],
-      body:d.items.map((i,n)=>[n+1,(_pdfT(i.name)||'Item')+(i.selectedWeight?' ('+i.selectedWeight+')':''),i.qty,_inr(i.price),_inr(i.qty*i.price)]),
-      foot,showHead:'everyPage',showFoot:'lastPage',
-      styles:{font:'helvetica',fontSize:9,cellPadding:{top:2.4,bottom:2.4,left:3,right:3},textColor:_PDF_DARK,lineColor:_PDF_LINE,lineWidth:.2,valign:'middle'},
-      headStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:8,lineColor:_PDF_GREEN},
+      startY:y,
+      margin:{left:colX,right:W-colX-COL_W,top:CONTENT_TOP,bottom:H-FOOTER_TOP},
+      theme:'grid',
+      head:[['#','Product','Qty','Amt']],
+      body:d.items.map((i,n)=>[n+1,(_pdfT(i.name)||'Item')+(i.selectedWeight?' ('+i.selectedWeight+')':''),i.qty,_inr(i.qty*i.price)]),
+      foot,showHead:'firstPage',showFoot:'lastPage',
+      styles:{font:'helvetica',fontSize:7,cellPadding:{top:1.6,bottom:1.6,left:2,right:2},textColor:DARK,lineColor:LINE,lineWidth:.2,valign:'middle'},
+      headStyles:{fillColor:LB3,textColor:LBDK,fontStyle:'bold',fontSize:6.5,lineColor:LINE},
       footStyles:fs,
       columnStyles:{
-        0:{cellWidth:12,halign:'center',textColor:_PDF_GREY},
+        0:{cellWidth:8,halign:'center',textColor:GREY},
         1:{cellWidth:'auto'},
-        2:{cellWidth:18,halign:'center',fontStyle:'bold'},
-        3:{cellWidth:30,halign:'right'},
-        4:{cellWidth:34,halign:'right',fontStyle:'bold'}
+        2:{cellWidth:12,halign:'center',fontStyle:'bold',textColor:LBDK},
+        3:{cellWidth:22,halign:'right',fontStyle:'bold',textColor:LBDK}
       },
-      didParseCell:h=>{if(h.section==='head'&&[2,3,4].includes(h.column.index))h.cell.styles.halign=h.column.index===2?'center':'right';if(h.section==='head'&&h.column.index===0)h.cell.styles.halign='center';}
+      didParseCell:h=>{if(h.section==='head'){if(h.column.index===0)h.cell.styles.halign='center';if(h.column.index===2)h.cell.styles.halign='center';if(h.column.index===3)h.cell.styles.halign='right';}}
     });
-    y=doc.lastAutoTable.finalY+8;
+    return doc.lastAutoTable.finalY+4;
+  }
+
+  // ── Estimate card height (approximate) ──
+  function estimateCardH(o){
+    const d=getOrderBillData(o);
+    const adj=Math.abs(d.discount)>=.01||Math.abs(d.gst)>=.01||Math.abs(d.other)>=.01;
+    const footRows=1+(adj?4:0);
+    return 11+(d.items.length+footRows)*5.8+8;
+  }
+
+  // ── State: two-column cursor ──
+  let leftY=CONTENT_TOP,rightY=CONTENT_TOP;
+  let isFirstPage=true;
+
+  function newPage(){
+    drawFooter();
+    doc.addPage();
+    drawPageHeader();
+    leftY=CONTENT_TOP;rightY=CONTENT_TOP;
+    isFirstPage=false;
+  }
+
+  // ── First page header ──
+  drawPageHeader();
+  // Stats strip takes up some content space on page 1
+  leftY=drawStatsStrip(CONTENT_TOP)+1;
+  rightY=leftY;
+  isFirstPage=true;
+
+  // ── Draw each order into the shorter column ──
+  sorted.forEach((o,idx)=>{
+    const estH=estimateCardH(o);
+    // Pick the column with more space; if both too tight, new page
+    const leftSpace=CONTENT_BOT-leftY;
+    const rightSpace=CONTENT_BOT-rightY;
+    if(estH>leftSpace&&estH>rightSpace){
+      newPage();
+    }
+    // Place in left first (or whichever has more room)
+    if(leftY<=rightY){
+      leftY=drawOrderCard(o,idx,COL_L,leftY);
+    } else {
+      rightY=drawOrderCard(o,idx,COL_R,rightY);
+    }
   });
 
-  // customer summary + grand total
-  if(y>200){doc.addPage();y=16;}
-  y=_pdfSectionTitle(doc,y+2,'Customer Summary');
+  // ── Customer Summary table — always on a new page ──
+  drawFooter();
+  doc.addPage();
+  let sy=drawPageHeader();
+  sy+=2;
+
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...LBDK);
+  doc.text('Customer Summary',M,sy+1);
+  doc.setDrawColor(...LB);doc.setLineWidth(.8);doc.line(M,sy+3,M+38,sy+3);
+  sy+=8;
+
+  // Two-column summary table: left and right halves
   const sumRows=Object.values(summary).sort((a,b)=>a.name.localeCompare(b.name));
-  doc.autoTable({
-    startY:y,margin:{left:14,right:14,top:16,bottom:20},theme:'grid',
-    head:[['#','Customer','Phone','Orders','Units','Amount (Rs.)']],
-    body:sumRows.map((c,i)=>[i+1,c.name,c.phone,c.orders,c.units,_inr(c.amount)]),
-    foot:[[{content:'GRAND TOTAL',colSpan:3,styles:{halign:'right'}},{content:String(rows.length),styles:{halign:'center'}},{content:String(totalUnits),styles:{halign:'center'}},{content:'Rs. '+_inr(grand),styles:{halign:'right'}}]],
-    showHead:'everyPage',showFoot:'lastPage',
-    styles:{font:'helvetica',fontSize:9,cellPadding:{top:2.6,bottom:2.6,left:3,right:3},textColor:_PDF_DARK,lineColor:_PDF_LINE,lineWidth:.2,valign:'middle'},
-    headStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:8,lineColor:_PDF_GREEN},
-    footStyles:{fillColor:_PDF_GREEN,textColor:255,fontStyle:'bold',fontSize:10,lineColor:_PDF_GREEN},
-    columnStyles:{0:{cellWidth:12,halign:'center',textColor:_PDF_GREY},1:{fontStyle:'bold'},3:{cellWidth:20,halign:'center'},4:{cellWidth:20,halign:'center'},5:{cellWidth:36,halign:'right',fontStyle:'bold'}},
-    didParseCell:h=>{if(h.section==='head'){if([0,3,4].includes(h.column.index))h.cell.styles.halign='center';if(h.column.index===5)h.cell.styles.halign='right';}}
-  });
-  _pdfFooters(doc,'Packing List - Customer Wise');
+  const half=Math.ceil(sumRows.length/2);
+  const leftSumRows=sumRows.slice(0,half);
+  const rightSumRows=sumRows.slice(half);
+
+  function drawSummaryHalf(dataRows,colX,startY){
+    if(!dataRows.length)return startY;
+    doc.autoTable({
+      startY,
+      margin:{left:colX,right:W-colX-COL_W,top:CONTENT_TOP,bottom:H-FOOTER_TOP},
+      theme:'grid',
+      head:[['#','Customer','Ph','Orders','Units','Amt']],
+      body:dataRows.map((c,i)=>[i+1,c.name,c.phone||'—',c.orders,c.units,_inr(c.amount)]),
+      showHead:'everyPage',
+      styles:{font:'helvetica',fontSize:7,cellPadding:{top:1.8,bottom:1.8,left:2,right:2},textColor:DARK,lineColor:LINE,lineWidth:.2,valign:'middle'},
+      headStyles:{fillColor:LB3,textColor:LBDK,fontStyle:'bold',fontSize:6.5,lineColor:LINE},
+      columnStyles:{0:{cellWidth:7,halign:'center',textColor:GREY},1:{cellWidth:'auto',fontStyle:'bold'},2:{cellWidth:18},3:{cellWidth:12,halign:'center'},4:{cellWidth:12,halign:'center'},5:{cellWidth:18,halign:'right',textColor:LBDK,fontStyle:'bold'}},
+      didParseCell:h=>{if(h.section==='head'&&[0,3,4].includes(h.column.index))h.cell.styles.halign='center';if(h.section==='head'&&h.column.index===5)h.cell.styles.halign='right';}
+    });
+    return doc.lastAutoTable.finalY;
+  }
+
+  drawSummaryHalf(leftSumRows,COL_L,sy);
+  drawSummaryHalf(rightSumRows,COL_R,sy);
+
+  const totY=Math.max(doc.lastAutoTable.finalY+4,sy+8);
+  if(totY<FOOTER_TOP-10){
+    doc.setFillColor(...LB3);doc.roundedRect(M,totY,TW,8,1,1,'F');
+    doc.setDrawColor(...LB);doc.setLineWidth(.4);doc.rect(M,totY,TW,8,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...LBDK);
+    doc.text('GRAND TOTAL (ALL ORDERS)',M+5,totY+5.5);
+    doc.text('Rs. '+_inr(grand),W-M-5,totY+5.5,{align:'right'});
+  }
+
+  const totalPages=doc.getNumberOfPages();
+  for(let p=1;p<=totalPages;p++){doc.setPage(p);drawFooter();}
 }
 
 async function _printPackingPDF(fromStr,toStr,kind){
