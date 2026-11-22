@@ -463,6 +463,7 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       <div class="nav-item" onclick="navAdmin('customers')" id="nav-customers" data-page="customers"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">group</span><span class="nav-label">Customers</span></div>
       <div class="nav-item" onclick="navAdmin('analytics')" id="nav-analytics" data-page="analytics"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">bar_chart</span><span class="nav-label">Analytics</span></div>
       <div class="nav-item" onclick="navAdmin('promos')" id="nav-promos" data-page="promos"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">local_offer</span><span class="nav-label">Promo Codes</span></div>
+      <div class="nav-item" onclick="navAdmin('campaigns')" id="nav-campaigns" data-page="campaigns"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">campaign</span><span class="nav-label">Campaigns</span></div>
       <div class="nav-item" onclick="navAdmin('chats')" id="nav-chats" data-page="chats"><span class="material-symbols-outlined ms" style="font-size:20px;flex-shrink:0;">support_agent</span><span class="nav-label">Support Chats</span><span class="badge-count nav-label" id="chat-unread-badge" style="margin-left:auto;background:#dc2626;color:white;font-size:10px;border-radius:999px;padding:1px 7px;display:none;">0</span></div>
       <div style="margin:8px 16px;height:1px;background:#e5e7eb;"></div>
       <p class="nav-label" style="padding:4px 22px;font-size:10px;font-weight:700;color:#4b5563;letter-spacing:.08em;text-transform:uppercase;">Content</p>
@@ -953,6 +954,183 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     CAMPAIGNS & MARKETING PAGE
+══════════════════════════════════════════════════════════════ -->
+<div class="page-content" id="page-campaigns">
+  <div style="display:grid;gap:16px;">
+
+    <!-- Header -->
+    <div class="stat-card" style="border-left:3px solid #c0392b;padding:16px 20px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#c0392b,#1a5c2a);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span class="material-symbols-outlined ms" style="font-size:22px;color:white;">campaign</span>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:800;color:#111827;">Campaigns &amp; Marketing</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:1px;">Manage storefront banners, lucky draws, snowfall, and seasonal campaigns</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LUCKY DRAW / CAMPAIGN BANNER ── -->
+    <div class="stat-card" style="border-left:3px solid #c0392b;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;flex-wrap:wrap;">
+        <h3 style="font-size:14px;font-weight:700;">
+          <span class="material-symbols-outlined ms" style="font-size:17px;vertical-align:middle;color:#c0392b;">redeem</span>
+          Lucky Draw / Campaign Banner
+        </h3>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:700;color:#374151;">
+          <input type="checkbox" id="ld-active" style="width:36px;height:20px;accent-color:#c0392b;cursor:pointer;" onchange="saveLuckyDraw()">
+          Show on storefront
+        </label>
+      </div>
+      <p style="font-size:12px;color:#9ca3af;margin-bottom:16px;">Use for any campaign — Christmas, Onam, Diwali, or a custom offer. First-time orderers are auto-enrolled when active. Pick a winner from the Entries panel below.</p>
+
+      <!-- Row 1: content fields -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px;">
+        <div>
+          <label class="lbl">Campaign / Eyebrow Label <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+          <input id="ld-eyebrow" type="text" class="input-f" placeholder="e.g. Christmas 2025 · Onam Offer" oninput="previewLuckyDraw()">
+        </div>
+        <div>
+          <label class="lbl">Banner Title</label>
+          <input id="ld-title" type="text" class="input-f" placeholder="Lucky Draw 2025!" oninput="previewLuckyDraw()">
+        </div>
+        <div>
+          <label class="lbl">Subtitle / Description</label>
+          <input id="ld-subtitle" type="text" class="input-f" placeholder="Every order enters you in the draw!" oninput="previewLuckyDraw()">
+        </div>
+        <div>
+          <label class="lbl">Icon / Emoji</label>
+          <input id="ld-icon" type="text" class="input-f" placeholder="🎁" maxlength="4" oninput="previewLuckyDraw()">
+        </div>
+        <div>
+          <label class="lbl">Button Text</label>
+          <input id="ld-btn-text" type="text" class="input-f" placeholder="Shop &amp; Enter 🎁" oninput="previewLuckyDraw()">
+        </div>
+        <div>
+          <label class="lbl">Button Action</label>
+          <select id="ld-btn-action" class="input-f" onchange="previewLuckyDraw()">
+            <option value="nav('browse')">Go to Browse / Shop</option>
+            <option value="nav('categories')">Go to Categories</option>
+            <option value="nav('cart')">Go to Cart</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Badge Text <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+          <input id="ld-badge" type="text" class="input-f" placeholder="e.g. Win ₹5000!" oninput="previewLuckyDraw()">
+        </div>
+        <div>
+          <label class="lbl">Draw Ends On <span style="font-weight:400;color:#9ca3af;">(countdown)</span></label>
+          <input id="ld-expires" type="datetime-local" class="input-f" oninput="previewLuckyDraw()">
+        </div>
+      </div>
+
+      <!-- Row 2: colours + snowfall + effects -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px;align-items:end;">
+        <div>
+          <label class="lbl">Gradient — Start colour</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="ld-color1" type="color" value="#c0392b" oninput="previewLuckyDraw()" style="width:44px;height:36px;border:none;background:none;cursor:pointer;padding:0;">
+            <input id="ld-color1-hex" type="text" class="input-f" value="#c0392b" maxlength="7" placeholder="#c0392b" oninput="syncColor('ld-color1','ld-color1-hex');previewLuckyDraw();" style="flex:1;">
+          </div>
+        </div>
+        <div>
+          <label class="lbl">Gradient — Mid colour</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="ld-color2" type="color" value="#962d22" oninput="previewLuckyDraw()" style="width:44px;height:36px;border:none;background:none;cursor:pointer;padding:0;">
+            <input id="ld-color2-hex" type="text" class="input-f" value="#962d22" maxlength="7" placeholder="#962d22" oninput="syncColor('ld-color2','ld-color2-hex');previewLuckyDraw();" style="flex:1;">
+          </div>
+        </div>
+        <div>
+          <label class="lbl">Gradient — End colour</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="ld-color3" type="color" value="#1a5c2a" oninput="previewLuckyDraw()" style="width:44px;height:36px;border:none;background:none;cursor:pointer;padding:0;">
+            <input id="ld-color3-hex" type="text" class="input-f" value="#1a5c2a" maxlength="7" placeholder="#1a5c2a" oninput="syncColor('ld-color3','ld-color3-hex');previewLuckyDraw();" style="flex:1;">
+          </div>
+        </div>
+        <div>
+          <label class="lbl">Festive Effects</label>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#374151;">
+              <input type="checkbox" id="ld-snowfall" style="width:20px;height:20px;accent-color:#3b82f6;cursor:pointer;" onchange="previewLuckyDrawEffects()">
+              <span>❄️ Snowfall on storefront</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#374151;">
+              <input type="checkbox" id="ld-santa" style="width:20px;height:20px;accent-color:#c0392b;cursor:pointer;" onchange="previewLuckyDrawEffects()">
+              <span>🎅 Santa &amp; Stars overlay</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin preview with snowfall + santa effects -->
+      <div id="ld-preview" style="border-radius:16px;overflow:hidden;border:1px solid rgba(192,57,43,.2);padding:18px 16px;margin-bottom:14px;position:relative;background:linear-gradient(135deg,#c0392b,#962d22 40%,#1a5c2a);">
+        <!-- Snowfall canvas (admin preview only) -->
+        <canvas id="ld-snow-canvas" style="position:absolute;inset:0;pointer-events:none;border-radius:16px;display:none;z-index:3;width:100%;height:100%;"></canvas>
+        <!-- Santa overlay -->
+        <div id="ld-santa-overlay" style="display:none;position:absolute;top:6px;right:10px;z-index:4;font-size:28px;line-height:1;user-select:none;">🎅⭐✨</div>
+        <!-- Stars scatter -->
+        <div id="ld-stars-overlay" style="display:none;position:absolute;inset:0;pointer-events:none;z-index:2;border-radius:16px;overflow:hidden;"></div>
+        <div id="ld-preview-inner" style="position:relative;z-index:5;display:flex;align-items:center;gap:12px;">
+          <div id="ld-pv-icon" style="font-size:30px;width:52px;height:52px;background:rgba(255,215,0,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎁</div>
+          <div>
+            <div id="ld-pv-eyebrow" style="font-size:9px;font-weight:800;color:rgba(255,215,0,.8);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;display:none;"></div>
+            <div id="ld-pv-title" style="font-size:17px;font-weight:900;color:#fff;line-height:1.2;margin-bottom:3px;">Lucky Draw!</div>
+            <div id="ld-pv-sub" style="font-size:12px;color:rgba(255,255,255,.75);">Every order enters you into our lucky draw!</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;position:relative;z-index:5;">
+          <div id="ld-pv-btn" style="display:inline-block;background:linear-gradient(135deg,#ffd700,#f5a623);color:#1a0a00;font-size:12px;font-weight:800;border-radius:50px;padding:9px 18px;">Shop &amp; Enter 🎁</div>
+          <div id="ld-pv-badge" style="display:none;font-size:10px;font-weight:700;padding:5px 11px;border-radius:50px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);">Win ₹5000!</div>
+        </div>
+        <div style="position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.06) 1.5px,transparent 1.5px);background-size:20px 20px;border-radius:16px;"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;">
+        <button onclick="saveLuckyDraw()" class="btn" style="padding:9px 22px;background:#c0392b;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;">
+          <span class="material-symbols-outlined ms" style="font-size:15px;vertical-align:middle;">save</span> Save Campaign
+        </button>
+        <button onclick="clearLuckyDraw()" class="btn" style="padding:9px 20px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:13px;font-weight:700;">&#x2715; Remove Banner</button>
+      </div>
+
+      <!-- ── Enrolled Entries ── -->
+      <div style="border-top:1px solid #f0f0f0;padding-top:18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <div>
+            <h4 style="font-size:14px;font-weight:700;margin:0 0 2px;">
+              <span class="material-symbols-outlined ms" style="font-size:16px;vertical-align:middle;color:#c0392b;">confirmation_number</span>
+              Enrolled Participants
+            </h4>
+            <p style="font-size:12px;color:#9ca3af;margin:0;" id="ld-entry-count">—</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="refreshLdEntries()" class="btn" style="padding:8px 16px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:12px;font-weight:700;">
+              <span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">refresh</span> Refresh
+            </button>
+            <button onclick="resetLdEntries()" class="btn" id="ld-reset-btn" style="padding:8px 16px;background:#fee2e2;color:#b91c1c;border:none;border-radius:8px;font-size:12px;font-weight:700;display:none;">
+              <span class="material-symbols-outlined ms" style="font-size:14px;vertical-align:middle;">delete_sweep</span> Reset List
+            </button>
+            <button onclick="pickLuckyWinner()" class="btn" id="ld-pick-btn" style="padding:9px 20px;background:linear-gradient(135deg,#ffd700,#f5a623);color:#1a0a00;border:none;border-radius:8px;font-size:13px;font-weight:800;display:none;">
+              <span class="material-symbols-outlined ms" style="font-size:15px;vertical-align:middle;">emoji_events</span> Pick a Winner
+            </button>
+          </div>
+        </div>
+        <div id="ld-winner-banner" style="display:none;background:linear-gradient(135deg,#ffd700,#f5a623);border-radius:12px;padding:14px 18px;margin-bottom:14px;text-align:center;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#78350f;margin-bottom:4px;">🏆 Winner</div>
+          <div id="ld-winner-name" style="font-size:20px;font-weight:900;color:#1a0a00;"></div>
+          <div id="ld-winner-phone" style="font-size:13px;color:#78350f;margin-top:3px;"></div>
+          <button onclick="clearLdWinner()" style="margin-top:10px;padding:6px 16px;background:rgba(0,0,0,.1);border:none;border-radius:8px;font-size:11px;font-weight:700;color:#78350f;cursor:pointer;">Clear Winner</button>
+        </div>
+        <div id="ld-entries-list" style="display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
 <!-- ===== CMS ===== -->
 <div class="page-content" id="page-cms">
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
@@ -1149,8 +1327,24 @@ body:has(.modal-bd.open) #main{overflow:hidden;}
       </div>
     </div>
 
-    <!-- kept: Store Pickup hidden card shells so initRoomDeliveryCard() doesn't crash -->
-    <div style="display:none;" id="settings-homebg-card"><input id="s-hbg-url" type="hidden"><input id="s-hbg-ov" type="hidden" value="45"><span id="s-hbg-ov-val"></span><div id="s-hbg-preview"></div></div>
+    <!-- ── HOMEPAGE BACKGROUND ── -->
+    <!-- homebg card hidden — feature removed; compat shell kept so initRoomDeliveryCard() doesn't crash -->
+    <div style="display:none;" id="settings-homebg-card"></div>
+
+    <!-- ── LUCKY DRAW / CAMPAIGN BANNER ── moved to Campaigns page -->
+    <div class="stat-card" style="border-left:3px solid #c0392b;grid-column:1/-1;padding:14px 18px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="material-symbols-outlined ms" style="font-size:22px;color:#c0392b;flex-shrink:0;">campaign</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#111827;">Lucky Draw &amp; Campaign Banner</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:2px;">Moved to the <strong>Campaigns</strong> section in the sidebar.</div>
+        </div>
+        <button onclick="navAdmin('campaigns')" class="btn" style="margin-left:auto;padding:8px 16px;background:#c0392b;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;flex-shrink:0;">Go to Campaigns</button>
+      </div>
+    </div>
+
+    <!-- kept for compatibility: hidden card shells so initRoomDeliveryCard() doesn't crash -->
+    <div style="display:none;" id="settings-homebg-card-compat"></div>
     <div style="display:none;" id="settings-upi-card"><input id="s-upi-url" type="hidden"><img id="s-upi-preview" style="display:none;"><span id="s-upi-ph"></span></div>
     <div style="display:none;" id="settings-store-card"><input id="s-store-name" type="hidden"><input id="s-delivery-time" type="hidden"><input id="s-phone" type="hidden"></div>
     <div style="display:none;" id="settings-index-card"></div>
@@ -2176,7 +2370,8 @@ async function loadSettings(){
     const{db,doc,getDoc}=window._fb;
     const pSnap=await getDoc(doc(db,'settings','payment'));
     if(pSnap.exists()){upiQrUrl=pSnap.data().upiQrUrl||'';updateUpiQrUI();const i=document.getElementById('s-upi-url');if(i)i.value=upiQrUrl;}
-    try{const hSnap=await getDoc(doc(db,'settings','homepage'));if(hSnap.exists()){const h=hSnap.data()||{};const u=document.getElementById('s-hbg-url');const o=document.getElementById('s-hbg-ov');if(u)u.value=h.bgUrl||'';if(o&&h.overlay!==undefined)o.value=h.overlay;previewHomeBg();}}catch(e){}
+    try{const hSnap=await getDoc(doc(db,'settings','homepage'));if(hSnap.exists()){const h=hSnap.data()||{};const u=document.getElementById('s-hbg-url');const o=document.getElementById('s-hbg-ov');const ov=document.getElementById('s-hbg-ov-val');if(u)u.value=h.bgUrl||'';if(o&&h.overlay!==undefined){o.value=h.overlay;if(ov)ov.textContent=h.overlay+'%';}previewHomeBg();}}catch(e){}
+    // Lucky Draw moved to Campaigns page — loaded via navAdmin('campaigns')
     const sSnap=await getDoc(doc(db,'settings','store'));
     if(sSnap.exists()){
       const d=sSnap.data();
@@ -4359,8 +4554,269 @@ function updateUpiQrUI(){}
 async function saveUpiQr(){showToast('UPI QR setting removed — not in use');}
 function homeBgValidUrl(u){return /^https?:\/\//i.test(u)||/^data:image\//i.test(u);}
 function homeBgCss(url,ov){const o=Math.min(Math.max(Number(ov),0),90);const a=(isNaN(o)?45:o)/100;const safe=url.replace(/["'()\\\s]/g,c=>encodeURIComponent(c));return `linear-gradient(rgba(255,255,255,${a}),rgba(255,255,255,${a})), url("${safe}") center/cover no-repeat`;}
+// background photo feature removed — stubs kept so old calls don't crash
 function previewHomeBg(){}
 async function saveHomeBg(){}
+async function clearHomeBg(){}
+
+// ── Lucky Draw Admin ──
+function syncColor(pickerId,hexId){
+  const picker=document.getElementById(pickerId);
+  const hex=document.getElementById(hexId);
+  if(!picker||!hex)return;
+  if(picker===document.activeElement){hex.value=picker.value;}
+  else{const v=hex.value.trim();if(/^#[0-9a-fA-F]{6}$/.test(v))picker.value=v;}
+}
+function escLd(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function previewLuckyDraw(){
+  const title=document.getElementById('ld-title')?.value||'Lucky Draw!';
+  const sub=document.getElementById('ld-subtitle')?.value||'Every order enters you into our lucky draw!';
+  const eyebrow=document.getElementById('ld-eyebrow')?.value||'';
+  const icon=document.getElementById('ld-icon')?.value||'🎁';
+  const btnText=document.getElementById('ld-btn-text')?.value||'Shop & Enter 🎁';
+  const badge=document.getElementById('ld-badge')?.value||'';
+  const c1=document.getElementById('ld-color1')?.value||'#c0392b';
+  const c2=document.getElementById('ld-color2')?.value||'#962d22';
+  const c3=document.getElementById('ld-color3')?.value||'#1a5c2a';
+  // sync hex inputs from colour picker
+  const setHex=(hid,v)=>{const el=document.getElementById(hid);if(el&&el!==document.activeElement)el.value=v;};
+  setHex('ld-color1-hex',c1);setHex('ld-color2-hex',c2);setHex('ld-color3-hex',c3);
+  const pv=document.getElementById('ld-preview');
+  if(pv)pv.style.background=`linear-gradient(135deg,${c1},${c2} 40%,${c3})`;
+  const pvTitle=document.getElementById('ld-pv-title');
+  const pvSub=document.getElementById('ld-pv-sub');
+  const pvIcon=document.getElementById('ld-pv-icon');
+  const pvBtn=document.getElementById('ld-pv-btn');
+  const pvBadge=document.getElementById('ld-pv-badge');
+  const pvEyebrow=document.getElementById('ld-pv-eyebrow');
+  if(pvTitle)pvTitle.textContent=title;
+  if(pvSub)pvSub.textContent=sub;
+  if(pvIcon)pvIcon.textContent=icon||'🎁';
+  if(pvBtn)pvBtn.textContent=btnText;
+  if(pvBadge){pvBadge.textContent=badge;pvBadge.style.display=badge?'inline-block':'none';}
+  if(pvEyebrow){pvEyebrow.textContent=eyebrow;pvEyebrow.style.display=eyebrow?'':'none';}
+}
+function previewLuckyDrawEffects(){
+  const snowOn = document.getElementById('ld-snowfall')?.checked;
+  const santaOn = document.getElementById('ld-santa')?.checked;
+  // Santa overlay
+  const santaEl = document.getElementById('ld-santa-overlay');
+  if(santaEl) santaEl.style.display = santaOn ? '' : 'none';
+  // Stars scatter
+  const starsEl = document.getElementById('ld-stars-overlay');
+  if(starsEl){
+    if(santaOn){
+      const stars=['⭐','✨','🌟','💫'];
+      let html='';
+      for(let i=0;i<12;i++){
+        const s=stars[Math.floor(Math.random()*stars.length)];
+        const x=Math.random()*90;const y=Math.random()*90;
+        const sz=10+Math.random()*10;const op=0.4+Math.random()*0.6;
+        html+=`<span style="position:absolute;left:${x}%;top:${y}%;font-size:${sz}px;opacity:${op};pointer-events:none;">${s}</span>`;
+      }
+      starsEl.innerHTML=html;starsEl.style.display='';
+    } else {starsEl.innerHTML='';starsEl.style.display='none';}
+  }
+  // Admin preview snowfall canvas
+  const c = document.getElementById('ld-snow-canvas');
+  if(!c) return;
+  if(snowOn){
+    c.style.display = 'block';
+    // size canvas to preview div
+    const pv = document.getElementById('ld-preview');
+    if(pv){c.width=pv.offsetWidth||400;c.height=pv.offsetHeight||120;}
+    if(!c._snowRaf) _startPreviewSnow(c);
+  } else {
+    c.style.display = 'none';
+    if(c._snowRaf){cancelAnimationFrame(c._snowRaf);c._snowRaf=null;}
+    const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);
+  }
+}
+function _startPreviewSnow(c){
+  const ctx=c.getContext('2d');
+  let W=c.width,H=c.height;
+  const flakes=[];
+  for(let i=0;i<40;i++) flakes.push({x:Math.random()*W,y:Math.random()*H,r:1+Math.random()*2.5,sp:0.4+Math.random()*0.8,d:Math.random()*Math.PI*2,sw:0.2+Math.random()*0.4});
+  let frame=0;
+  function draw(){
+    if(!c._snowRaf) return;
+    W=c.width;H=c.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,255,255,0.9)';ctx.beginPath();
+    flakes.forEach(f=>{
+      ctx.moveTo(f.x,f.y);ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+      f.y+=f.sp;f.x+=Math.sin(f.d+frame*0.015)*f.sw;
+      if(f.y>H+6){f.y=-6;f.x=Math.random()*W;}
+      if(f.x>W+6)f.x=-6;if(f.x<-6)f.x=W+6;
+    });
+    ctx.fill();frame++;
+    c._snowRaf=requestAnimationFrame(draw);
+  }
+  c._snowRaf=requestAnimationFrame(draw);
+}
+async function saveLuckyDraw(){
+  const active=document.getElementById('ld-active')?.checked||false;
+  const title=document.getElementById('ld-title')?.value||'Lucky Draw!';
+  const subtitle=document.getElementById('ld-subtitle')?.value||'Every order enters you into our lucky draw. Big prizes await!';
+  const eyebrow=document.getElementById('ld-eyebrow')?.value||'';
+  const icon=document.getElementById('ld-icon')?.value||'🎁';
+  const btnText=document.getElementById('ld-btn-text')?.value||'Shop & Enter 🎁';
+  const btnAction=document.getElementById('ld-btn-action')?.value||"nav('browse')";
+  const badge=document.getElementById('ld-badge')?.value||'';
+  const expiresRaw=document.getElementById('ld-expires')?.value||'';
+  const expiresAt=expiresRaw?new Date(expiresRaw).toISOString():'';
+  const snowfall=document.getElementById('ld-snowfall')?.checked||false;
+  const santa=document.getElementById('ld-santa')?.checked||false;
+  const color1=document.getElementById('ld-color1')?.value||'#c0392b';
+  const color2=document.getElementById('ld-color2')?.value||'#962d22';
+  const color3=document.getElementById('ld-color3')?.value||'#1a5c2a';
+  const{db,doc,setDoc}=window._fb;
+  await setDoc(doc(db,'cms','lucky_draw'),{active,title,subtitle,eyebrow,icon,btnText,btnAction,badge,expiresAt,snowfall,santa,color1,color2,color3},{merge:false});
+  showToast(active?'🎁 Campaign banner saved & live!':'Campaign banner saved (hidden)');
+}
+async function clearLuckyDraw(){
+  if(!confirm('Remove the campaign banner from the storefront?'))return;
+  document.getElementById('ld-active').checked=false;
+  const{db,doc,setDoc}=window._fb;
+  await setDoc(doc(db,'cms','lucky_draw'),{active:false},{merge:true});
+  showToast('Campaign banner removed');
+}
+async function loadLuckyDrawAdmin(){
+  try{
+    const{db,doc,getDoc}=window._fb;
+    const snap=await getDoc(doc(db,'cms','lucky_draw'));
+    const d=snap.exists()?snap.data():{};
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    set('ld-title',d.title);set('ld-subtitle',d.subtitle);set('ld-eyebrow',d.eyebrow);
+    set('ld-icon',d.icon);set('ld-btn-text',d.btnText);set('ld-badge',d.badge);
+    // colours
+    const setColor=(pid,hid,val,def)=>{
+      const picker=document.getElementById(pid);const hex=document.getElementById(hid);
+      const v=val&&/^#[0-9a-fA-F]{6}$/.test(val)?val:def;
+      if(picker)picker.value=v;if(hex)hex.value=v;
+    };
+    setColor('ld-color1','ld-color1-hex',d.color1,'#c0392b');
+    setColor('ld-color2','ld-color2-hex',d.color2,'#962d22');
+    setColor('ld-color3','ld-color3-hex',d.color3,'#1a5c2a');
+    // snowfall + santa
+    const sf=document.getElementById('ld-snowfall');if(sf)sf.checked=!!d.snowfall;
+    const sa=document.getElementById('ld-santa');if(sa)sa.checked=!!d.santa;
+    if(d.expiresAt&&document.getElementById('ld-expires')){
+      try{const dt=new Date(d.expiresAt);const pad=n=>String(n).padStart(2,'0');document.getElementById('ld-expires').value=`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;}catch(_){}
+    }
+    if(d.btnAction&&document.getElementById('ld-btn-action'))document.getElementById('ld-btn-action').value=d.btnAction;
+    if(document.getElementById('ld-active'))document.getElementById('ld-active').checked=!!d.active;
+    previewLuckyDraw();
+    previewLuckyDrawEffects();
+    // Restore saved winner if any
+    if(d.winner){renderLdWinner(d.winner);}
+    // Load entries
+    await refreshLdEntries();
+  }catch(e){console.error('loadLuckyDrawAdmin:',e);}
+}
+async function refreshLdEntries(){
+  try{
+    const{db,collection,getDocs,query,orderBy}=window._fb;
+    let snap;
+    try{
+      snap=await getDocs(query(collection(db,'lucky_draw_entries'),orderBy('enrolledAt','asc')));
+    }catch(idxErr){
+      // Composite index may not exist — fall back to unordered fetch, sort client-side
+      snap=await getDocs(collection(db,'lucky_draw_entries'));
+    }
+    const entries=[];snap.forEach(e=>entries.push({id:e.id,...e.data()}));
+    entries.sort((a,b)=>{
+      const ta=a.enrolledAt?.toMillis?a.enrolledAt.toMillis():(a.enrolledAt||0);
+      const tb=b.enrolledAt?.toMillis?b.enrolledAt.toMillis():(b.enrolledAt||0);
+      return ta-tb;
+    });
+    const countEl=document.getElementById('ld-entry-count');
+    const listEl=document.getElementById('ld-entries-list');
+    const pickBtn=document.getElementById('ld-pick-btn');
+    if(countEl)countEl.textContent=`${entries.length} participant${entries.length===1?'':'s'} enrolled`;
+    if(pickBtn)pickBtn.style.display=entries.length>0?'':'none';
+    const resetBtn=document.getElementById('ld-reset-btn');
+    if(resetBtn)resetBtn.style.display=entries.length>0?'':'none';
+    if(listEl){
+      if(entries.length===0){
+        listEl.innerHTML='<p style="font-size:13px;color:#9ca3af;text-align:center;padding:14px 0;">No participants yet. Campaign must be active and customers must place their first order.</p>';
+      } else {
+        listEl.innerHTML=entries.map((e,i)=>`
+          <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 14px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#c0392b;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:700;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escLd(e.name||'—')}</div>
+              <div style="font-size:11px;color:#9ca3af;">${escLd(e.phone||'')}${e.phone&&e.userEmail?' · ':''}${escLd(e.userEmail||'')}</div>
+            </div>
+          </div>`).join('');
+      }
+    }
+  }catch(e){showToast('Error loading entries');console.error(e);}
+}
+function renderLdWinner(w){
+  const wb=document.getElementById('ld-winner-banner');
+  const wn=document.getElementById('ld-winner-name');
+  const wp=document.getElementById('ld-winner-phone');
+  if(wb)wb.style.display='';
+  if(wn)wn.textContent=w.name||'—';
+  if(wp)wp.textContent=[w.phone,w.email].filter(Boolean).join(' · ');
+}
+async function pickLuckyWinner(){
+  if(!confirm('Pick a random winner from all enrolled participants? This will be saved to the campaign.'))return;
+  try{
+    const{db,collection,getDocs,doc,setDoc}=window._fb;
+    const snap=await getDocs(collection(db,'lucky_draw_entries'));
+    const entries=[];snap.forEach(e=>entries.push({id:e.id,...e.data()}));
+    if(entries.length===0){showToast('No participants to pick from!');return;}
+    const winner=entries[Math.floor(Math.random()*entries.length)];
+    await setDoc(doc(db,'cms','lucky_draw'),{winner:{name:winner.name||'',phone:winner.phone||'',email:winner.userEmail||'',userId:winner.userId||''}},{merge:true});
+    renderLdWinner({name:winner.name,phone:winner.phone,email:winner.userEmail});
+    showToast(`🏆 Winner: ${winner.name}`);
+  }catch(e){showToast('Error picking winner');console.error(e);}
+}
+async function clearLdWinner(){
+  if(!confirm('Clear the saved winner?'))return;
+  const{db,doc,setDoc}=window._fb;
+  await setDoc(doc(db,'cms','lucky_draw'),{winner:null},{merge:true});
+  const wb=document.getElementById('ld-winner-banner');if(wb)wb.style.display='none';
+  showToast('Winner cleared');
+}
+
+async function resetLdEntries(){
+  const countEl=document.getElementById('ld-entry-count');
+  const currentCount=countEl?.textContent||'';
+  if(!confirm(`⚠️ This will permanently delete ALL enrolled participants from the list.\n\nThis cannot be undone. Use this after a campaign ends and a winner has been picked.\n\nAre you sure you want to reset the enrolled list?`))return;
+  try{
+    const{db,collection,getDocs,doc,deleteDoc,setDoc}=window._fb;
+    // Fetch all entries
+    const snap=await getDocs(collection(db,'lucky_draw_entries'));
+    if(snap.empty){showToast('No entries to reset');return;}
+    // Delete every entry in batches of 500 (Firestore batch limit)
+    const{writeBatch}=window._fb;
+    const total=snap.size;
+    let batch=writeBatch(db);
+    let batchCount=0;
+    for(const entry of snap.docs){
+      batch.delete(doc(db,'lucky_draw_entries',entry.id));
+      batchCount++;
+      if(batchCount===490){
+        await batch.commit();
+        batch=writeBatch(db);
+        batchCount=0;
+      }
+    }
+    if(batchCount>0)await batch.commit();
+    // Also clear the winner from cms/lucky_draw
+    await setDoc(doc(db,'cms','lucky_draw'),{winner:null},{merge:true});
+    const wb=document.getElementById('ld-winner-banner');if(wb)wb.style.display='none';
+    // Refresh the UI
+    await refreshLdEntries();
+    showToast(`✅ Reset complete — ${total} entr${total===1?'y':'ies'} deleted`);
+  }catch(e){
+    showToast('Error resetting entries');
+    console.error('resetLdEntries:',e);
+  }
+}
 async function removeHomeBg(){}
 async function removeUpiQr(){showToast('UPI QR setting removed — not in use');}
 async function saveStoreSettings(){showToast('Store settings removed — not in use');}
@@ -6983,7 +7439,7 @@ function navAdmin(page){
   document.querySelectorAll('.page-content').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
-  const titles={dashboard:'Dashboard',orders:'Order Management',products:'Products',stock:'Stock Management',categories:'Categories',preorder:'Pre-order',purchases:'Purchase Records',billing:'Billing',workers:'Workers',hostels:'Hostel Management',pickuppoints:'Pickup Points',customers:'Customers',analytics:'Analytics',promos:'Promo Codes',chats:'Support Chats',cms:'Content Management',settings:'Settings'};
+  const titles={dashboard:'Dashboard',orders:'Order Management',products:'Products',stock:'Stock Management',categories:'Categories',preorder:'Pre-order',purchases:'Purchase Records',billing:'Billing',workers:'Workers',hostels:'Hostel Management',pickuppoints:'Pickup Points',customers:'Customers',analytics:'Analytics',promos:'Promo Codes',campaigns:'Campaigns & Marketing',chats:'Support Chats',cms:'Content Management',settings:'Settings'};
   document.getElementById('page-title').textContent=titles[page]||page;
   if(page==='orders'){renderOrdersTable();renderOrderChips();}
   if(page==='products')renderProductsAdmin();
@@ -7000,6 +7456,7 @@ function navAdmin(page){
   if(page==='billing')initBillingPage();
   if(page==='categories')renderCategoriesAdmin();
   if(page==='preorder')loadPreorderAdmin();
+  if(page==='campaigns'){loadLuckyDrawAdmin();}
   if(page==='cms'){renderBanners();renderFaqs();renderBlogs();}
   if(page==='settings'){
     initRoomDeliveryCard();
